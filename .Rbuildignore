@@ -5,3 +5,4 @@
 ^.*\.jar$
 ^HANDOFF\.md$
 ^\.worktrees$
+^\.git$
