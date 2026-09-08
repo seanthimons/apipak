@@ -521,6 +521,28 @@ from reviewed baseline behavior/specifications, not solely the wrapper being
 tested. Preserve bespoke suites and actually run them; a file mentioning the
 wrapper and `test_that` is only structural evidence.
 
+**Question 2 resolved (2026-09-08): diagnose wrapper failures before changing
+code.** The user rejected treating a failing wrapper as automatic authorization
+for a wrapper bug fix. Determine whether the stubbing process generated an
+incorrect wrapper/request or the endpoint is unavailable. First reproduce with
+deterministic local fixtures and inspect the generated signature, method, URL,
+parameter placement, serialization, and hook/response handling against the
+schema and intended contract. An offline failure cannot establish an outage.
+Where needed, use a bounded live comparison of the wrapper and an independently
+constructed equivalent request, with valid example inputs and the same service,
+authentication, and environment. Record sanitized request details, response
+status/body, and time; do not re-record cassettes as part of diagnosis.
+
+If generation is wrong, fix the responsible generation/configuration step and
+add a regression test rather than patching generated output. If evidence shows
+an endpoint outage, record it separately and retain offline contract coverage;
+do not rewrite the wrapper or weaken assertions to make the live check pass.
+Authentication, invalid inputs, schema drift, client-runtime failures, and
+fixture defects can also explain failures: report the supported diagnosis, or
+mark it unresolved when evidence is insufficient. A failed live request alone
+does not prove the endpoint is down. Missing credentials or inability to perform
+an essential live comparison remain explicit verification limitations.
+
 Maintain an observed manual-wrapper inventory alongside schema operations so
 PubChem and other existing wrappers absent from CTX/Chemi/EPI schemas do not lose
 tests. This is maintenance of existing code, not the deferred feature of authoring
