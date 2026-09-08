@@ -20,7 +20,7 @@ loading_acceptance <- function() {
   }
   previous_options <- options()
   previous_search <- search()
-  requireNamespace('wrapmaint', quietly = TRUE)
+  requireNamespace('apipak', quietly = TRUE)
   stopifnot(
     identical(previous_options, options()),
     identical(previous_search, search()),

@@ -1,4 +1,4 @@
-# wrapmaint
+# apipak
 
 Development-only API wrapper maintenance tools, version 0.1.0.
 Install this package for generation and checks. Generated clients retain their
@@ -9,8 +9,8 @@ attach client packages, make requests or change options.
 ```r
 spec <- list(files = '/absolute/path/schema.json', helper = 'request_helper',
   policy_version = 'reviewed-1')
-wrapmaint::generate_client('/absolute/client', spec, 'plan')
-wrapmaint::generate_client('/absolute/client', spec, 'apply')
+apipak::generate_client('/absolute/client', spec, 'plan')
+apipak::generate_client('/absolute/client', spec, 'apply')
 ```
 
 The default helper contract is `method`, `path`, `path_params`, `query`, `body`.

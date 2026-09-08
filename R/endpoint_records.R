@@ -2,7 +2,7 @@
 # adds validated source metadata that legacy comma-separated columns cannot
 # represent (location identity, serialization and explicit default presence).
 endpoint_records <- function(document, operations) {
-  context <- new.env(parent = asNamespace('wrapmaint'))
+  context <- new.env(parent = asNamespace('apipak'))
   context[['%||%']] <- function(x, y) {
     if (is.null(x) || is.atomic(x) && length(x) == 1L && is.na(x)) y else x
   }

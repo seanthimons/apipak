@@ -40,7 +40,7 @@ bind_tools <- function(group, envir) {
     assign('resolve_stack', new.env(hash = TRUE, parent = emptyenv()), envir)
   }
   for (name in tool_groups[[group]]) {
-    fn <- get(name, envir = asNamespace('wrapmaint'))
+    fn <- get(name, envir = asNamespace('apipak'))
     environment(fn) <- envir
     assign(name, fn, envir = envir)
   }

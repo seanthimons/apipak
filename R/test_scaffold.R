@@ -159,7 +159,7 @@ tg_scaffold_generated_tests <- function(
     character(1),
     root = root
   )
-  wrapmaint::apply_files(
+  apipak::apply_files(
     root,
     output,
     remove = setdiff(removals, names(output)),

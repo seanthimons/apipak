@@ -3,3 +3,5 @@
 ^.*\.tar\.gz$
 ^evidence$
 ^.*\.jar$
+^HANDOFF\.md$
+^\.worktrees$

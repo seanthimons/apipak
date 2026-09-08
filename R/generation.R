@@ -211,7 +211,7 @@ generate_client <- function(root, spec, mode = c('check', 'plan', 'apply')) {
     operations = parsed$operations,
     diagnostics = parsed$diagnostics,
     manifest = list(
-      toolkit_version = as.character(utils::packageVersion('wrapmaint')),
+      toolkit_version = as.character(utils::packageVersion('apipak')),
       inputs = tools::md5sum(spec$files),
       policy_version = spec$policy_version %or% 'unspecified'
     )

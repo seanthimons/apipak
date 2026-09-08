@@ -1,4 +1,4 @@
-Package: wrapmaint
+Package: apipak
 Title: Local API Wrapper Maintenance Tools
 Version: 0.1.0
 Authors@R: person('Sean', 'Thimons', role = c('aut', 'cre'), email = 'sxthi@outlook.com')

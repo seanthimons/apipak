@@ -1,5 +1,5 @@
-\name{wrapmaint}
-\alias{wrapmaint}
+\name{apipak}
+\alias{apipak}
 \alias{bind_tools}
 \alias{read_operations}
 \alias{compare_operations}

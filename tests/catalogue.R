@@ -1,5 +1,5 @@
 catalogue_acceptance <- function() {
-  fixture <- system.file('catalogue', package = 'wrapmaint', mustWork = TRUE)
+  fixture <- system.file('catalogue', package = 'apipak', mustWork = TRUE)
   root <- tempfile('catalogue-client-')
   dir.create(root)
   file.copy(list.files(fixture, full.names = TRUE), root, recursive = TRUE)
@@ -65,9 +65,9 @@ catalogue_acceptance <- function() {
     )
   )
   manual <- tools::md5sum(file.path(root, 'R/helper.R'))
-  first <- wrapmaint::generate_client(root, spec, 'apply')
+  first <- apipak::generate_client(root, spec, 'apply')
   stopifnot(length(first$operations) == 4L, length(first$diagnostics) == 0L)
-  second <- wrapmaint::generate_client(root, spec, 'apply')
+  second <- apipak::generate_client(root, spec, 'apply')
   stopifnot(
     all(vapply(second$files, function(f) f$action == 'unchanged', logical(1))),
     identical(manual, tools::md5sum(file.path(root, 'R/helper.R')))
@@ -167,7 +167,7 @@ catalogue_acceptance <- function() {
   }
   check <- function(call, expected, result) {
     localcatalogue::clear_calls()
-    wrapmaint::check_requests(call, expected, localcatalogue::captured, result)
+    apipak::check_requests(call, expected, localcatalogue::captured, result)
   }
   check(
     function() localcatalogue::get_item(' a/b ', language = 'fr'),
@@ -255,9 +255,9 @@ catalogue_acceptance <- function() {
   config <- list(get_item = list(pre_request = 'normalize_input'))
   wrappers <- list(get_item = getExportedValue('localcatalogue', 'get_item'))
   stopifnot(
-    wrapmaint::validate_hooks(config, wrappers, hooks_a)$valid,
-    wrapmaint::validate_hooks(config, wrappers, hooks_b)$valid,
-    !wrapmaint::validate_hooks(
+    apipak::validate_hooks(config, wrappers, hooks_a)$valid,
+    apipak::validate_hooks(config, wrappers, hooks_b)$valid,
+    !apipak::validate_hooks(
       config,
       wrappers,
       new.env(parent = emptyenv())
@@ -273,9 +273,9 @@ catalogue_acceptance <- function() {
   )
   changed_file <- tempfile(fileext = '.json')
   jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
-  new <- wrapmaint::read_operations(changed_file)
-  delta <- wrapmaint::compare_operations(
-    wrapmaint::read_operations(spec$files),
+  new <- apipak::read_operations(changed_file)
+  delta <- apipak::compare_operations(
+    apipak::read_operations(spec$files),
     new
   )
   stopifnot(
@@ -287,7 +287,7 @@ catalogue_acceptance <- function() {
   )
   changed$components$schemas$Item$required <- list('code')
   jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
-  alternate <- wrapmaint::read_operations(changed_file)
+  alternate <- apipak::read_operations(changed_file)
   stopifnot(
     identical(
       names(first$operations$create_item$body$properties),
@@ -302,22 +302,22 @@ catalogue_acceptance <- function() {
   jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
   spec$files <- changed_file
   before <- tools::md5sum(file.path(root, 'R/create_item.R'))
-  unsupported <- wrapmaint::generate_client(root, spec, 'apply')
+  unsupported <- apipak::generate_client(root, spec, 'apply')
   stopifnot(
     length(unsupported$diagnostics) == 2L,
     identical(before, tools::md5sum(file.path(root, 'R/create_item.R')))
   )
-  fails(wrapmaint::apply_files(
+  fails(apipak::apply_files(
     root,
     list('../escape.R' = 'x <- 1'),
     mode = 'apply'
   ))
-  fails(wrapmaint::apply_files(
+  fails(apipak::apply_files(
     root,
     list('R/get_item.R' = 'invalid ('),
     mode = 'apply'
   ))
-  protected <- wrapmaint::apply_files(
+  protected <- apipak::apply_files(
     root,
     list('R/helper.R' = 'stop("overwrite")'),
     mode = 'apply'
@@ -328,8 +328,8 @@ catalogue_acceptance <- function() {
   )
   # Runtime package metadata and namespaces contain no toolkit dependency.
   stopifnot(
-    !'wrapmaint' %in% names(getNamespaceImports('localcatalogue')),
-    !'wrapmaint' %in%
+    !'apipak' %in% names(getNamespaceImports('localcatalogue')),
+    !'apipak' %in%
       unlist(tools::package_dependencies(
         'localcatalogue',
         db = installed.packages(lib.loc = library_dir)
