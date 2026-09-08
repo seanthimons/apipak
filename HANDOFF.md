@@ -2,9 +2,19 @@
 
 **Generated**: 2026-09-08 14:26 -04:00
 **Hardened**: 2026-09-08, with source-level audit and implementation rules below.
+**Final readiness review**: 2026-09-08; conversation/scope cross-check, local
+source/setup review, PR merge recheck, and six offline probes rerun. Production
+baseline and implementation acceptance have not been rerun or established here.
 **Branch**: `docs/apipak-generalization-handoff`
 **Status**: Ready for implementation under a subsequent goal command.
 **Authority**: User-approved plan, cross-checked against the planning conversation.
+
+This is the controlling handoff. The original ComptoxR handoff is historical
+evidence; this document's later decisions supersede conflicting proposals there.
+The product decisions and five question resolutions are user-approved. Exact
+field names and technical mechanisms below are implementation defaults, not
+claims of individually approved interfaces; choose simpler equivalent mechanisms
+when they preserve the stated contracts and acceptance evidence.
 
 ## Goal
 
@@ -189,6 +199,12 @@ configuration; avoid two editable sources of truth for the same hook setting.
   contracts and ownership. Exclude this handoff from built package artifacts when
   updating package build configuration.
 
+Implement the first complete YAML-to-output path for one representative ComptoxR
+operation with hooks and one catalogue operation before migrating all services.
+Exercise docs, tests, plan/check/apply and a no-op second apply on that path.
+Then expand using the same machinery; do not postpone integration until after
+extracting the entire legacy renderer.
+
 ### Phase 1: YAML and one operation inventory
 
 - [ ] Implement one versioned YAML loader/validator feeding the existing R model.
@@ -294,9 +310,11 @@ and the catalogue rather than requiring another maintained product.
   and text/plain bodies, multipart uploads, and JSON/SVG responses. Handle observed
   schema quirks through documented configuration or generic support, not hidden
   chemistry-specific branches. Resolve the server against the recorded origin.
-- [ ] Cover supported representative cases with independent request expectations and successful
-  return assertions. Use deterministic local HTTP tests for query/path encoding,
-  null/array handling, uploads, body media, errors, and response decoding.
+- [ ] Cover supported representative cases with independent request expectations
+  and successful return assertions. Use deterministic local HTTP tests for the
+  supported query/path encoding, null/array handling, body media, and response
+  decoding. Uploads or other unsupported features require diagnostic tests,
+  not mandatory implementation solely because NP contains them.
 - [ ] Report unsupported features and test that they produce actionable
   diagnostics without silent omission or unsafe generation. Extending support
   for every NP feature is not required to finish this migration.
@@ -611,10 +629,13 @@ successful R process exit alone as proof that test expectations passed.
 
 ### 9. Define the release and escalation boundary
 
-If PR 309 is still unmerged, create the ComptoxR implementation branch from its
-reviewed production-policy head as a dependent branch rather than blocking work
-or dropping those changes. Rebase onto the normal integration base once merged;
-do not merge or release PR 309 merely to simplify this task.
+PR 309 is merged at the revision recorded above. Follow ComptoxR's current
+contribution workflow, but verify the chosen implementation base contains its
+production-policy changes; an older integration branch may not. Use a dedicated
+branch from a verified base containing those changes and document the base.
+Start the toolkit implementation branch from this handoff branch so the plan
+and tracked audit script travel with the implementation, not from the older
+implementation-only commit. Recheck both repositories for intervening work.
 
 A candidate apipak archive can be installed from a local build into an isolated
 library during development. Do not keep running the old pinned installer after
@@ -634,16 +655,24 @@ with these rules. Pause only for an actual public-contract change that cannot be
 preserved, unexplained user-edited/protected output blocking the result, missing
 credentials/permissions for an essential external action, or a naming/publication
 conflict that cannot use the stated defaults. Ordinary parser gaps, callback
-extraction, baseline fixes, and new generic support are implementation work.
+extraction, and fixes within the diagnosed migration scope are implementation
+work. Apply Question 2's diagnosis rule before fixing any baseline failure;
+do not expand into unrelated runtime repair or mandatory NP feature support.
 Do not silently redefine acceptance to avoid them.
 
 ### 10. Keep new-client HTTP behavior explicit and bounded
 
+The following rules define behavior for supported features. They do not require
+implementing every listed media/schema shape during this migration. Declare the
+supported subset, cover ComptoxR's existing contracts and the catalogue, and
+diagnose unsupported NP shapes explicitly. General new-client initialization
+and client-owned helper generation remain required.
+
 New-client initialization requires package metadata or obtains it from an
 existing DESCRIPTION; it must not silently assign apipak's authors/license to
 someone else's package. Use explicit test metadata for temporary test packages.
-Initialize only absent
-scaffold files, and report existing-file conflicts without overwriting them.
+Initialize only absent scaffold files, and report existing-file conflicts
+without overwriting them.
 The generated client declares its own httr2/runtime dependencies; apipak remains
 development-only. Existing ComptoxR initialization must not replace its helpers.
 
@@ -694,17 +723,35 @@ See [httr2 body primitives](https://httr2.r-lib.org/reference/req_body.html).
    ```
 
    Also run R CMD check. Update package-name references as part of renaming.
-4. In the appropriate ComptoxR checkout, install its reviewed pin for baseline
-   checks, then repeat with the candidate toolkit during migration:
+4. Run baseline checks in an isolated ComptoxR checkout and a fresh R process.
+   Use a sourceable driver for the following setup; the installer downloads the
+   reviewed artifact, but the test lane must not contact production APIs:
 
    ```r
+   Sys.setenv(COMPTOXR_CRAN_SAFE_TESTS = 'true', NOT_CRAN = 'false',
+              LC_ALL = 'C')
+   Sys.unsetenv(c('ctx_api_key', 'GITHUB_OUTPUT'))
+   baseline_lib <- tempfile('wrapmaint-baseline-lib-')
+   dir.create(baseline_lib)
+   .libPaths(c(baseline_lib, .libPaths()))
+   Sys.setenv(R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep))
    source('dev/install_toolkit.R')
-   install_toolkit()
+   install_toolkit(lib = baseline_lib)
    devtools::test(
      filter = 'generate_tests_pipeline|stub_generation|diff_schemas|hooks',
      stop_on_failure = TRUE
    )
    ```
+
+   Launch the CLI commands below as subprocesses of this configured driver so
+   they inherit its library and offline settings, rather than in an unrelated
+   shell using another installed toolkit. Set `LC_ALL=C` in the launching shell
+   as well when the inherited startup locale is unsupported. Existing helpers
+   select VCR recording mode `none`. Record skips and warnings as well as failed
+   expectations. For candidate validation, start a fresh process/library and
+   install the local apipak build instead of rerunning the legacy installer.
+   After publication, repeat using the updated verified pin. Record actual
+   installed package paths, versions, input hashes, and exit/test statuses.
 
    ```sh
    Rscript dev/generate_stubs.R --check --rebuild=ct --rebuild=chemi --rebuild=epi
@@ -730,6 +777,32 @@ See [httr2 body primitives](https://httr2.r-lib.org/reference/req_body.html).
    must be delivered before expanding for Natural Products schema cases. Overall
    completion requires the schema stress-test evidence above, not a second
    maintained client or proof of NP service availability.
+
+## Completion Evidence Required
+
+The implementer must leave a compact verification report with source revisions,
+commands, outcomes, and unresolved limitations. All of the following are needed:
+
+- Installed apipak acceptance and package check pass; record Windows/Linux
+  results and investigate new warnings/errors against the baseline.
+- ComptoxR's selected operation inventory, public contracts, hooks, examples,
+  tags, lifecycle badges, exports, and rendered docs retain verified parity.
+  Generated tests assert successful behavior; diagnosed upstream outages are
+  separate evidence, not passing live checks or automatic migration defects.
+- A definition/caller disposition inventory shows that reusable maintenance
+  implementation moved to apipak and only declarative policy, necessary client
+  callbacks, and thin maintenance commands remain in the migration scope.
+- Catalogue/new-client initialization works through the same YAML interface;
+  clients load and run offline without apipak as a runtime dependency.
+- Ownership, recovery, invalid inputs, client isolation, read-only check/plan,
+  deterministic second apply, and the six audit cases have passing regressions.
+- NP representative schema tests pass for supported cases; unsupported cases
+  are explicitly diagnosed. No NP product or live-service gate is added.
+- Reviewed immutable apipak artifact is downloadable and checksum-verified;
+  ComptoxR's development pin and workflow use it, with rollback documented.
+
+Do not call the migration complete based only on this planning review or local
+candidate tests if release/pin adoption or required verification remains pending.
 
 ## Setup Required
 
