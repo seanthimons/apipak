@@ -7,14 +7,17 @@ loading_acceptance <- function() {
   # with toolkit startup. The toolkit must add no client or process policy.
   for (package in c(
     'cli',
+    'digest',
     'dplyr',
     'fs',
     'jsonlite',
     'purrr',
     'readr',
+    'roxygen2',
     'stringr',
     'tibble',
-    'tidyr'
+    'tidyr',
+    'yaml'
   )) {
     requireNamespace(package, quietly = TRUE)
   }

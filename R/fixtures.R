@@ -1,6 +1,9 @@
 fixture_value <- function(schema, override = NULL) {
-  value <- override %or%
-    schema$example %or%
+  if (!missing(override) && is.null(override)) {
+    if (isTRUE(schema$nullable) || 'null' %in% schema$type) return(NULL)
+    stop('Explicit null fixture is not nullable')
+  }
+  value <- if (!missing(override)) override else schema$example %or%
     schema$default %or%
     schema$enum[[1L]]
   if (is.null(value)) {
@@ -50,12 +53,12 @@ operation_fixtures <- function(operations, overrides = list()) {
   lapply(operations, function(op) {
     inputs <- setNames(
       lapply(op$parameters, function(p) {
-        fixture_value(p$schema, overrides[[op$name]][[p$name]])
+        if (p$name %in% names(overrides[[op$name]])) fixture_value(p$schema, overrides[[op$name]][[p$name]]) else fixture_value(p$schema)
       }),
       parameter_names(op$parameters)
     )
     if (!is.null(op$body)) {
-      inputs$body <- body_fixture(op$body, overrides[[op$name]]$body)
+      inputs['body'] <- list(if ('body' %in% names(overrides[[op$name]])) body_fixture(op$body, overrides[[op$name]]$body) else body_fixture(op$body))
     }
     inputs
   })

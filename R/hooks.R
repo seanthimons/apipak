@@ -56,6 +56,7 @@ validate_hooks <- function(config, wrappers, hooks, callback = 'run_hook') {
   for (fn_name in names(hook_config)) {
     fn_config <- hook_config[[fn_name]]
     wrapper <- find_generated_wrapper(fn_name)
+    if (!isTRUE(wrapper$found)) errors <- c(errors, paste('Missing selected wrapper:', fn_name))
 
     # Validate hook function references
     if (!is.null(fn_config$transform)) {

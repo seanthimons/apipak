@@ -6,3 +6,4 @@
 ^HANDOFF\.md$
 ^\.worktrees$
 ^\.git$
+^\.github$

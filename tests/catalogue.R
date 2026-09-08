@@ -302,7 +302,8 @@ catalogue_acceptance <- function() {
   jsonlite::write_json(changed, changed_file, auto_unbox = TRUE)
   spec$files <- changed_file
   before <- tools::md5sum(file.path(root, 'R/create_item.R'))
-  unsupported <- apipak::generate_client(root, spec, 'apply')
+  unsupported <- apipak::generate_client(root, spec, 'plan')
+  fails(apipak::generate_client(root, spec, 'apply'))
   stopifnot(
     length(unsupported$diagnostics) == 2L,
     identical(before, tools::md5sum(file.path(root, 'R/create_item.R')))
@@ -320,7 +321,7 @@ catalogue_acceptance <- function() {
   protected <- apipak::apply_files(
     root,
     list('R/helper.R' = 'stop("overwrite")'),
-    mode = 'apply'
+    mode = 'plan'
   )
   stopifnot(
     protected[[1]]$action == 'protected',

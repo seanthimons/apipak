@@ -13,6 +13,67 @@ apipak::generate_client('/absolute/client', spec, 'plan')
 apipak::generate_client('/absolute/client', spec, 'apply')
 ```
 
+YAML projects use the same generation function:
+
+```r
+apipak::generate_client('/absolute/client', config = 'apipak.yml', mode = 'plan')
+```
+
+```yaml
+# apipak.yml
+config_version: 1
+package: exampleclient
+services: [apis/catalogue.yml]
+```
+
+```yaml
+# apis/catalogue.yml
+id: catalogue
+schemas:
+  files: [schema/catalogue.json]
+helper: request_helper
+selection:
+  methods: [GET, POST]
+  exclude: ['^/internal/']
+documentation: true
+```
+
+Paths resolve against the explicit client root. Service IDs distinguish identical
+method/path pairs in different APIs. Exclusions use case-sensitive stringr
+regexes against original schema paths, excluding a path if any pattern matches.
+Schema `patterns` expand deterministic root-relative globs; schema `exclude`
+matches basenames. Missing files or empty selectors fail. Unknown fields, invalid
+types, duplicate IDs/names, unsafe paths and executable YAML tags fail.
+
+Additional service fields are `names` (method/path to public name), `hooks`
+(wrapper to ordered `pre_request` and `post_response` chains), `hook_callback`,
+`policy_version`, `contracts`, `response_fixture`, and `prepare`. A preparation
+callback is resolved only in the explicitly supplied `callbacks` environment;
+it receives one operation and must preserve its identity. Configuration contains
+data, never R source. YAML aliases are supported, explicit keys override merges,
+and duplicate explicit keys are rejected.
+
+For a new client, supply its metadata explicitly:
+
+```r
+apipak::initialize_client(
+  '/absolute/newclient', '/absolute/schema.json',
+  package = 'newclient', title = 'Example API Client',
+  author = list(given = 'Your', family = 'Name', email = 'you@example.org'),
+  license = 'MIT + file LICENSE', base_url = 'https://api.example.org'
+)
+apipak::generate_client('/absolute/newclient', config = 'apipak.yml', mode = 'apply')
+```
+
+Initialization refuses existing-file conflicts. It generates a client-owned
+httr2 helper and declares httr2 in that client's DESCRIPTION. Existing package
+metadata is retained; apipak is never a runtime dependency. The generated helper
+makes one request, omits NULL query values while retaining false/zero, decodes
+JSON without vector simplification, returns text/SVG as strings and binary as
+raw bytes, and returns NULL for empty bodies. HTTP failures and malformed JSON
+raise errors. The supported generated request body is JSON; multipart and
+other unsupported schema constructs remain diagnostics.
+
 The default helper contract is `method`, `path`, `path_params`, `query`, `body`.
 The helper owns transport and serialization. A parameter named `page` causes
 one helper call. Optional `hooks` declare ordered `pre_request` and
@@ -49,11 +110,17 @@ and helper-call tests are regression checks, not general compatibility proof.
 The neutral renderer does not use this specialized policy.
 
 `apply_files()` parses all R output before any mutation. It protects files
-without the exact generated header (including legacy headers explicitly
-supplied by clients), restricts paths to the target root, prepares output and
-backups first, and restores backups after an apply error. A recovery journal
-is retained if applying output fails. A process termination during apply can
-leave that journal; restore its listed backups before another run. There is
+without verified ownership, restricts paths to the target root, prepares output
+and backups first, and verifies restoration after an apply error. Ownership
+hashes live in `.apipak/manifest.json`; a header alone cannot authorize replacing
+an existing file. Edited files and protected lifecycles prevent conflicting
+writes. Explicit exclusions can remove verified owned output; protected removals
+are reported as retained. Unsupported input never authorizes removal.
+
+A recovery journal blocks subsequent application. Review with
+`apipak::recover_client(root)` and restore with `apipak::recover_client(root, 'apply')`.
+Both legacy and current journals are recognized; every destination and backup
+is validated before restoration. Failed recovery retains its journal. There is
 no cross-file filesystem transaction. Client generation renders in isolation
 before this short apply step. Unsupported operations do not remove files.
 
@@ -66,8 +133,8 @@ and JSON placement. The helper does not send that request. Generated helper-call
 tests alone do not prove HTTP transport or upstream response conformance.
 
 The extracted compatibility code originates from ComptoxR commit `8f055b8`
-under its MIT license (Sean Thimons). Toolkit branding/public publication remains
-separate from the client migration.
+under its MIT license (Sean Thimons). Full ComptoxR migration and release/pin
+adoption are still in progress; see the development handoff for completion gates.
 
 References: [OpenAPI 3.0.3](https://spec.openapis.org/oas/v3.0.3.html),
 [testthat namespace mocks](https://testthat.r-lib.org/reference/local_mocked_bindings.html),

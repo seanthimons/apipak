@@ -159,8 +159,10 @@ boundary_acceptance <- function() {
     root,
     list(),
     remove = c('good.R', 'manual.R'),
-    mode = 'apply'
+    mode = 'plan'
   )
+  applied <- apipak::apply_files(root, list(), remove = c('good.R', 'manual.R'), mode = 'apply')
+  stopifnot(applied[[2L]]$action == 'retained')
   stopifnot(
     !file.exists(file.path(root, 'good.R')),
     file.exists(file.path(root, 'manual.R'))

@@ -7,5 +7,5 @@ Description: Development tools for local schema parsing, wrapper generation,
     their own request helpers and hook execution and need no runtime tooling.
 License: MIT + file LICENSE
 Encoding: UTF-8
-Imports: cli, dplyr, fs, jsonlite, purrr, readr, stringr, tibble, tidyr
-Suggests: testthat, httr2
+Imports: cli, digest, dplyr, fs, jsonlite, purrr, readr, roxygen2, stringr, tibble, tidyr, yaml
+Suggests: testthat, httr2, callr, httpuv

@@ -1,6 +1,7 @@
 render_operation <- function(operation, spec) {
   helper <- spec$helper
   callback <- spec$hook_callback %or% 'run_hook'
+  if (operation$name %in% c(helper, callback)) stop('Wrapper name collides with a helper or callback: ', operation$name)
   stopifnot(
     identical(make.names(helper), helper),
     identical(make.names(callback), callback)
@@ -182,183 +183,112 @@ render_operation <- function(operation, spec) {
       )
     )
   }
-  paste(c(lines, '  result', '}'), collapse = '\n')
+  code <- paste(c(lines, '  result', '}'), collapse = '\n')
+  if (isTRUE(spec$documentation)) paste(operation_documentation(operation), code, sep = '\n') else code
 }
 
-generate_client <- function(root, spec, mode = c('check', 'plan', 'apply')) {
+generate_client <- function(root, spec = NULL, mode = c('check', 'plan', 'apply'), config = NULL,
+                            callbacks = new.env(parent = emptyenv())) {
   mode <- match.arg(mode)
-  parsed <- read_operations(spec$files, spec[['policy']] %or% list())
-  renderer <- spec$renderer %or% render_operation
-  desired <- lapply(parsed$operations, function(op) renderer(op, spec))
-  if (length(desired)) {
-    names(desired) <- paste0('R/', names(parsed$operations), '.R')
+  root <- normalizePath(root, winslash = '/', mustWork = TRUE)
+  if (is.null(spec) == is.null(config)) stop('Supply exactly one of spec or config')
+  if (!is.null(config)) {
+    project <- load_project(root, config, callbacks)
+    services <- project$services
+    inputs <- project$inputs
+  } else {
+    if (!is.list(spec)) stop('spec must be a list')
+    services <- list(spec)
+    inputs <- spec$files
   }
-  for (name in names(spec$contracts)) {
-    if (name %in% names(parsed$operations)) {
-      desired[[paste0('tests/testthat/test-', name, '.R')]] <-
-        render_contract(parsed$operations[[name]], spec, spec$contracts[[name]])
+  input_hashes <- vapply(inputs, function(x) digest::digest(file = x, algo = 'sha256'), character(1))
+  parsed <- lapply(services, function(service) read_operations(service$files, service[['policy']] %or% list()))
+  operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
+  diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
+  inventory <- do.call(c, unname(lapply(parsed, `[[`, 'inventory')))
+  operation_names <- vapply(operations, `[[`, character(1), 'name')
+  if (anyDuplicated(tolower(operation_names))) stop('Operation names collide across services (including case)')
+  reserved <- unlist(lapply(services, function(x) c(x$helper, x$hook_callback %or% 'run_hook')), use.names = FALSE)
+  if (any(operation_names %in% reserved)) stop('Wrapper name collides with a helper or callback')
+  runtime_definitions <- list()
+  for (file in list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)) {
+    parse(file)
+    definitions <- tg_find_function_defs_in_file(file)
+    runtime_definitions <- c(runtime_definitions, definitions)
+    collisions <- intersect(operation_names, names(definitions))
+    if (length(collisions) && any(basename(file) != paste0(collisions, '.R'))) stop('Wrapper collides with an existing definition in ', file)
+  }
+  if (!is.null(config) && any(!reserved %in% c(names(runtime_definitions), 'run_hook'))) stop('Configured helper or callback has no client runtime definition')
+  if (mode != 'plan' && length(diagnostics)) stop('Unsupported selected operations; inspect plan diagnostics before generation')
+  desired <- list()
+  owners <- list()
+  for (i in seq_along(services)) {
+    service <- services[[i]]
+    renderer <- service$renderer %or% render_operation
+    for (op in parsed[[i]]$operations) {
+      if (!is.null(service$prepare)) {
+        prepared <- service$prepare(op)
+        if (!identical(prepared[c('id', 'name', 'service', 'key')], op[c('id', 'name', 'service', 'key')])) stop('Preparation callback must preserve operation identity and configured name')
+        op <- prepared
+      }
+      desired[[paste0('R/', op$name, '.R')]] <- renderer(op, service)
+      owners[[paste0('R/', op$name, '.R')]] <- op$id
+      if (op$name %in% names(service$contracts)) {
+        desired[[paste0('tests/testthat/test-', op$name, '.R')]] <- render_contract(op, service, service$contracts[[op$name]])
+        owners[[paste0('tests/testthat/test-', op$name, '.R')]] <- op$id
+      }
+    }
+  }
+  if (!identical(input_hashes, vapply(inputs, function(x) digest::digest(file = x, algo = 'sha256'), character(1)))) stop('Stale input plan; schema or configuration changed during generation')
+  attr(desired, 'operations') <- owners
+  labels <- ifelse(startsWith(inputs, paste0(root, '/')), substring(inputs, nchar(root) + 2L), basename(inputs))
+  attr(desired, 'inputs') <- as.list(stats::setNames(input_hashes, labels))
+  removals <- character()
+  manifest_path <- project_path(root, '.apipak/manifest.json')
+  if (file.exists(manifest_path)) {
+    previous <- jsonlite::read_json(manifest_path)$files
+    excluded <- vapply(Filter(function(x) x$status == 'excluded', inventory), `[[`, character(1), 'id')
+    removals <- names(Filter(function(x) length(x$operations) && all(unlist(x$operations) %in% excluded), previous))
+    removals <- setdiff(removals, names(desired))
+  }
+  if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) desired <- document_output(root, desired, removals)
+  if (any(vapply(services, function(x) length(x$hooks) > 0L, logical(1)))) {
+    wrapper_functions <- lapply(runtime_definitions, function(x) eval(x$expr, baseenv()))
+    for (name in names(desired)[grepl('\\.R$', names(desired))]) {
+      for (expression in as.list(parse(text = desired[[name]]))) {
+        if (is.call(expression) && identical(expression[[1L]], as.name('<-')) && is.symbol(expression[[2L]]) &&
+            is.call(expression[[3L]]) && identical(expression[[3L]][[1L]], as.name('function'))) {
+          wrapper_functions[[as.character(expression[[2L]])]] <- eval(expression[[3L]], baseenv())
+        }
+      }
+    }
+    hook_environment <- list2env(wrapper_functions, parent = emptyenv())
+    for (service in services) {
+      if (!length(service$hooks)) next
+      validation <- validate_hooks(service$hooks, wrapper_functions, hook_environment, service$hook_callback %or% 'run_hook')
+      if (!validation$valid) stop(paste(validation$errors, collapse = '\n'))
     }
   }
   # Unsupported operations never remove previous output or manual files.
   result <- apply_files(
     root,
     desired,
+    remove = removals,
     mode = mode,
     headers = '# Generated by wrapmaint; do not edit by hand.'
   )
+  if (mode == 'check' && any(vapply(result, function(x) !x$action %in% c('unchanged', 'retained'), logical(1)))) stop('Generated output is stale or protected; inspect plan')
   list(
     files = result,
-    operations = parsed$operations,
-    diagnostics = parsed$diagnostics,
+    operations = operations,
+    diagnostics = diagnostics,
+    inventory = inventory,
     manifest = list(
       toolkit_version = as.character(utils::packageVersion('apipak')),
-      inputs = tools::md5sum(spec$files),
-      policy_version = spec$policy_version %or% 'unspecified'
+      inputs = input_hashes,
+      policy_version = vapply(services, function(x) x$policy_version %or% 'unspecified', character(1))
     )
   )
-}
-
-apply_files <- function(
-  root,
-  desired,
-  remove = character(),
-  mode = c('check', 'plan', 'apply'),
-  headers = '# Generated by wrapmaint; do not edit by hand.',
-  owned = NULL
-) {
-  mode <- match.arg(mode)
-  root <- normalizePath(root, winslash = '/', mustWork = TRUE)
-  safe_path <- function(relative) {
-    if (
-      !is.character(relative) ||
-        length(relative) != 1L ||
-        !nzchar(relative) ||
-        grepl('(^[/\\\\]|^[A-Za-z]:|(^|[/\\\\])\\.\\.([/\\\\]|$))', relative)
-    ) {
-      stop('Path escapes target root: ', relative)
-    }
-    path <- file.path(root, relative)
-    ancestor <- dirname(path)
-    while (!dir.exists(ancestor)) {
-      ancestor <- dirname(ancestor)
-    }
-    resolved <- normalizePath(ancestor, winslash = '/', mustWork = TRUE)
-    if (
-      resolved != root && !startsWith(paste0(resolved, '/'), paste0(root, '/'))
-    ) {
-      stop('Path escapes target root')
-    }
-    if (file.exists(path)) {
-      resolved_file <- normalizePath(path, winslash = '/', mustWork = TRUE)
-      if (!startsWith(resolved_file, paste0(root, '/'))) {
-        stop('File escapes target root')
-      }
-    }
-    path
-  }
-  if (
-    length(desired) &&
-      (is.null(names(desired)) || anyDuplicated(names(desired)))
-  ) {
-    stop('Output paths must be unique')
-  }
-  paths <- vapply(c(names(desired), remove), safe_path, character(1))
-  targets <- as.character(fs::path_norm(paths))
-  if (.Platform$OS.type == 'windows') {
-    targets <- tolower(targets)
-  }
-  if (anyDuplicated(targets)) {
-    stop('Output and removal paths must not overlap or repeat')
-  }
-  ownership <- owned %or%
-    function(path) any(readLines(path, n = 5L, warn = FALSE) %in% headers)
-  owned <- function(path) !file.exists(path) || isTRUE(ownership(path))
-  # Parse all output before any filesystem mutation.
-  for (name in names(desired)) {
-    if (grepl('\\.R$', name)) parse(text = desired[[name]])
-  }
-  entries <- lapply(seq_along(paths), function(i) {
-    path <- paths[[i]]
-    name <- c(names(desired), remove)[[i]]
-    action <- if (!owned(path)) {
-      'protected'
-    } else if (i > length(desired)) {
-      'remove'
-    } else if (
-      file.exists(path) &&
-        identical(
-          paste(readLines(path, warn = FALSE), collapse = '\n'),
-          desired[[name]]
-        )
-    ) {
-      'unchanged'
-    } else {
-      'write'
-    }
-    list(file = name, path = path, action = action)
-  })
-  if (mode != 'apply') {
-    return(entries)
-  }
-  pending <- Filter(function(e) e$action %in% c('write', 'remove'), entries)
-  if (!length(pending)) {
-    return(entries)
-  }
-  transaction <- tempfile('.wrapmaint-', tmpdir = root)
-  dir.create(transaction)
-  backup <- list()
-  complete <- FALSE
-  on.exit(
-    {
-      if (!complete) {
-        for (entry in backup) {
-          if (entry$existed) {
-            file.copy(entry$backup, entry$path, overwrite = TRUE)
-          } else if (file.exists(entry$path)) {
-            unlink(entry$path)
-          }
-        }
-      }
-      if (complete) unlink(transaction, recursive = TRUE)
-    },
-    add = TRUE
-  )
-  for (i in seq_along(pending)) {
-    e <- pending[[i]]
-    copy <- file.path(transaction, paste0(i, '.backup'))
-    existed <- file.exists(e$path)
-    if (existed && !file.copy(e$path, copy)) {
-      stop('Could not back up output')
-    }
-    backup[[i]] <- list(path = e$path, existed = existed, backup = copy)
-    if (e$action == 'write') {
-      writeLines(
-        desired[[e$file]],
-        file.path(transaction, paste0(i, '.new')),
-        useBytes = TRUE
-      )
-    }
-  }
-  saveRDS(backup, file.path(transaction, 'recovery.rds'))
-  for (i in seq_along(pending)) {
-    e <- pending[[i]]
-    if (e$action == 'remove') {
-      if (unlink(e$path) != 0L) stop('Could not remove output')
-    } else {
-      dir.create(dirname(e$path), recursive = TRUE, showWarnings = FALSE)
-      if (
-        !file.copy(
-          file.path(transaction, paste0(i, '.new')),
-          e$path,
-          overwrite = TRUE
-        )
-      ) {
-        stop('Could not apply output')
-      }
-    }
-  }
-  complete <- TRUE
-  entries
 }
 
 # Fixed expectations are supplied by the client, independently of wrapper parsing.

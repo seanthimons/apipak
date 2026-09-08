@@ -27,8 +27,33 @@
 ## Implementation status
 
 Rename candidate installed into `evidence/candidate-library/apipak`.
-No ComptoxR implementation or pin changes, source publication, or Natural
-Products work yet. Completion gates remain pending.
+All four installed acceptance scripts pass. The first archive check had no
+errors or warnings and one NOTE: its worktree `.git` pointer was included.
+An explicit build exclusion corrects that packaging issue; archive check rerun
+is required. Rename commit: `fc574ca`.
+The corrected rename archive has `R CMD check --no-manual` Status OK on Windows.
+Source repository created at `https://github.com/seanthimons/apipak`; rename
+and packaging commits `fc574ca`, `4178b3a` are pushed. No release exists yet.
+No ComptoxR implementation or pin changes or Natural Products work yet.
+Completion gates remain pending.
+
+The ownership/recovery and YAML changes are in progress. `tests/reconciliation.R`
+passes the six positive audit cases, two injected destination-write failures,
+rollback, legacy journal recovery, case collisions, and no-op second apply.
+`tests/configuration.R` passes YAML selection, alias/merge precedence, invalid
+configuration, executable-tag rejection despite `yaml.eval.expr=TRUE`, explicit
+root handling and read-only checks. The original four acceptance scripts also
+passed the initial safety changes; they must be rerun after YAML integration.
+
+The combined YAML/ownership/initialization candidate now passes all seven R
+acceptance scripts under `R CMD check --no-manual`, Status OK on Windows.
+New-client tests include real loopback HTTP, installed loading without apipak,
+and malicious schema prose that remains non-executing during documentation.
+The generated transport's encoded path was initially decoded when httr2 query
+parameters were added; reusing the existing catalogue URL-construction order
+fixed it. The local server's nonexistent REQUEST_URI field was replaced by
+PATH_INFO plus QUERY_STRING, and its 204 response now has a NULL body.
+These were diagnosed test/transport issues; no ComptoxR runtime was changed.
 
 ## Investigation notes
 

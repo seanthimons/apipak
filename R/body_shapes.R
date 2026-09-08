@@ -32,6 +32,10 @@ supported_body <- function(body, document, array = TRUE) {
 }
 
 body_fixture <- function(schema, override = NULL) {
+  if (!missing(override) && is.null(override)) {
+    if (isTRUE(schema$nullable) || 'null' %in% schema$type) return(NULL)
+    stop('Explicit null body fixture is not nullable')
+  }
   if (identical(schema$type, 'array')) {
     count <- if (is.null(override)) {
       schema$minItems %or% 1L
@@ -46,16 +50,16 @@ body_fixture <- function(schema, override = NULL) {
       stop('Invalid array fixture length')
     }
     return(lapply(seq_len(count), function(i) {
-      body_fixture(schema$items, override[[i]])
+      if (is.null(override)) body_fixture(schema$items) else body_fixture(schema$items, override[[i]])
     }))
   }
   if (identical(schema$type, 'object')) {
     return(setNames(
       lapply(names(schema$properties), function(name) {
-        fixture_value(schema$properties[[name]], override[[name]])
+        if (name %in% names(override)) fixture_value(schema$properties[[name]], override[[name]]) else fixture_value(schema$properties[[name]])
       }),
       names(schema$properties)
     ))
   }
-  fixture_value(schema, override)
+  if (missing(override)) fixture_value(schema) else fixture_value(schema, override)
 }

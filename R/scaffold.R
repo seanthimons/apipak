@@ -12,13 +12,6 @@
 #' @return Logical; TRUE if a protected lifecycle is found, FALSE otherwise.
 #' @keywords internal
 has_protected_lifecycle <- function(path) {
-  protected_statuses <- c(
-    "stable",
-    "maturing",
-    "superseded",
-    "deprecated",
-    "defunct"
-  )
   lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) {
     character()
   })
@@ -27,19 +20,12 @@ has_protected_lifecycle <- function(path) {
   }
 
   # Match lifecycle::badge("status") patterns
-  badges <- stringr::str_extract_all(
-    lines,
-    'lifecycle::badge\\("([^"]+)"\\)'
-  )
-
-  statuses <- unlist(badges, use.names = FALSE)
+  badges <- stringr::str_match_all(lines, "lifecycle::badge\\([\"']([^\"']+)[\"']\\)")
+  statuses <- unlist(lapply(badges, function(x) x[, 2L]), use.names = FALSE)
   if (length(statuses) == 0) {
     return(FALSE)
   }
-
-  # Extract just the status string from the badge call
-  statuses <- stringr::str_extract(statuses, '(?<=badge\\(")[^"]+')
-  any(tolower(statuses) %in% protected_statuses)
+  any(statuses != 'experimental')
 }
 
 #' Write generated files to disk based on a specification tibble

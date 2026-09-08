@@ -1,6 +1,10 @@
 read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
+  inventory <- list()
+  methods <- policy$methods %or% c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
+  patterns <- policy$exclude %or% character()
+  for (pattern in patterns) stringr::str_detect('', pattern)
   for (file in files) {
     first_operation <- length(operations) + 1L
     document <- jsonlite::fromJSON(file, simplifyVector = FALSE)
@@ -16,9 +20,16 @@ read_operations <- function(files, policy = list()) {
       item <- document$paths[[path]]
       for (method in intersect(
         names(item),
-        c('get', 'post', 'put', 'patch', 'delete', 'head', 'options')
+        c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace')
       )) {
         key <- paste(toupper(method), path)
+        id <- paste(policy$service %or% 'default', key)
+        selected <- toupper(method) %in% methods && !any(vapply(patterns, function(pattern) stringr::str_detect(path, pattern), logical(1)))
+        record <- list(id = id, key = key, service = policy$service %or% 'default', method = toupper(method),
+          path = path, source = file, source_hash = source_hash, status = if (selected) 'selected' else 'excluded',
+          reason = if (selected) '' else 'Explicit selection policy')
+        inventory[[length(inventory) + 1L]] <- record
+        if (!selected) next
         operation <- tryCatch(
           {
             if (!startsWith(path, '/') || grepl('[\r\n]', path)) {
@@ -114,7 +125,8 @@ read_operations <- function(files, policy = list()) {
             }
             list(
               key = key,
-              id = paste(normalizePath(file, winslash = '/'), key),
+              id = paste(policy$service %or% 'default', key),
+              service = policy$service %or% 'default',
               operationId = op$operationId,
               name = name,
               method = toupper(method),
@@ -132,6 +144,8 @@ read_operations <- function(files, policy = list()) {
           },
           error = function(e) {
             diagnostics[[length(diagnostics) + 1L]] <<- list(
+              id = id,
+              service = policy$service %or% 'default',
               key = key,
               source = file,
               status = 'unsupported',
@@ -150,22 +164,44 @@ read_operations <- function(files, policy = list()) {
       operations[indices] <- endpoint_records(document, operations[indices])
     }
   }
+  ids <- vapply(operations, `[[`, character(1), 'id')
+  duplicate_ids <- unique(ids[duplicated(ids)])
+  for (id in duplicate_ids) {
+    group <- operations[ids == id]
+    contract <- function(x) x[setdiff(names(x), c('source', 'source_hash'))]
+    if (!all(vapply(group[-1L], function(x) identical(contract(x), contract(group[[1L]])), logical(1)))) {
+      stop('Conflicting duplicate operation ', id, ' in ', paste(vapply(group, `[[`, character(1), 'source'), collapse = ', '))
+    }
+  }
+  operations <- operations[!duplicated(ids)]
+  indexed_keys <- vapply(inventory, `[[`, character(1), 'key')
+  unknown <- setdiff(names(policy$names), indexed_keys)
+  if (length(unknown)) stop('Unknown operation override: ', paste(unknown, collapse = ', '))
   operation_names <- vapply(operations, `[[`, character(1), 'name')
   if (anyDuplicated(operation_names)) {
     stop('Operation name collision; supply reviewed name overrides')
   }
   names(operations) <- operation_names
-  list(operations = operations, diagnostics = diagnostics)
+  unsupported <- vapply(diagnostics, `[[`, character(1), 'id')
+  inventory <- lapply(inventory, function(x) {
+    if (x$id %in% unsupported) {
+      x$status <- 'unsupported'
+      x$reason <- diagnostics[[match(x$id, unsupported)]]$reason
+    }
+    x
+  })
+  list(operations = operations, diagnostics = diagnostics, inventory = inventory)
 }
 
 compare_operations <- function(old, new) {
+  identity <- function(op) paste(op$service %or% basename(op$source %or% ''), op$key)
   old <- setNames(
     old$operations,
-    vapply(old$operations, `[[`, character(1), 'key')
+    vapply(old$operations, identity, character(1))
   )
   new <- setNames(
     new$operations,
-    vapply(new$operations, `[[`, character(1), 'key')
+    vapply(new$operations, identity, character(1))
   )
   out <- list()
   add <- function(key, status, reason) {

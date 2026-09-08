@@ -1,9 +1,7 @@
 render_contract <- function(operation, spec, contract) {
   if (
-    is.null(contract$inputs) ||
-      is.null(contract$request) ||
-      is.null(contract$result) ||
-      is.null(spec$response_fixture)
+    !all(c('inputs', 'request', 'result') %in% names(contract)) ||
+      !'response_fixture' %in% names(spec)
   ) {
     stop('Supply fixed contract inputs, request, result and response_fixture')
   }
@@ -34,8 +32,9 @@ render_contract <- function(operation, spec, contract) {
         ', {'
       ),
       '  captured <- NULL',
+      '  calls <- 0L',
       paste0(
-        '  mock <- function(...) { captured <<- list(...); ',
+        '  mock <- function(...) { calls <<- calls + 1L; captured <<- list(...); ',
         r_literal(spec$response_fixture),
         ' }'
       ),
@@ -60,6 +59,7 @@ render_contract <- function(operation, spec, contract) {
         r_literal(contract$request),
         ')'
       ),
+      '  testthat::expect_identical(calls, 1L)',
       paste0(
         '  testthat::expect_identical(result, ',
         r_literal(contract$result),

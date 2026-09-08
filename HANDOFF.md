@@ -6,7 +6,7 @@
 source/setup review, PR merge recheck, and six offline probes rerun. Production
 baseline and implementation acceptance have not been rerun or established here.
 **Branch**: `docs/apipak-generalization-handoff`
-**Status**: Ready for implementation under a subsequent goal command.
+**Status**: Implementation in progress on `feat/apipak-generalization`.
 **Authority**: User-approved plan, cross-checked against the planning conversation.
 
 This is the controlling handoff. The original ComptoxR handoff is historical
@@ -32,6 +32,25 @@ delay ComptoxR delivery; report unsupported schema features explicitly.
 
 The current task is handoff preparation and offline audit only. No package implementation, remote
 creation, schema freezing, installation, or release has been performed here.
+
+## Implementation progress (2026-09-08)
+
+- Production baseline at `4fd720b` verified: 420 assertions, zero failures/skips,
+  four dependency-version warnings; all four required CLI checks exit zero,
+  and tracked files are unchanged. Frozen counts: CTX 140, Chemi 191, EPI 12.
+- Toolkit renamed and installed in an isolated library. All four installed
+  acceptance scripts pass and the corrected archive has R CMD check Status OK
+  on Windows. Commits `fc574ca` and `4178b3a` pushed to `seanthimons/apipak`.
+- Sourceable baseline and contract-freezing drivers and verification notes live
+  in `evidence/`. Raw baseline artifacts remain in its ignored `baseline/`.
+- Ownership/recovery hardening and a first YAML catalogue path are under
+  development. Their targeted regressions are passing; final package checks,
+  ComptoxR integration, docs, initialization, Linux, release/pin adoption and
+  Natural Products stress tests remain pending. No completion gate is inferred
+  from the rename alone.
+- ComptoxR implementation checkout:
+  `C:/Users/sxthi/Documents/ComptoxR/.worktrees/apipak-maintenance`, branch
+  `feat/apipak-maintenance`, based on PR 309's verified merge revision.
 
 ## Completed
 

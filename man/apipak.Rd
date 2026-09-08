@@ -4,19 +4,27 @@
 \alias{read_operations}
 \alias{compare_operations}
 \alias{generate_client}
+\alias{load_project}
+\alias{initialize_client}
 \alias{render_operation}
 \alias{apply_files}
+\alias{recover_client}
 \alias{validate_hooks}
 \alias{check_requests}
 \alias{operation_fixtures}
 \title{Local API wrapper maintenance tools}
 \description{Development-only tools for local schema documents, generated files,
-client-owned hook validation and independent request checks. No transport or
-runtime hook implementation is supplied.}
+client-owned hook validation and independent request checks. Initialization can
+generate a standalone httr2 request helper; existing clients retain their runtime.}
 \usage{
 read_operations(files, policy = list())
 compare_operations(old, new)
-generate_client(root, spec, mode = c("check", "plan", "apply"))
+recover_client(root, mode = c("plan", "apply"))
+generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
+  config = NULL, callbacks = new.env(parent = emptyenv()))
+load_project(root, config = "apipak.yml", callbacks = new.env(parent = emptyenv()))
+initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
+  license = NULL, base_url = NULL)
 render_operation(operation, spec)
 apply_files(root, desired, remove = character(),
   mode = c("check", "plan", "apply"),
@@ -38,7 +46,11 @@ bind_tools(group, envir)
 \item{remove}{Relative paths to remove only if owned.}
 \item{headers}{Recognized exact ownership headers.}
 \item{owned}{Optional client ownership predicate for existing files.}
-\item{config}{Client hook configuration.}
+\item{config}{Project YAML path relative to root, or client hook configuration for hook validation.}
+\item{callbacks}{Explicit environment containing named development callbacks.}
+\item{schema}{Local JSON schema for initialization.}
+\item{package, title, author, license}{Explicit new package metadata; author has given, family and email fields. Existing DESCRIPTION metadata is retained.}
+\item{base_url}{Absolute HTTP base URL for a new client-owned transport.}
 \item{wrappers}{Named client functions parsed once by the caller.}
 \item{hooks}{Explicit environment of local hook functions.}
 \item{callback}{Name of the client's hook execution function.}
