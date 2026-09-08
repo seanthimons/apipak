@@ -407,6 +407,18 @@ is configurable: [official loader reference](https://yaml.r-lib.org/reference/ya
 
 ### 3. Migrate legacy expression fields without changing runtime hooks
 
+**Question 3 resolved (2026-09-08)**: the user explicitly approved YAML for
+declarative settings and named R callbacks for computation or branching. YAML
+defines endpoint selection, regex exclusions, parameter defaults, example
+values, tags, lifecycle, and hook selection. For example, YAML can select an
+identifier-resolution pre-request hook; the existing client-owned R function
+performs resolution. Cache handling and response transformations likewise stay
+in R where behavior requires it. apipak generates wrappers and hook invocation;
+ComptoxR retains its specialized behavior. The conversational YAML example was
+illustrative, not an approved final configuration schema. Verify unusual
+signatures, request mappings, and skip/post-hook behavior during implementation;
+this decision does not establish that all current cases already fit the engine.
+
 ComptoxR's existing `inst/hook_config.yml` contains values such as
 `default: 'c("wide", "raw")'` and request arguments such as
 `endpoint: 'req_data$request$endpoint'`. Blindly copying them would violate the
