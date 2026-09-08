@@ -14,10 +14,11 @@ development machinery with service YAML, necessary client callbacks, and thin
 maintenance commands, while preserving its public behavior and HTTP runtime.
 
 ComptoxR is the critical priority and first delivery gate. The non-chemical
-catalogue proves generic reuse. The Natural Products API is an independent
-real-world stress test and subsequent standalone client; its extra requirements
-must not delay the ComptoxR milestone. Overall completion includes full coverage
-of that API's frozen schema, not merely a representative subset.
+catalogue proves generic reuse. The Natural Products API schema supplies varied
+real-world inputs for generalization tests. It is not a second product delivery:
+no maintained NP package, repository, publication, live-service verification, or
+support for every NP operation is required. Its extra requirements must not
+delay ComptoxR delivery; report unsupported schema features explicitly.
 
 The current task is handoff preparation and offline audit only. No package implementation, remote
 creation, schema freezing, installation, or release has been performed here.
@@ -51,15 +52,14 @@ creation, schema freezing, installation, or release has been performed here.
 | Documentation | Preserve example values/calls, parameter and return docs, exports, lifecycle badges, and existing tags. |
 | Custom tags | `@apiStage` is preserved for ComptoxR; it is not mandatory metadata for every client. |
 | Upstream deprecation | Report it for review; wrapper lifecycle becomes explicit policy. First capture existing effective badges so migration does not change them. |
-| Reuse validation | ComptoxR plus the non-chemical catalogue, followed by Natural Products full-schema coverage. |
-| Natural Products delivery | Separate maintained R package/repository with docs, generated helpers, and tests. |
+| Reuse validation | ComptoxR plus the non-chemical catalogue; Natural Products supplies varied schema test cases. |
+| Natural Products scope | Schema stress testing only; no required standalone package, publication, live checks, or all-operation support. |
 | apipkgen reuse | Borrow useful design/code selectively with attribution; do not replace the stronger existing engine with its legacy generator. |
 
 Implementation defaults from the approved plan: project file `apipak.yml`,
-source remote `seanthimons/apipak`, and provisional second-client name
-`naturalproductsR`. Only **apipak** was explicitly chosen by the user as a final
-package name. The provisional client name and repository availability must be
-checked before publication; they do not block ComptoxR work. Keep the current
+source remote `seanthimons/apipak`. The earlier provisional second-client name
+`naturalproductsR` is retired from the plan; no NP repository is required.
+Check apipak repository availability before publication. Keep the current
 local directory name during implementation to avoid path disruption.
 
 ## Current State
@@ -178,9 +178,8 @@ configuration; avoid two editable sources of truth for the same hook setting.
 - [ ] Before renaming, freeze schema/policy hashes, selected operation identities,
   generated/protected files, signatures, exports, docs, hooks, and current results.
   Use current production output, not the historical pre-policy file counts.
-- [ ] Snapshot the Natural Products schema as a reference input early, recording
-  origin and checksum, so its later full-coverage target does not move. This is
-  input capture only; do not start its feature work before the ComptoxR gate.
+- [ ] When using the Natural Products schema for tests, snapshot it with origin
+  and checksum for reproducibility. Its availability does not block step 0.
 - [ ] Rename metadata, namespace lookups, installer checks, docs, and tests to
   apipak. Preserve legacy ownership headers and interrupted-apply recovery.
   Do not rewrite historical evidence or immutable artifact references.
@@ -276,29 +275,34 @@ configuration; avoid two editable sources of truth for the same hook setting.
   callback examples, schema support matrix, diagnostics, ownership, and a complete
   new-client walkthrough. Explain helper-call checks versus actual HTTP proof.
 
-### Phase 5: Natural Products full-coverage stress test
+### Phase 5: Natural Products schema stress test
 
-- [ ] Use the early frozen [supplied schema](https://api.naturalproducts.net/latest/openapi.json)
+**Question 5 resolved; scope corrected**: the user clarified that NP is useful
+because its schema contains different features. A real NP R package is optional,
+not an acceptance requirement. This supersedes earlier full-coverage second-client
+requirements in this conversation and any source handoff. Keep generic new-client
+initialization/helper generation in scope, verified with temporary test packages
+and the catalogue rather than requiring another maintained product.
+
+- [ ] Snapshot the [supplied schema](https://api.naturalproducts.net/latest/openapi.json)
   with retrieval source/date and checksum. It was inspected but not saved during
   planning; `/latest` may change before implementation. Later refreshes are
   separate changes, not moving acceptance criteria.
-- [ ] Create the standalone client repository/package (provisional name above).
-  Generate client-owned httr2 helpers and documentation through the same workflow.
-  The client must work without apipak installed or loaded.
-- [ ] Support every operation in the frozen schema. The inspected schema uses
+- [ ] Inventory the schema and choose cases that exercise distinct features,
+  avoiding redundant operation-by-operation tests. The inspected schema uses
   OpenAPI 3.1, relative server `/latest`, scalar/nullable/alternative inputs, JSON
   and text/plain bodies, multipart uploads, and JSON/SVG responses. Handle observed
   schema quirks through documented configuration or generic support, not hidden
   chemistry-specific branches. Resolve the server against the recorded origin.
-- [ ] Cover each operation with independent request expectations and successful
+- [ ] Cover supported representative cases with independent request expectations and successful
   return assertions. Use deterministic local HTTP tests for query/path encoding,
   null/array handling, uploads, body media, errors, and response decoding.
-- [ ] Report live upstream failures separately from local contract failures. Do
-  not equate generated files or mocked helper calls with upstream HTTP success.
-  This plan does not authorize production writes, remote job submission, or live
-  cassette recording merely to satisfy test counts.
-- [ ] Gate: all frozen-schema operations supported and validated; no artificial
-  exclusions to achieve full coverage. Preserve ComptoxR and catalogue gates.
+- [ ] Report unsupported features and test that they produce actionable
+  diagnostics without silent omission or unsafe generation. Extending support
+  for every NP feature is not required to finish this migration.
+- [ ] Gate: representative supported cases pass offline; unsupported cases are
+  visible and diagnosed. Preserve ComptoxR and catalogue gates. No NP live API
+  calls, standalone repository, or publication are needed for acceptance.
 
 ## Pinch Points and Required Regression Checks
 
@@ -637,8 +641,8 @@ Do not silently redefine acceptance to avoid them.
 
 New-client initialization requires package metadata or obtains it from an
 existing DESCRIPTION; it must not silently assign apipak's authors/license to
-someone else's package. For this user's Natural Products package, the existing
-user-owned package metadata is the starting reference. Initialize only absent
+someone else's package. Use explicit test metadata for temporary test packages.
+Initialize only absent
 scaffold files, and report existing-file conflicts without overwriting them.
 The generated client declares its own httr2/runtime dependencies; apipak remains
 development-only. Existing ComptoxR initialization must not replace its helpers.
@@ -667,9 +671,9 @@ the supplied file contents, not its local path string. Do not treat a server-sid
 `path` parameter as permission to read a client file.
 
 Maintain per-operation schema support, independent offline verification, and
-live verification as distinct evidence. Full frozen-schema coverage requires
-all operations supported and offline-verified; it does not justify claiming
-untested upstream behavior or correctness of chemical calculations. Live checks
+live verification as distinct evidence. NP testing does not require full
+operation coverage or establish untested upstream behavior or correctness of
+chemical calculations. Any separately requested live checks
 remain explicit and bounded, especially for job-submitting endpoints that happen
 to use GET. Use small deterministic fixtures and do not send user/private data.
 See [httr2 body primitives](https://httr2.r-lib.org/reference/req_body.html).
@@ -723,8 +727,9 @@ See [httr2 body primitives](https://httr2.r-lib.org/reference/req_body.html).
    changes, or session-option mutations. A second apply must make no changes.
 8. Record phase completion, commit IDs, exact validation, limitations, failed
    approaches, and next actions in this document. A passing ComptoxR milestone
-   must be delivered before expanding for Natural Products. Do not mark the
-   overall follow-up complete until the later full-coverage client also passes.
+   must be delivered before expanding for Natural Products schema cases. Overall
+   completion requires the schema stress-test evidence above, not a second
+   maintained client or proof of NP service availability.
 
 ## Setup Required
 
