@@ -71,8 +71,10 @@ Working tree was clean before this document. No Git remote is configured.
 **ComptoxR reference**:
 `C:/Users/sxthi/Documents/ComptoxR/.worktrees/workflow-production-gaps`, commit
 `df4e708ce3f3ad5dae4db553a6c40aff97972ecf`, clean at inspection.
-[PR 309](https://github.com/seanthimons/ComptoxR/pull/309) was still OPEN with that
-head on 2026-09-08. Recheck before choosing an implementation base; do not lose
+[PR 309](https://github.com/seanthimons/ComptoxR/pull/309) merged on
+2026-09-08 at 18:53:37 UTC as `4fd720b97fb2f7f2abf131925e9270b0c11b057a`,
+also the observed `main` head. The reference worktree still has the pre-merge
+head above. Recheck before choosing an implementation base; do not lose
 its production-policy work by starting from an older integration checkout.
 
 **Working implementation**: local JSON schema parsing; a neutral R-list
@@ -89,6 +91,14 @@ not fresh results. No full package suites were rerun. Six fresh offline audit
 probes were run against the current source, using installed wrapmaint 0.1.0 for
 its namespace dependencies; all six expose unmet target contracts. These are
 diagnostic findings, not passing implementation acceptance.
+
+**Question 1 resolved for planning (2026-09-08)**: the user believes the current
+production baseline passes. Proceed on that working assumption; this is not a
+newly verified test result. Before implementation changes, run the baseline
+checks below against a revision containing PR 309, using the reviewed toolkit
+pin and Air 0.9.0. Record failures as pre-existing or environmental before
+assessing migration regressions. The implementer owns this verification; it
+does not require another design discussion or user confirmation.
 
 **Pinned legacy artifact**: wrapmaint 0.1.0, source `aae88f9`, attached to
 [ComptoxR v2.0.0](https://github.com/seanthimons/ComptoxR/releases/download/v2.0.0/wrapmaint_0.1.0.tar.gz).
