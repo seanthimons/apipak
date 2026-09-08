@@ -464,6 +464,21 @@ the developer's working directory or contact the server during generation.
 
 ### 5. Make ownership and reconciliation conservative
 
+**Question 4 resolved (2026-09-08)**: the user approved comparing existing
+wrappers with freshly generated baseline output and suggested Git diffs to
+identify meaningful changes apart from linting. Regenerate in isolated output
+using the pinned baseline toolkit and formatter, then inspect ordinary Git diffs
+(or `git diff --no-index` for separate directories). Use whitespace-insensitive
+diffs and consistently formatted temporary copies as supporting views; neither
+alone proves semantic equivalence. Review signatures/defaults, request mappings,
+hook order, return handling, and roxygen/docs including examples, tags, lifecycle,
+and exports. Do not discard documentation or string-literal changes as linting.
+Move understood intentional customizations into configuration or named callbacks
+and verify equivalent behavior before replacing generated output. Preserve
+unexplained differences and ask the user only when investigation cannot resolve
+their intent. Record the classification before seeding ownership; a clean or
+formatting-only diff does not override lifecycle protection.
+
 Persist a versioned generation manifest, separate from the retired ComptoxR
 `dev/test_manifest.json`. Record relative output paths, operation ownership,
 last-applied content hashes, schema/config/callback inputs, toolkit and formatting
