@@ -21,7 +21,11 @@ tg_classify_test_file <- function(path) {
 
 tg_remove_legacy_generated_tests <- function(root = ".", dry_run = FALSE) {
   files <- tg_list_test_files(root)
-  legacy <- files[vapply(files, function(path) identical(tg_classify_test_file(path), "legacy_generated"), logical(1))]
+  legacy <- files[vapply(
+    files,
+    function(path) identical(tg_classify_test_file(path), "legacy_generated"),
+    logical(1)
+  )]
 
   if (!dry_run && length(legacy) > 0) {
     unlink(legacy)
@@ -30,10 +34,21 @@ tg_remove_legacy_generated_tests <- function(root = ".", dry_run = FALSE) {
   legacy
 }
 
-tg_remove_obsolete_generated_tests <- function(desired, root = ".", dry_run = FALSE) {
-  desired_paths <- tg_norm_path(file.path(root, vapply(desired, `[[`, character(1), "file")))
+tg_remove_obsolete_generated_tests <- function(
+  desired,
+  root = ".",
+  dry_run = FALSE
+) {
+  desired_paths <- tg_norm_path(file.path(
+    root,
+    vapply(desired, `[[`, character(1), "file")
+  ))
   files <- tg_list_test_files(root)
-  generated <- files[vapply(files, function(path) identical(tg_classify_test_file(path), "generated"), logical(1))]
+  generated <- files[vapply(
+    files,
+    function(path) identical(tg_classify_test_file(path), "generated"),
+    logical(1)
+  )]
   obsolete <- generated[!(tg_norm_path(generated) %in% desired_paths)]
 
   if (!dry_run && length(obsolete) > 0) {
@@ -61,7 +76,12 @@ tg_format_generated_text <- function(text) {
   paste(formatted, collapse = "\n")
 }
 
-tg_write_generated_tests <- function(desired, root = ".", dry_run = FALSE, force = FALSE) {
+tg_write_generated_tests <- function(
+  desired,
+  root = ".",
+  dry_run = FALSE,
+  force = FALSE
+) {
   results <- list()
 
   for (spec in desired) {
@@ -107,23 +127,51 @@ tg_write_generated_tests <- function(desired, root = ".", dry_run = FALSE, force
   results
 }
 
-tg_scaffold_generated_tests <- function(desired, root = ".", dry_run = FALSE, force = FALSE) {
+tg_scaffold_generated_tests <- function(
+  desired,
+  root = ".",
+  dry_run = FALSE,
+  force = FALSE
+) {
   desired <- lapply(desired, function(spec) {
     spec$text <- tg_format_generated_text(spec$text)
     spec
   })
   removed_legacy <- tg_remove_legacy_generated_tests(root, dry_run = TRUE)
-  removed_obsolete <- tg_remove_obsolete_generated_tests(desired, root, dry_run = TRUE)
-  write_results <- tg_write_generated_tests(desired, root, dry_run = TRUE, force = force)
-  output <- stats::setNames(lapply(desired, `[[`, 'text'), vapply(desired, `[[`, character(1), 'file'))
-  removals <- vapply(c(removed_legacy, removed_obsolete), tg_rel_path, character(1), root = root)
-  wrapmaint::apply_files(root, output, remove = removals,
+  removed_obsolete <- tg_remove_obsolete_generated_tests(
+    desired,
+    root,
+    dry_run = TRUE
+  )
+  write_results <- tg_write_generated_tests(
+    desired,
+    root,
+    dry_run = TRUE,
+    force = force
+  )
+  output <- stats::setNames(
+    lapply(desired, `[[`, 'text'),
+    vapply(desired, `[[`, character(1), 'file')
+  )
+  removals <- vapply(
+    c(removed_legacy, removed_obsolete),
+    tg_rel_path,
+    character(1),
+    root = root
+  )
+  wrapmaint::apply_files(
+    root,
+    output,
+    remove = setdiff(removals, names(output)),
     mode = if (dry_run) 'plan' else 'apply',
-    headers = c(tg_config$generated_header, tg_config$legacy_metadata_header))
-  if (!dry_run) write_results <- lapply(write_results, function(x) {
-    x$written <- x$action %in% c('created', 'updated')
-    x
-  })
+    headers = c(tg_config$generated_header, tg_config$legacy_metadata_header)
+  )
+  if (!dry_run) {
+    write_results <- lapply(write_results, function(x) {
+      x$written <- x$action %in% c('created', 'updated')
+      x
+    })
+  }
 
   list(
     removed = c(removed_legacy, removed_obsolete),

@@ -12,8 +12,16 @@
 #' @return Logical; TRUE if a protected lifecycle is found, FALSE otherwise.
 #' @keywords internal
 has_protected_lifecycle <- function(path) {
-  protected_statuses <- c("stable", "maturing", "superseded", "deprecated", "defunct")
-  lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) character())
+  protected_statuses <- c(
+    "stable",
+    "maturing",
+    "superseded",
+    "deprecated",
+    "defunct"
+  )
+  lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) {
+    character()
+  })
   if (length(lines) == 0) {
     return(FALSE)
   }
@@ -126,7 +134,7 @@ scaffold_files <- function(
       if (protected) {
         if (!quiet) {
           cli::cli_alert_warning(
-            "Skipping {.path {basename(path)}} — contains stable/maturing/superseded lifecycle"
+            "Skipping {.path {basename(path)}} - contains stable/maturing/superseded lifecycle"
           )
         }
         return(dplyr::tibble(

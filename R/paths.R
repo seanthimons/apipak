@@ -13,7 +13,11 @@
 #' @examples
 #' strip_curly_params(c("/hazard/{id}/"))
 #' @export
-strip_curly_params <- function(paths, keep_trailing_slash = TRUE, leading_slash = c("keep", "ensure", "remove")) {
+strip_curly_params <- function(
+  paths,
+  keep_trailing_slash = TRUE,
+  leading_slash = c("keep", "ensure", "remove")
+) {
   leading_slash <- match.arg(leading_slash)
 
   # 1) Remove {param} tokens

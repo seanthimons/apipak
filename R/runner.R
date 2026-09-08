@@ -9,8 +9,15 @@ derive_fn_from_file <- function(df, file_col) {
       .fn = case_when(
         .mc == 1 ~ tools::file_path_sans_ext(basename(.fn_file)),
         method == "GET" ~ tools::file_path_sans_ext(basename(.fn_file)),
-        method == "POST" ~ paste0(tools::file_path_sans_ext(basename(.fn_file)), "_bulk"),
-        .default = paste0(tools::file_path_sans_ext(basename(.fn_file)), "_", tolower(method))
+        method == "POST" ~ paste0(
+          tools::file_path_sans_ext(basename(.fn_file)),
+          "_bulk"
+        ),
+        .default = paste0(
+          tools::file_path_sans_ext(basename(.fn_file)),
+          "_",
+          tolower(method)
+        )
       )
     ) %>%
     ungroup() %>%
@@ -25,7 +32,13 @@ resolve_collisions <- function(df) {
       fn = if_else(n_short_count > 1, fn_full, fn_short)
     ) %>%
     select(
-      -any_of(c("file_short", "file_full", "fn_short", "fn_full", "n_short_count")),
+      -any_of(c(
+        "file_short",
+        "file_full",
+        "fn_short",
+        "fn_full",
+        "n_short_count"
+      )),
       -starts_with(".")
     )
 }
@@ -59,7 +72,9 @@ run_generator <- function(spec, pkg_dir) {
   )
 
   endpoints_to_build <- endpoints %>%
-    filter(!purrr::map2_lgl(file, fn, is_operation_implemented, pkg_dir = pkg_dir))
+    filter(
+      !purrr::map2_lgl(file, fn, is_operation_implemented, pkg_dir = pkg_dir)
+    )
 
   if (nrow(endpoints_to_build) == 0) {
     if (!is.null(spec$finalize)) {
@@ -72,7 +87,10 @@ run_generator <- function(spec, pkg_dir) {
   cli_alert_info("Found {nrow(endpoints_to_build)} endpoint(s) to generate")
 
   # Generate stubs
-  spec_with_text <- render_endpoint_stubs(endpoints_to_build, config = spec$config)
+  spec_with_text <- render_endpoint_stubs(
+    endpoints_to_build,
+    config = spec$config
+  )
 
   # Empty check must precede spec$post(): a zero-row render result has no
   if (nrow(spec_with_text) == 0) {
@@ -106,8 +124,13 @@ is_operation_implemented <- function(file, fn, pkg_dir) {
   if (!file.exists(path)) {
     return(FALSE)
   }
-  lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) character())
-  pattern <- sprintf("^\\s*%s\\s*(<-|=)\\s*function\\b", gsub("\\.", "\\\\.", fn))
+  lines <- tryCatch(readLines(path, warn = FALSE), error = function(e) {
+    character()
+  })
+  pattern <- sprintf(
+    "^\\s*%s\\s*(<-|=)\\s*function\\b",
+    gsub("\\.", "\\\\.", fn)
+  )
   any(grepl(pattern, lines))
 }
 

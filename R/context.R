@@ -1,10 +1,37 @@
 # Compatibility functions run with explicitly supplied client policy.
 # No client is loaded, sourced, or attached by package installation or loading.
+# These names are the explicit compatibility context contract, plus columns
+# evaluated by the existing data-frame pipelines. bind_tools() rebinds the
+# compatibility functions into the client environment that supplies policy.
+utils::globalVariables(c(
+  '.fn',
+  '.fn_file',
+  'endpoint_key',
+  'file_full',
+  'file_short',
+  'fn',
+  'fn_full',
+  'fn_short',
+  'method',
+  'n_hits',
+  'n_short_count',
+  'route',
+  'ENDPOINT_PATTERNS_TO_EXCLUDE',
+  'FRAMEWORK_PARAMS',
+  'PAGINATION_REGISTRY',
+  'body_requires_resolution',
+  'get_body_schema_type',
+  'render_endpoint_stubs',
+  'resolve_stack',
+  'select_schema_files',
+  'supported_methods',
+  'tg_config'
+))
 bind_tools <- function(group, envir) {
   stopifnot(is.environment(envir), group %in% names(tool_groups))
   for (package in c('dplyr', 'purrr', 'stringr', 'tibble', 'tidyr', 'cli')) {
     for (name in getNamespaceExports(package)) {
-      if (!exists(name, envir = envir, inherits = TRUE)) {
+      if (!exists(name, envir = envir, inherits = FALSE)) {
         assign(name, getExportedValue(package, name), envir = envir)
       }
     }
@@ -27,14 +54,20 @@ r_literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = '\n')
 
 local_ref <- function(node, document, seen = character()) {
   ref <- node[['$ref']]
-  if (is.null(ref)) return(node)
+  if (is.null(ref)) {
+    return(node)
+  }
   if (length(ref) != 1L || !startsWith(ref, '#/') || ref %in% seen) {
     stop('Unsupported external or cyclic reference: ', ref, call. = FALSE)
   }
   parts <- strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1]]
   parts <- gsub('~1', '/', gsub('~0', '~', parts, fixed = TRUE), fixed = TRUE)
   value <- document
-  for (part in parts) value <- value[[part]]
-  if (is.null(value)) stop('Missing reference: ', ref, call. = FALSE)
+  for (part in parts) {
+    value <- value[[part]]
+  }
+  if (is.null(value)) {
+    stop('Missing reference: ', ref, call. = FALSE)
+  }
   local_ref(value, document, c(seen, ref))
 }

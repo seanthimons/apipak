@@ -1,7 +1,15 @@
 classify_param_change <- function(old_params, new_params) {
   # Handle empty strings
-  old_params <- if (is.na(old_params) || nchar(old_params) == 0) character(0) else strsplit(old_params, ",")[[1]]
-  new_params <- if (is.na(new_params) || nchar(new_params) == 0) character(0) else strsplit(new_params, ",")[[1]]
+  old_params <- if (is.na(old_params) || nchar(old_params) == 0) {
+    character(0)
+  } else {
+    strsplit(old_params, ",")[[1]]
+  }
+  new_params <- if (is.na(new_params) || nchar(new_params) == 0) {
+    character(0)
+  } else {
+    strsplit(new_params, ",")[[1]]
+  }
 
   old_set <- trimws(old_params)
   new_set <- trimws(new_params)
@@ -30,10 +38,18 @@ diff_single_schema <- function(old_path, new_path) {
       # Source the openapi parser and its dependencies if not already loaded
       if (!exists("openapi_to_spec")) {
         suppressMessages({
-          stop("Supply the client parser and schema selection in the explicit tool context")
-          stop("Supply the client parser and schema selection in the explicit tool context")
-          stop("Supply the client parser and schema selection in the explicit tool context")
-          stop("Supply the client parser and schema selection in the explicit tool context")
+          stop(
+            "Supply the client parser and schema selection in the explicit tool context"
+          )
+          stop(
+            "Supply the client parser and schema selection in the explicit tool context"
+          )
+          stop(
+            "Supply the client parser and schema selection in the explicit tool context"
+          )
+          stop(
+            "Supply the client parser and schema selection in the explicit tool context"
+          )
         })
       }
 
@@ -46,8 +62,10 @@ diff_single_schema <- function(old_path, new_path) {
 
       # Filter out admin/auth/metadata/version endpoints
       if (exists("ENDPOINT_PATTERNS_TO_EXCLUDE")) {
-        old_spec <- old_spec %>% filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
-        new_spec <- new_spec %>% filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
+        old_spec <- old_spec %>%
+          filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
+        new_spec <- new_spec %>%
+          filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
       }
 
       # Create endpoint keys as "{METHOD} {route}"
@@ -99,7 +117,10 @@ diff_single_schema <- function(old_path, new_path) {
 
         # Compare body_params
         if (!identical(old_row$body_params, new_row$body_params)) {
-          param_change <- classify_param_change(old_row$body_params, new_row$body_params)
+          param_change <- classify_param_change(
+            old_row$body_params,
+            new_row$body_params
+          )
           changes <- c(
             changes,
             list(list(
@@ -193,12 +214,20 @@ diff_single_schema <- function(old_path, new_path) {
   )
 }
 
-diff_schemas <- function(old_dir, new_dir, pattern = "\\.json$", stage_priority = NULL, exclude_pattern = NULL) {
+diff_schemas <- function(
+  old_dir,
+  new_dir,
+  pattern = "\\.json$",
+  stage_priority = NULL,
+  exclude_pattern = NULL
+) {
   # Source schema selection utility if using stage priority
   if (!is.null(stage_priority)) {
     if (!exists("select_schema_files")) {
       suppressMessages({
-        stop("Supply the client parser and schema selection in the explicit tool context")
+        stop(
+          "Supply the client parser and schema selection in the explicit tool context"
+        )
       })
     }
   }
@@ -238,10 +267,18 @@ diff_schemas <- function(old_dir, new_dir, pattern = "\\.json$", stage_priority 
         {
           if (!exists("openapi_to_spec")) {
             suppressMessages({
-              stop("Supply the client parser and schema selection in the explicit tool context")
-              stop("Supply the client parser and schema selection in the explicit tool context")
-              stop("Supply the client parser and schema selection in the explicit tool context")
-              stop("Supply the client parser and schema selection in the explicit tool context")
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
             })
           }
           new_json <- jsonlite::fromJSON(new_path, simplifyVector = FALSE)
@@ -249,13 +286,18 @@ diff_schemas <- function(old_dir, new_dir, pattern = "\\.json$", stage_priority 
 
           # Filter out admin/auth/metadata/version endpoints
           if (exists("ENDPOINT_PATTERNS_TO_EXCLUDE")) {
-            new_spec <- new_spec %>% filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
+            new_spec <- new_spec %>%
+              filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
           }
 
           results[[file]] <- list(
             schema_file = file,
             added = new_spec %>% select(route, method, summary),
-            removed = tibble(route = character(), method = character(), summary = character()),
+            removed = tibble(
+              route = character(),
+              method = character(),
+              summary = character()
+            ),
             modified = tibble(
               route = character(),
               method = character(),
@@ -266,7 +308,10 @@ diff_schemas <- function(old_dir, new_dir, pattern = "\\.json$", stage_priority 
           )
         },
         error = function(e) {
-          results[[file]] <<- list(schema_file = file, error = as.character(e$message))
+          results[[file]] <<- list(
+            schema_file = file,
+            error = as.character(e$message)
+          )
         }
       )
     } else if (!file.exists(new_path)) {
@@ -275,10 +320,18 @@ diff_schemas <- function(old_dir, new_dir, pattern = "\\.json$", stage_priority 
         {
           if (!exists("openapi_to_spec")) {
             suppressMessages({
-              stop("Supply the client parser and schema selection in the explicit tool context")
-              stop("Supply the client parser and schema selection in the explicit tool context")
-              stop("Supply the client parser and schema selection in the explicit tool context")
-              stop("Supply the client parser and schema selection in the explicit tool context")
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
+              stop(
+                "Supply the client parser and schema selection in the explicit tool context"
+              )
             })
           }
           old_json <- jsonlite::fromJSON(old_path, simplifyVector = FALSE)
@@ -286,12 +339,17 @@ diff_schemas <- function(old_dir, new_dir, pattern = "\\.json$", stage_priority 
 
           # Filter out admin/auth/metadata/version endpoints
           if (exists("ENDPOINT_PATTERNS_TO_EXCLUDE")) {
-            old_spec <- old_spec %>% filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
+            old_spec <- old_spec %>%
+              filter(!stringr::str_detect(route, ENDPOINT_PATTERNS_TO_EXCLUDE))
           }
 
           results[[file]] <- list(
             schema_file = file,
-            added = tibble(route = character(), method = character(), summary = character()),
+            added = tibble(
+              route = character(),
+              method = character(),
+              summary = character()
+            ),
             removed = old_spec %>% select(route, method, summary),
             modified = tibble(
               route = character(),
@@ -303,7 +361,10 @@ diff_schemas <- function(old_dir, new_dir, pattern = "\\.json$", stage_priority 
           )
         },
         error = function(e) {
-          results[[file]] <<- list(schema_file = file, error = as.character(e$message))
+          results[[file]] <<- list(
+            schema_file = file,
+            error = as.character(e$message)
+          )
         }
       )
     } else {
@@ -329,9 +390,15 @@ format_diff_markdown <- function(diff_results) {
   }
 
   # Aggregate counts
-  total_added <- sum(sapply(diff_results, function(r) nrow(r$added %||% tibble())))
-  total_removed <- sum(sapply(diff_results, function(r) nrow(r$removed %||% tibble())))
-  total_modified <- sum(sapply(diff_results, function(r) nrow(r$modified %||% tibble())))
+  total_added <- sum(sapply(diff_results, function(r) {
+    nrow(r$added %||% tibble())
+  }))
+  total_removed <- sum(sapply(diff_results, function(r) {
+    nrow(r$removed %||% tibble())
+  }))
+  total_modified <- sum(sapply(diff_results, function(r) {
+    nrow(r$modified %||% tibble())
+  }))
 
   # Collect breaking and non-breaking changes
   breaking_changes <- list()
@@ -481,4 +548,3 @@ count_diff_changes <- function(diff_results) {
   }
   list(breaking = as.integer(breaking), nonbreaking = as.integer(nonbreaking))
 }
-

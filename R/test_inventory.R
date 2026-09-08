@@ -34,11 +34,17 @@ tg_call_name <- function(call) {
 }
 
 tg_all_call_names <- function(expr) {
-  tryCatch(all.names(expr, functions = TRUE, unique = FALSE), error = function(e) character(0))
+  tryCatch(
+    all.names(expr, functions = TRUE, unique = FALSE),
+    error = function(e) character(0)
+  )
 }
 
 tg_find_function_defs_in_file <- function(file) {
-  exprs <- tryCatch(parse(file = file, keep.source = FALSE), error = function(e) expression())
+  exprs <- tryCatch(
+    parse(file = file, keep.source = FALSE),
+    error = function(e) expression()
+  )
   defs <- list()
 
   for (expr in as.list(exprs)) {
@@ -48,7 +54,11 @@ tg_find_function_defs_in_file <- function(file) {
 
     lhs <- expr[[2]]
     rhs <- expr[[3]]
-    if (!is.symbol(lhs) || !is.call(rhs) || !identical(rhs[[1]], as.name("function"))) {
+    if (
+      !is.symbol(lhs) ||
+        !is.call(rhs) ||
+        !identical(rhs[[1]], as.name("function"))
+    ) {
       next
     }
 
@@ -66,7 +76,11 @@ tg_find_function_defs_in_file <- function(file) {
 
 tg_find_exported_function_defs <- function(root = ".") {
   exports <- tg_parse_namespace_exports(root)
-  files <- list.files(tg_file_path(root, "R"), pattern = "\\.R$", full.names = TRUE)
+  files <- list.files(
+    tg_file_path(root, "R"),
+    pattern = "\\.R$",
+    full.names = TRUE
+  )
   defs <- list()
 
   for (file in files) {
@@ -79,7 +93,10 @@ tg_find_exported_function_defs <- function(root = ".") {
   defs[sort(names(defs))]
 }
 
-tg_inventory_wrappers <- function(root = ".", helper_names = tg_config$helper_names) {
+tg_inventory_wrappers <- function(
+  root = ".",
+  helper_names = tg_config$helper_names
+) {
   defs <- tg_find_exported_function_defs(root)
   records <- list()
 

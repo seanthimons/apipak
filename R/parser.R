@@ -17,7 +17,10 @@ dedup_params <- function(params) {
   if (!length(params)) {
     return(list())
   }
-  keys <- purrr::map_chr(params, ~ paste(.x[["name"]] %||% "", .x[["in"]] %||% "", sep = "@"))
+  keys <- purrr::map_chr(
+    params,
+    ~ paste(.x[["name"]] %||% "", .x[["in"]] %||% "", sep = "@")
+  )
   params[!duplicated(keys)]
 }
 
@@ -71,7 +74,10 @@ get_response_schema_type <- function(responses, openapi_spec) {
   }
 
   # Look for successful response codes
-  success_codes <- intersect(names(responses), c("200", "201", "202", "204", "default"))
+  success_codes <- intersect(
+    names(responses),
+    c("200", "201", "202", "204", "default")
+  )
   if (length(success_codes) == 0) {
     return("unknown")
   }
@@ -81,7 +87,10 @@ get_response_schema_type <- function(responses, openapi_spec) {
   content <- resp$content %||% list()
 
   # Check for binary/image content types first
-  if (any(grepl("^image/", names(content))) || any(grepl("octet-stream", names(content)))) {
+  if (
+    any(grepl("^image/", names(content))) ||
+      any(grepl("octet-stream", names(content)))
+  ) {
     return("binary")
   }
 
@@ -97,7 +106,11 @@ get_response_schema_type <- function(responses, openapi_spec) {
   if (!is.null(json_schema[["$ref"]])) {
     ref <- json_schema[["$ref"]]
     ref_parts <- strsplit(ref, "/", fixed = TRUE)[[1]]
-    if (length(ref_parts) >= 4 && ref_parts[2] == "components" && ref_parts[3] == "schemas") {
+    if (
+      length(ref_parts) >= 4 &&
+        ref_parts[2] == "components" &&
+        ref_parts[3] == "schemas"
+    ) {
       schema_name <- ref_parts[4]
       components <- openapi_spec[["components"]] %||% list()
       schemas <- components[["schemas"]] %||% list()
@@ -140,7 +153,11 @@ extract_body_schema_metadata <- function(request_body, openapi_spec) {
   # Parse the reference (e.g., "#/components/schemas/LookupRequest")
   # Format: #/components/schemas/{SchemaName}
   ref_parts <- strsplit(ref, "/", fixed = TRUE)[[1]]
-  if (length(ref_parts) < 4 || ref_parts[2] != "components" || ref_parts[3] != "schemas") {
+  if (
+    length(ref_parts) < 4 ||
+      ref_parts[2] != "components" ||
+      ref_parts[3] != "schemas"
+  ) {
     return(list())
   }
 
@@ -190,7 +207,13 @@ order_path_by_route <- function(path_names, route) {
   }
 }
 
-detect_pagination <- function(route, path_params, query_params, body_params, registry = PAGINATION_REGISTRY) {
+detect_pagination <- function(
+  route,
+  path_params,
+  query_params,
+  body_params,
+  registry = PAGINATION_REGISTRY
+) {
   # Split comma-separated param strings into character vectors
   split_params <- function(x) {
     if (is.null(x) || !nzchar(x)) {
@@ -324,7 +347,9 @@ openapi_to_spec <- function(
 
   # Detect schema version (Swagger 2.0 vs OpenAPI 3.0)
   schema_version <- detect_schema_version(openapi)
-  cli::cli_alert_info("Detected schema version: {schema_version$type} {schema_version$version}")
+  cli::cli_alert_info(
+    "Detected schema version: {schema_version$type} {schema_version$version}"
+  )
 
   # Get schema definitions/components based on version
   # Swagger 2.0 uses "definitions", OpenAPI 3.0 uses "components/schemas"
@@ -340,7 +365,11 @@ openapi_to_spec <- function(
   base_url <- default_base_url %||%
     {
       srv <- openapi$servers
-      if (is.list(srv) && length(srv) && !is.null(srv[[1]]$url)) srv[[1]]$url else "https://example.com"
+      if (is.list(srv) && length(srv) && !is.null(srv[[1]]$url)) {
+        srv[[1]]$url
+      } else {
+        "https://example.com"
+      }
     }
 
   paths <- openapi$paths
@@ -364,7 +393,11 @@ openapi_to_spec <- function(
 
       # Extract query parameters with $ref resolution
       components <- openapi[["components"]] %||% list()
-      query_result <- extract_query_params_with_refs(parameters, components, schema_version)
+      query_result <- extract_query_params_with_refs(
+        parameters,
+        components,
+        schema_version
+      )
       query_names <- query_result$names # Use resolved/flattened parameter names
       query_meta <- query_result$metadata # Use enhanced metadata from resolved schemas
 
@@ -375,7 +408,11 @@ openapi_to_spec <- function(
       body_props <- if (method %in% c("post", "put", "patch")) {
         if (identical(schema_version$type, "swagger")) {
           # Swagger 2.0: body is in parameters array, resolve against definitions
-          extract_body_properties(op$parameters, definitions, schema_version = schema_version)
+          extract_body_properties(
+            op$parameters,
+            definitions,
+            schema_version = schema_version
+          )
         } else {
           # OpenAPI 3.0: body is in requestBody object
           extract_body_properties(op$requestBody, components)
@@ -385,11 +422,25 @@ openapi_to_spec <- function(
       }
 
       # Extract body parameter names (ordered by required first, then alphabetically)
-      body_names <- if (body_props$type %in% c("object", "one_of") && length(body_props$properties) > 0) {
-        required_names <- names(purrr::keep(body_props$properties, ~ .x$required))
-        optional_names <- names(purrr::keep(body_props$properties, ~ !.x$required))
+      body_names <- if (
+        body_props$type %in%
+          c("object", "one_of") &&
+          length(body_props$properties) > 0
+      ) {
+        required_names <- names(purrr::keep(
+          body_props$properties,
+          ~ .x$required
+        ))
+        optional_names <- names(purrr::keep(
+          body_props$properties,
+          ~ !.x$required
+        ))
         c(required_names, optional_names)
-      } else if (body_props$type %in% c("array", "object_array") && !is.null(body_props$item_schema)) {
+      } else if (
+        body_props$type %in%
+          c("array", "object_array") &&
+          !is.null(body_props$item_schema)
+      ) {
         # For array bodies with object items (ref or inline), extract object properties
         item_properties <- body_props$item_schema$properties
         if (length(item_properties) > 0) {
@@ -399,7 +450,11 @@ openapi_to_spec <- function(
         } else {
           character(0)
         }
-      } else if (body_props$type %in% c("string", "string_array") && length(body_props$properties) > 0) {
+      } else if (
+        body_props$type %in%
+          c("string", "string_array") &&
+          length(body_props$properties) > 0
+      ) {
         # Simple body types (string or string_array) - extract synthetic parameter names
         names(body_props$properties)
       } else {
@@ -411,13 +466,25 @@ openapi_to_spec <- function(
         purrr::map(body_names, function(name) {
           if (body_props$type %in% c("object", "one_of")) {
             body_props$properties[[name]]
-          } else if (body_props$type %in% c("array", "object_array") && !is.null(body_props$item_schema)) {
+          } else if (
+            body_props$type %in%
+              c("array", "object_array") &&
+              !is.null(body_props$item_schema)
+          ) {
             body_props$item_schema$properties[[name]]
           } else if (body_props$type %in% c("string", "string_array")) {
             # Simple body types - use the synthetic parameter metadata
             body_props$properties[[name]]
           } else {
-            list(name = name, type = NA, description = "", enum = NULL, default = NA, required = FALSE, example = NA)
+            list(
+              name = name,
+              type = NA,
+              description = "",
+              enum = NULL,
+              default = NA,
+              required = FALSE,
+              example = NA
+            )
           }
         })
       } else {
@@ -431,7 +498,10 @@ openapi_to_spec <- function(
       # Detect if endpoint has request body
       has_body <- if (identical(schema_version$type, "swagger")) {
         # Swagger 2.0: check for body parameter in parameters array
-        any(purrr::map_lgl(op$parameters %||% list(), ~ identical(.x[["in"]], "body")))
+        any(purrr::map_lgl(
+          op$parameters %||% list(),
+          ~ identical(.x[["in"]], "body")
+        ))
       } else {
         # OpenAPI 3.0: check for requestBody object
         !is.null(op$requestBody)
@@ -456,7 +526,9 @@ openapi_to_spec <- function(
       }
 
       # Get body schema type for more specific code generation
-      body_schema_type <- if (method %in% c("post", "put", "patch") && has_body) {
+      body_schema_type <- if (
+        method %in% c("post", "put", "patch") && has_body
+      ) {
         if (identical(schema_version$type, "swagger")) {
           # Use the type from body_props which was already extracted
           body_props$type %||% "unknown"
@@ -478,11 +550,17 @@ openapi_to_spec <- function(
       response_content_types <- character(0)
       if (!is.null(op$responses)) {
         # Look for successful responses (200, 201, etc.)
-        success_codes <- intersect(names(op$responses), c("200", "201", "202", "204", "default"))
+        success_codes <- intersect(
+          names(op$responses),
+          c("200", "201", "202", "204", "default")
+        )
         for (code in success_codes) {
           resp <- op$responses[[code]]
           if (!is.null(resp$content) && is.list(resp$content)) {
-            response_content_types <- c(response_content_types, names(resp$content))
+            response_content_types <- c(
+              response_content_types,
+              names(resp$content)
+            )
           }
         }
       }
@@ -496,9 +574,21 @@ openapi_to_spec <- function(
       # Detect pagination strategy (PAG-01, PAG-03)
       pagination_info <- detect_pagination(
         route = route,
-        path_params = if (length(path_names) > 0) paste(path_names, collapse = ",") else "",
-        query_params = if (length(query_names) > 0) paste(query_names, collapse = ",") else "",
-        body_params = if (length(body_names) > 0) paste(body_names, collapse = ",") else ""
+        path_params = if (length(path_names) > 0) {
+          paste(path_names, collapse = ",")
+        } else {
+          ""
+        },
+        query_params = if (length(query_names) > 0) {
+          paste(query_names, collapse = ",")
+        } else {
+          ""
+        },
+        body_params = if (length(body_names) > 0) {
+          paste(body_names, collapse = ",")
+        } else {
+          ""
+        }
       )
 
       fn <- if (name_strategy == "operationId") {
@@ -512,11 +602,27 @@ openapi_to_spec <- function(
         method = toupper(method),
         summary = summary,
         has_body = has_body,
-        params = if (length(combined) > 0) paste(combined, collapse = ",") else "",
+        params = if (length(combined) > 0) {
+          paste(combined, collapse = ",")
+        } else {
+          ""
+        },
         # Separate path and query parameters for flexible stub generation
-        path_params = if (length(path_names) > 0) paste(path_names, collapse = ",") else "",
-        query_params = if (length(query_names) > 0) paste(query_names, collapse = ",") else "",
-        body_params = if (length(body_names) > 0) paste(body_names, collapse = ",") else "",
+        path_params = if (length(path_names) > 0) {
+          paste(path_names, collapse = ",")
+        } else {
+          ""
+        },
+        query_params = if (length(query_names) > 0) {
+          paste(query_names, collapse = ",")
+        } else {
+          ""
+        },
+        body_params = if (length(body_names) > 0) {
+          paste(body_names, collapse = ",")
+        } else {
+          ""
+        },
         num_path_params = length(path_names),
         num_body_params = length(body_names),
         # Parameter metadata with examples and descriptions
@@ -537,7 +643,9 @@ openapi_to_spec <- function(
         # - "path": GET with path parameters (appends to URL)
         # - "query_only": GET without path parameters (static endpoint, params via query string)
         # NOTE: method is already uppercased at this point, so compare with uppercase
-        request_type = if (toupper(method) %in% c("POST", "PUT", "PATCH") && has_body) {
+        request_type = if (
+          toupper(method) %in% c("POST", "PUT", "PATCH") && has_body
+        ) {
           "json"
         } else if (length(path_names) > 0) {
           "path"

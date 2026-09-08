@@ -53,6 +53,7 @@ bind_tools(group, envir)
 \value{Structured operation, diagnostic, file action or validation lists.
 Request checks stop on mismatch and return invisibly on success.}
 \details{The supported neutral subset is scalar path/query input and JSON
-objects with scalar properties in OpenAPI 3.0/3.1 or Swagger 2.0. Unsupported
+objects with scalar properties and arrays of scalars or such objects in
+OpenAPI 3.0/3.1 or Swagger 2.0. Unsupported
 shapes are diagnosed. Helper-call tests do not establish wire conformance.
 Client callbacks own HTTP, authentication, pagination and hook execution.}

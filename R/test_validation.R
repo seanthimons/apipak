@@ -45,7 +45,11 @@ tg_validate_generated_text <- function(text, file = "<memory>") {
 
 tg_validate_generated_files <- function(root = ".") {
   files <- tg_list_test_files(root)
-  generated <- files[vapply(files, function(path) identical(tg_classify_test_file(path), "generated"), logical(1))]
+  generated <- files[vapply(
+    files,
+    function(path) identical(tg_classify_test_file(path), "generated"),
+    logical(1)
+  )]
   validations <- lapply(generated, function(path) {
     tg_validate_generated_text(tg_read_text(path), tg_rel_path(path, root))
   })

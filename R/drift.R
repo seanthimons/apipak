@@ -93,9 +93,6 @@ extract_function_params <- function(file_path, function_name) {
 }
 
 detect_parameter_drift <- function(endpoints, usage_summary, pkg_dir = "R") {
-  if (!requireNamespace("here", quietly = TRUE)) {
-    stop("Package 'here' is required.")
-  }
   if (!requireNamespace("dplyr", quietly = TRUE)) {
     stop("Package 'dplyr' is required.")
   }
@@ -159,21 +156,33 @@ detect_parameter_drift <- function(endpoints, usage_summary, pkg_dir = "R") {
     schema_params <- character()
 
     # Path parameters
-    if (!is.null(endpoint_row$path_params) && !is.na(endpoint_row$path_params) && nzchar(endpoint_row$path_params)) {
+    if (
+      !is.null(endpoint_row$path_params) &&
+        !is.na(endpoint_row$path_params) &&
+        nzchar(endpoint_row$path_params)
+    ) {
       path_p <- strsplit(endpoint_row$path_params, ",")[[1]]
       path_p <- trimws(path_p)
       schema_params <- c(schema_params, path_p)
     }
 
     # Query parameters
-    if (!is.null(endpoint_row$query_params) && !is.na(endpoint_row$query_params) && nzchar(endpoint_row$query_params)) {
+    if (
+      !is.null(endpoint_row$query_params) &&
+        !is.na(endpoint_row$query_params) &&
+        nzchar(endpoint_row$query_params)
+    ) {
       query_p <- strsplit(endpoint_row$query_params, ",")[[1]]
       query_p <- trimws(query_p)
       schema_params <- c(schema_params, query_p)
     }
 
     # Body parameters
-    if (!is.null(endpoint_row$body_params) && !is.na(endpoint_row$body_params) && nzchar(endpoint_row$body_params)) {
+    if (
+      !is.null(endpoint_row$body_params) &&
+        !is.na(endpoint_row$body_params) &&
+        nzchar(endpoint_row$body_params)
+    ) {
       body_p <- strsplit(endpoint_row$body_params, ",")[[1]]
       body_p <- trimws(body_p)
       schema_params <- c(schema_params, body_p)
@@ -200,7 +209,10 @@ detect_parameter_drift <- function(endpoints, usage_summary, pkg_dir = "R") {
 
     # Detect drifts
     added_in_schema <- setdiff(schema_params_sanitized, code_params_filtered)
-    removed_from_schema <- setdiff(code_params_filtered, schema_params_sanitized)
+    removed_from_schema <- setdiff(
+      code_params_filtered,
+      schema_params_sanitized
+    )
 
     # Record added parameters
     for (param in added_in_schema) {
@@ -211,17 +223,29 @@ detect_parameter_drift <- function(endpoints, usage_summary, pkg_dir = "R") {
       # Get type from metadata if available
       param_type <- "unknown"
       if (
-        !is.null(endpoint_row$path_param_metadata[[1]]) && orig_name %in% names(endpoint_row$path_param_metadata[[1]])
+        !is.null(endpoint_row$path_param_metadata[[1]]) &&
+          orig_name %in% names(endpoint_row$path_param_metadata[[1]])
       ) {
-        param_type <- endpoint_row$path_param_metadata[[1]][[orig_name]]$type %||% "unknown"
+        param_type <- endpoint_row$path_param_metadata[[1]][[
+          orig_name
+        ]]$type %||%
+          "unknown"
       } else if (
-        !is.null(endpoint_row$query_param_metadata[[1]]) && orig_name %in% names(endpoint_row$query_param_metadata[[1]])
+        !is.null(endpoint_row$query_param_metadata[[1]]) &&
+          orig_name %in% names(endpoint_row$query_param_metadata[[1]])
       ) {
-        param_type <- endpoint_row$query_param_metadata[[1]][[orig_name]]$type %||% "unknown"
+        param_type <- endpoint_row$query_param_metadata[[1]][[
+          orig_name
+        ]]$type %||%
+          "unknown"
       } else if (
-        !is.null(endpoint_row$body_param_metadata[[1]]) && orig_name %in% names(endpoint_row$body_param_metadata[[1]])
+        !is.null(endpoint_row$body_param_metadata[[1]]) &&
+          orig_name %in% names(endpoint_row$body_param_metadata[[1]])
       ) {
-        param_type <- endpoint_row$body_param_metadata[[1]][[orig_name]]$type %||% "unknown"
+        param_type <- endpoint_row$body_param_metadata[[1]][[
+          orig_name
+        ]]$type %||%
+          "unknown"
       }
 
       drift_results <- c(

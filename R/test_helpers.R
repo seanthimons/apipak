@@ -13,7 +13,12 @@ tg_norm_path <- function(path) {
 tg_rel_path <- function(path, root = ".") {
   root <- tg_norm_path(root)
   path <- tg_norm_path(path)
-  sub(paste0("^", gsub("([][{}()+*^$|\\\\.?])", "\\\\\\1", root), "/?"), "", path, perl = TRUE)
+  sub(
+    paste0("^", gsub("([][{}()+*^$|\\\\.?])", "\\\\\\1", root), "/?"),
+    "",
+    path,
+    perl = TRUE
+  )
 }
 
 tg_file_path <- function(root, ...) {
@@ -45,7 +50,11 @@ tg_canonical_r_code <- function(text) {
   }
 
   paste(
-    vapply(parsed, function(expr) paste(deparse(expr, width.cutoff = 500), collapse = "\n"), character(1)),
+    vapply(
+      parsed,
+      function(expr) paste(deparse(expr, width.cutoff = 500), collapse = "\n"),
+      character(1)
+    ),
     collapse = "\n"
   )
 }

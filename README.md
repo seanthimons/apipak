@@ -21,12 +21,19 @@ them. Pre-hook state contains `params`, and may return `skip_request`/`result`.
 Post-hook state contains `result` and `params`, and returns the final value.
 
 The neutral parser supports OpenAPI 3.0/3.1 and Swagger 2.0 local documents,
-scalar path/query parameters, local references, and JSON objects with scalar
-properties. It retains requiredness and parameter location. Unsupported media,
+scalar path/query parameters, local references, JSON objects with scalar
+properties, and arrays of scalars or such objects. Both clients use the extracted
+endpoint-table parser. Neutral records add validated source metadata, including
+source identity/hash, version, serialization and default presence. Unsupported media,
 array/object parameters, external/cyclic references and composed/free-form bodies
 produce operation diagnostics. It is not a full OpenAPI validator. Type, enum,
 numeric and string constraints are checked when choosing fixture values;
 unsupported input needs an explicit reviewed fixture or manual implementation.
+JSON object bodies are named R lists. JSON arrays are R lists of scalar values
+or named object lists; use lists so a one-element array retains its array shape.
+Required fields must be present. Scalar fixture selection checks type, enum,
+minimum/maximum, minLength/maxLength and pattern. Runtime helpers retain
+responsibility for complete value validation and serialization.
 
 `operation_fixtures()` uses override, example, default, enum, then type fixtures.
 It fails when the candidate does not meet supported constraints. It never
@@ -50,8 +57,10 @@ leave that journal; restore its listed backups before another run. There is
 no cross-file filesystem transaction. Client generation renders in isolation
 before this short apply step. Unsupported operations do not remove files.
 
-Run `Rscript tests/catalogue.R` and `Rscript tests/boundaries.R` after installation.
-The catalogue has independently written request expectations, checks successful
+Run `Rscript tests/catalogue.R`, `Rscript tests/boundaries.R`,
+`Rscript tests/schema-versions.R` and `Rscript tests/loading.R` after installation.
+The catalogue has independently written request expectations and generated
+testthat contracts from those fixed records. It checks successful
 completion, rejects four intentional faults, and checks an httr2 request's URL
 and JSON placement. The helper does not send that request. Generated helper-call
 tests alone do not prove HTTP transport or upstream response conformance.

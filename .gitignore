@@ -2,3 +2,4 @@
 *.Rcheck/
 evidence/
 .Rhistory
+*.jar

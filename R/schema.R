@@ -4,7 +4,6 @@
 
 # Track circular references during resolution
 
-
 # Extract all schema references from paths
 extract_referenced_schemas <- function(paths) {
   refs <- character(0)
@@ -55,7 +54,9 @@ preprocess_schema <- function(schema_file, exclude_endpoints = character()) {
   # Filter out unwanted endpoints (preflight, health checks, etc.)
   paths <- openapi$paths
   if (!is.null(paths) && length(paths) > 0 && length(exclude_endpoints) > 0) {
-    keep_paths <- names(paths)[!stringr::str_detect(names(paths), exclude_endpoints)]
+    keep_paths <- names(paths)[
+      !stringr::str_detect(names(paths), exclude_endpoints)
+    ]
     openapi$paths <- paths[keep_paths]
   }
 
@@ -75,7 +76,12 @@ validate_schema_ref <- function(ref, endpoint_context = NULL) {
     cli::cli_abort(c(
       "x" = "Invalid schema reference: empty or non-character",
       "i" = if (!is.null(endpoint_context)) {
-        paste0("Endpoint: ", endpoint_context$method, " ", endpoint_context$route)
+        paste0(
+          "Endpoint: ",
+          endpoint_context$method,
+          " ",
+          endpoint_context$route
+        )
       } else {
         NULL
       }
@@ -89,7 +95,12 @@ validate_schema_ref <- function(ref, endpoint_context = NULL) {
       "i" = "References must start with {.code #/}",
       "i" = "External file references are not supported",
       "i" = if (!is.null(endpoint_context)) {
-        paste0("Endpoint: ", endpoint_context$method, " ", endpoint_context$route)
+        paste0(
+          "Endpoint: ",
+          endpoint_context$method,
+          " ",
+          endpoint_context$route
+        )
       } else {
         NULL
       }
@@ -102,7 +113,12 @@ validate_schema_ref <- function(ref, endpoint_context = NULL) {
       "x" = "External file reference not supported: {.val {ref}}",
       "i" = "All schemas must be in single file",
       "i" = if (!is.null(endpoint_context)) {
-        paste0("Endpoint: ", endpoint_context$method, " ", endpoint_context$route)
+        paste0(
+          "Endpoint: ",
+          endpoint_context$method,
+          " ",
+          endpoint_context$route
+        )
       } else {
         NULL
       }
@@ -111,7 +127,10 @@ validate_schema_ref <- function(ref, endpoint_context = NULL) {
 
   # Check for valid path prefixes
   valid_prefixes <- c("#/components/schemas/", "#/definitions/")
-  has_valid_prefix <- any(purrr::map_lgl(valid_prefixes, ~ grepl(paste0("^", .x), ref)))
+  has_valid_prefix <- any(purrr::map_lgl(
+    valid_prefixes,
+    ~ grepl(paste0("^", .x), ref)
+  ))
 
   if (!has_valid_prefix) {
     cli::cli_warn(c(
@@ -122,13 +141,22 @@ validate_schema_ref <- function(ref, endpoint_context = NULL) {
   }
 
   # Extract and validate schema name
-  schema_name <- stringr::str_replace(ref, "^#/(components/schemas|definitions)/", "")
+  schema_name <- stringr::str_replace(
+    ref,
+    "^#/(components/schemas|definitions)/",
+    ""
+  )
   if (!nzchar(schema_name)) {
     cli::cli_abort(c(
       "x" = "Missing schema name in reference: {.val {ref}}",
       "i" = "Reference path is incomplete (trailing slash only)",
       "i" = if (!is.null(endpoint_context)) {
-        paste0("Endpoint: ", endpoint_context$method, " ", endpoint_context$route)
+        paste0(
+          "Endpoint: ",
+          endpoint_context$method,
+          " ",
+          endpoint_context$route
+        )
       } else {
         NULL
       }
@@ -163,7 +191,12 @@ resolve_schema_ref <- function(
       "i" = "Current reference: {.val {schema_ref}}",
       "i" = "This may indicate circular references or overly complex schema",
       "i" = if (!is.null(endpoint_context)) {
-        paste0("Endpoint: ", endpoint_context$method, " ", endpoint_context$route)
+        paste0(
+          "Endpoint: ",
+          endpoint_context$method,
+          " ",
+          endpoint_context$route
+        )
       } else {
         NULL
       }
@@ -216,12 +249,26 @@ resolve_schema_ref <- function(
   # Extract schema name from reference
   schema_name <- NULL
   if (grepl(paste0("^", gsub("/", "\\\\/", primary_path)), schema_ref)) {
-    schema_name <- stringr::str_replace(schema_ref, paste0("^", primary_path), "")
-  } else if (grepl(paste0("^", gsub("/", "\\\\/", secondary_path)), schema_ref)) {
-    schema_name <- stringr::str_replace(schema_ref, paste0("^", secondary_path), "")
+    schema_name <- stringr::str_replace(
+      schema_ref,
+      paste0("^", primary_path),
+      ""
+    )
+  } else if (
+    grepl(paste0("^", gsub("/", "\\\\/", secondary_path)), schema_ref)
+  ) {
+    schema_name <- stringr::str_replace(
+      schema_ref,
+      paste0("^", secondary_path),
+      ""
+    )
   } else {
     # Unusual path - try extracting from either known prefix
-    schema_name <- stringr::str_replace(schema_ref, "^#/(components/schemas|definitions)/", "")
+    schema_name <- stringr::str_replace(
+      schema_ref,
+      "^#/(components/schemas|definitions)/",
+      ""
+    )
   }
 
   # Try primary location
@@ -252,7 +299,12 @@ resolve_schema_ref <- function(
       "i" = "Tried: {.path {primary_path}{schema_name}}, {.path {secondary_path}{schema_name}}",
       "i" = "Available in primary: {.val {names(primary_container)}}",
       "i" = if (!is.null(endpoint_context)) {
-        paste0("Endpoint: ", endpoint_context$method, " ", endpoint_context$route)
+        paste0(
+          "Endpoint: ",
+          endpoint_context$method,
+          " ",
+          endpoint_context$route
+        )
       } else {
         NULL
       }
@@ -262,7 +314,9 @@ resolve_schema_ref <- function(
   # Warn if resolved schema is empty
   if (
     length(schema_def) == 0 ||
-      (is.null(schema_def$type) && is.null(schema_def$properties) && is.null(schema_def[["$ref"]]))
+      (is.null(schema_def$type) &&
+        is.null(schema_def$properties) &&
+        is.null(schema_def[["$ref"]]))
   ) {
     cli::cli_warn(c(
       "!" = "Resolved schema is empty: {.val {schema_ref}}",
@@ -285,7 +339,14 @@ resolve_schema_ref <- function(
 
   # Handle nested $ref in resolved schema
   if (!is.null(schema_def[["$ref"]])) {
-    return(resolve_schema_ref(schema_def[["$ref"]], components, schema_version, max_depth, depth + 1, endpoint_context))
+    return(resolve_schema_ref(
+      schema_def[["$ref"]],
+      components,
+      schema_version,
+      max_depth,
+      depth + 1,
+      endpoint_context
+    ))
   }
 
   # Return resolved schema
@@ -296,11 +357,15 @@ resolve_schema_ref <- function(
 # Returns list with: version (string), type ("swagger"|"openapi"|"unknown")
 detect_schema_version <- function(schema) {
   # Check swagger field first (Swagger 2.0)
-  if (!is.null(schema$swagger) && grepl("^2\\.", as.character(schema$swagger))) {
+  if (
+    !is.null(schema$swagger) && grepl("^2\\.", as.character(schema$swagger))
+  ) {
     return(list(version = as.character(schema$swagger), type = "swagger"))
   }
   # Check openapi field (OpenAPI 3.x)
-  if (!is.null(schema$openapi) && grepl("^3\\.", as.character(schema$openapi))) {
+  if (
+    !is.null(schema$openapi) && grepl("^3\\.", as.character(schema$openapi))
+  ) {
     return(list(version = as.character(schema$openapi), type = "openapi"))
   }
   # Unknown version
@@ -319,7 +384,10 @@ extract_swagger2_body_schema <- function(parameters, definitions) {
   body_params <- purrr::keep(parameters, ~ identical(.x[["in"]], "body"))
 
   # Find formData parameters for mutual exclusivity check
-  formData_params <- purrr::keep(parameters, ~ identical(.x[["in"]], "formData"))
+  formData_params <- purrr::keep(
+    parameters,
+    ~ identical(.x[["in"]], "formData")
+  )
 
   # BODY-06: Validate body/formData mutual exclusivity
   if (length(body_params) > 0 && length(formData_params) > 0) {
@@ -362,48 +430,65 @@ extract_swagger2_body_schema <- function(parameters, definitions) {
 
   # BODY-04: Handle object schemas with properties
   # In Swagger 2.0, schemas with properties often omit the explicit type="object"
-  has_properties <- !is.null(body_schema[["properties"]]) && length(body_schema[["properties"]]) > 0
-  is_object <- (!is.na(schema_type) && schema_type == "object") || (is.na(schema_type) && has_properties)
+  has_properties <- !is.null(body_schema[["properties"]]) &&
+    length(body_schema[["properties"]]) > 0
+  is_object <- (!is.na(schema_type) && schema_type == "object") ||
+    (is.na(schema_type) && has_properties)
 
   if (is_object && has_properties) {
     required_fields <- body_schema[["required"]] %||% character(0)
-    metadata <- purrr::imap(body_schema[["properties"]], function(prop, prop_name) {
-      list(
-        name = prop_name,
-        type = prop[["type"]] %||% NA,
-        format = prop[["format"]] %||% NA,
-        description = prop[["description"]] %||% "",
-        enum = prop[["enum"]] %||% NULL,
-        default = prop[["default"]] %||% NA,
-        required = prop_name %in% required_fields,
-        example = prop[["example"]] %||% prop[["default"]] %||% NA
-      )
-    })
+    metadata <- purrr::imap(
+      body_schema[["properties"]],
+      function(prop, prop_name) {
+        list(
+          name = prop_name,
+          type = prop[["type"]] %||% NA,
+          format = prop[["format"]] %||% NA,
+          description = prop[["description"]] %||% "",
+          enum = prop[["enum"]] %||% NULL,
+          default = prop[["default"]] %||% NA,
+          required = prop_name %in% required_fields,
+          example = prop[["example"]] %||% prop[["default"]] %||% NA
+        )
+      }
+    )
     names(metadata) <- purrr::map_chr(metadata, ~ .x$name)
     return(list(type = "object", properties = metadata))
   }
 
   # Handle array type
-  if (!is.na(schema_type) && schema_type == "array" && !is.null(body_schema[["items"]])) {
+  if (
+    !is.na(schema_type) &&
+      schema_type == "array" &&
+      !is.null(body_schema[["items"]])
+  ) {
     items <- body_schema[["items"]]
 
     # Resolve items $ref if present
     if (!is.null(items[["$ref"]])) {
-      resolved_items <- resolve_swagger2_definition_ref(items[["$ref"]], definitions)
-      if (!is.null(resolved_items) && !is.null(resolved_items[["properties"]])) {
+      resolved_items <- resolve_swagger2_definition_ref(
+        items[["$ref"]],
+        definitions
+      )
+      if (
+        !is.null(resolved_items) && !is.null(resolved_items[["properties"]])
+      ) {
         required_fields <- resolved_items[["required"]] %||% character(0)
-        metadata <- purrr::imap(resolved_items[["properties"]], function(prop, prop_name) {
-          list(
-            name = prop_name,
-            type = prop[["type"]] %||% NA,
-            format = prop[["format"]] %||% NA,
-            description = prop[["description"]] %||% "",
-            enum = prop[["enum"]] %||% NULL,
-            default = prop[["default"]] %||% NA,
-            required = prop_name %in% required_fields,
-            example = prop[["example"]] %||% prop[["default"]] %||% NA
-          )
-        })
+        metadata <- purrr::imap(
+          resolved_items[["properties"]],
+          function(prop, prop_name) {
+            list(
+              name = prop_name,
+              type = prop[["type"]] %||% NA,
+              format = prop[["format"]] %||% NA,
+              description = prop[["description"]] %||% "",
+              enum = prop[["enum"]] %||% NULL,
+              default = prop[["default"]] %||% NA,
+              required = prop_name %in% required_fields,
+              example = prop[["example"]] %||% prop[["default"]] %||% NA
+            )
+          }
+        )
         names(metadata) <- purrr::map_chr(metadata, ~ .x$name)
         ref_type <- stringr::str_replace(items[["$ref"]], "#/definitions/", "")
         return(list(
@@ -429,7 +514,11 @@ extract_swagger2_body_schema <- function(parameters, definitions) {
           example = items[["example"]] %||% NA
         )
       )
-      return(list(type = "string_array", item_type = "string", properties = metadata))
+      return(list(
+        type = "string_array",
+        item_type = "string",
+        properties = metadata
+      ))
     }
   }
 
@@ -480,7 +569,11 @@ resolve_swagger2_definition_ref <- function(ref, definitions) {
 }
 
 # Extract body properties from request body
-extract_body_properties <- function(request_body, components, schema_version = NULL) {
+extract_body_properties <- function(
+  request_body,
+  components,
+  schema_version = NULL
+) {
   if (is.null(request_body) || !is.list(request_body)) {
     return(list())
   }
@@ -502,14 +595,24 @@ extract_body_properties <- function(request_body, components, schema_version = N
 
   # Resolve reference if present
   if (!is.null(json_schema[["$ref"]])) {
-    json_schema <- resolve_schema_ref(json_schema[["$ref"]], components, schema_version, max_depth = 3)
+    json_schema <- resolve_schema_ref(
+      json_schema[["$ref"]],
+      components,
+      schema_version,
+      max_depth = 3
+    )
   }
 
   if (!is.null(json_schema[["oneOf"]])) {
     variants <- lapply(json_schema[["oneOf"]], function(variant) {
       if (!is.null(variant[["$ref"]])) {
         variant <- tryCatch(
-          resolve_schema_ref(variant[["$ref"]], components, schema_version, max_depth = 3),
+          resolve_schema_ref(
+            variant[["$ref"]],
+            components,
+            schema_version,
+            max_depth = 3
+          ),
           error = function(...) NULL
         )
       }
@@ -583,7 +686,8 @@ extract_body_properties <- function(request_body, components, schema_version = N
         name = "query",
         type = "string",
         format = json_schema[["format"]] %||% NA,
-        description = json_schema[["description"]] %||% "Query string to search for",
+        description = json_schema[["description"]] %||%
+          "Query string to search for",
         enum = json_schema[["enum"]] %||% NULL,
         default = json_schema[["default"]] %||% NA,
         required = TRUE,
@@ -603,28 +707,40 @@ extract_body_properties <- function(request_body, components, schema_version = N
 
     # If items is a reference, resolve it
     if (!is.null(items[["$ref"]])) {
-      resolved <- resolve_schema_ref(items[["$ref"]], components, schema_version, max_depth = 3)
+      resolved <- resolve_schema_ref(
+        items[["$ref"]],
+        components,
+        schema_version,
+        max_depth = 3
+      )
 
       # If resolved is object with properties, extract them
       if (!is.null(resolved[["properties"]])) {
         required_fields <- resolved[["required"]] %||% character(0)
-        metadata <- purrr::imap(resolved[["properties"]], function(prop, prop_name) {
-          list(
-            name = prop_name,
-            type = prop[["type"]] %||% NA,
-            format = prop[["format"]] %||% NA,
-            description = prop[["description"]] %||% "",
-            enum = prop[["enum"]] %||% NULL,
-            default = prop[["default"]] %||% NA,
-            required = prop_name %in% required_fields,
-            example = prop[["example"]] %||% prop[["default"]] %||% NA
-          )
-        })
+        metadata <- purrr::imap(
+          resolved[["properties"]],
+          function(prop, prop_name) {
+            list(
+              name = prop_name,
+              type = prop[["type"]] %||% NA,
+              format = prop[["format"]] %||% NA,
+              description = prop[["description"]] %||% "",
+              enum = prop[["enum"]] %||% NULL,
+              default = prop[["default"]] %||% NA,
+              required = prop_name %in% required_fields,
+              example = prop[["example"]] %||% prop[["default"]] %||% NA
+            )
+          }
+        )
         names(metadata) <- purrr::map_chr(metadata, ~ .x$name)
         return(list(
           type = "array",
           item_schema = list(
-            ref_type = stringr::str_replace(items[["$ref"]], "#/components/schemas/", ""),
+            ref_type = stringr::str_replace(
+              items[["$ref"]],
+              "#/components/schemas/",
+              ""
+            ),
             properties = metadata
           )
         ))
@@ -633,7 +749,11 @@ extract_body_properties <- function(request_body, components, schema_version = N
 
     # Array with inline object items (no $ref, but has type: object with properties)
     item_type <- items[["type"]] %||% NA
-    if (!is.na(item_type) && item_type == "object" && !is.null(items[["properties"]])) {
+    if (
+      !is.na(item_type) &&
+        item_type == "object" &&
+        !is.null(items[["properties"]])
+    ) {
       required_fields <- items[["required"]] %||% character(0)
       metadata <- purrr::imap(items[["properties"]], function(prop, prop_name) {
         list(
@@ -666,7 +786,8 @@ extract_body_properties <- function(request_body, components, schema_version = N
           type = "array",
           item_type = "string",
           format = json_schema[["format"]] %||% NA,
-          description = json_schema[["description"]] %||% "Array of strings to search for",
+          description = json_schema[["description"]] %||%
+            "Array of strings to search for",
           enum = json_schema[["enum"]] %||% NULL,
           default = json_schema[["default"]] %||% NA,
           required = TRUE,
@@ -693,18 +814,21 @@ extract_body_properties <- function(request_body, components, schema_version = N
   if (type == "object" && !is.null(json_schema[["properties"]])) {
     required_fields <- json_schema[["required"]] %||% character(0)
 
-    metadata <- purrr::imap(json_schema[["properties"]], function(prop, prop_name) {
-      list(
-        name = prop_name,
-        type = prop[["type"]] %||% NA,
-        format = prop[["format"]] %||% NA,
-        description = prop[["description"]] %||% "",
-        enum = prop[["enum"]] %||% NULL,
-        default = prop[["default"]] %||% NA,
-        required = prop_name %in% required_fields,
-        example = prop[["example"]] %||% prop[["default"]] %||% NA
-      )
-    })
+    metadata <- purrr::imap(
+      json_schema[["properties"]],
+      function(prop, prop_name) {
+        list(
+          name = prop_name,
+          type = prop[["type"]] %||% NA,
+          format = prop[["format"]] %||% NA,
+          description = prop[["description"]] %||% "",
+          enum = prop[["enum"]] %||% NULL,
+          default = prop[["default"]] %||% NA,
+          required = prop_name %in% required_fields,
+          example = prop[["example"]] %||% prop[["default"]] %||% NA
+        )
+      }
+    )
 
     names(metadata) <- purrr::map_chr(metadata, ~ .x$name)
     return(list(
@@ -721,7 +845,12 @@ extract_body_properties <- function(request_body, components, schema_version = N
 #'
 # Extract query parameters with schema reference resolution
 # Flattens referenced schemas into individual query parameters
-extract_query_params_with_refs <- function(parameters, components, schema_version = NULL, max_depth = 3) {
+extract_query_params_with_refs <- function(
+  parameters,
+  components,
+  schema_version = NULL,
+  max_depth = 3
+) {
   result_names <- character(0)
   result_metadata <- list()
 
@@ -745,7 +874,13 @@ extract_query_params_with_refs <- function(parameters, components, schema_versio
 
     if (!is.null(schema_ref) && nzchar(schema_ref)) {
       # Resolve the schema reference
-      resolved <- resolve_schema_ref(schema_ref, components, schema_version, max_depth, depth = 0)
+      resolved <- resolve_schema_ref(
+        schema_ref,
+        components,
+        schema_version,
+        max_depth,
+        depth = 0
+      )
 
       # Check if resolved schema has properties (object)
       properties <- resolved[["properties"]] %||% list()
@@ -758,7 +893,9 @@ extract_query_params_with_refs <- function(parameters, components, schema_versio
           name = param_name,
           type = schema[["type"]] %||% resolved[["type"]] %||% NA,
           format = schema[["format"]] %||% resolved[["format"]] %||% NA,
-          description = param[["description"]] %||% resolved[["description"]] %||% "",
+          description = param[["description"]] %||%
+            resolved[["description"]] %||%
+            "",
           enum = schema[["enum"]] %||% resolved[["enum"]] %||% NULL,
           default = schema[["default"]] %||% resolved[["default"]] %||% NA,
           required = param[["required"]] %||% FALSE,
@@ -774,7 +911,13 @@ extract_query_params_with_refs <- function(parameters, components, schema_versio
           prop_ref <- prop[["$ref"]]
           if (!is.null(prop_ref) && nzchar(prop_ref)) {
             # Resolve the nested $ref
-            prop <- resolve_schema_ref(prop_ref, components, schema_version, max_depth, 1)
+            prop <- resolve_schema_ref(
+              prop_ref,
+              components,
+              schema_version,
+              max_depth,
+              1
+            )
           }
 
           # Extract property metadata first
@@ -787,7 +930,11 @@ extract_query_params_with_refs <- function(parameters, components, schema_versio
           prop_example <- prop[["example"]] %||% prop_default %||% NA
 
           # Handle nested objects with dot notation
-          if (!is.na(prop_type) && prop_type == "object" && !is.null(prop[["properties"]])) {
+          if (
+            !is.na(prop_type) &&
+              prop_type == "object" &&
+              !is.null(prop[["properties"]])
+          ) {
             # This is a nested object - recurse with dot notation
             # DON'T add the parent object to result_names, only the nested properties
             nested_props <- prop[["properties"]]
@@ -795,7 +942,13 @@ extract_query_params_with_refs <- function(parameters, components, schema_versio
 
             for (nested_name in names(nested_props)) {
               nested_prop <- nested_props[[nested_name]]
-              nested_flat_name <- paste0(param_name, ".", prop_name, ".", nested_name)
+              nested_flat_name <- paste0(
+                param_name,
+                ".",
+                prop_name,
+                ".",
+                nested_name
+              )
               result_names <- c(result_names, nested_flat_name)
 
               result_metadata[[nested_flat_name]] <- list(
@@ -806,7 +959,9 @@ extract_query_params_with_refs <- function(parameters, components, schema_versio
                 enum = nested_prop[["enum"]] %||% NULL,
                 default = nested_prop[["default"]] %||% NA,
                 required = nested_name %in% nested_required,
-                example = nested_prop[["example"]] %||% nested_prop[["default"]] %||% NA
+                example = nested_prop[["example"]] %||%
+                  nested_prop[["default"]] %||%
+                  NA
               )
             }
           } else {

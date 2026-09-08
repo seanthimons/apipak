@@ -30,7 +30,13 @@ tg_deparse_expr <- function(expr) {
 }
 
 tg_literal_value <- function(expr) {
-  if (is.character(expr) || is.numeric(expr) || is.integer(expr) || is.logical(expr) || is.null(expr)) {
+  if (
+    is.character(expr) ||
+      is.numeric(expr) ||
+      is.integer(expr) ||
+      is.logical(expr) ||
+      is.null(expr)
+  ) {
     return(list(is_literal = TRUE, value = expr))
   }
 

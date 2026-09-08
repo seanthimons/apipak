@@ -41,19 +41,33 @@ find_endpoint_usages_base <- function(
     ))
   }
 
-  base_paths <- strip_curly_params(endpoints, keep_trailing_slash = keep_trailing_slash, leading_slash = 'remove')
+  base_paths <- strip_curly_params(
+    endpoints,
+    keep_trailing_slash = keep_trailing_slash,
+    leading_slash = 'remove'
+  )
 
-  files <- list.files(pkg_dir, pattern = files_regex, recursive = TRUE, full.names = TRUE)
+  files <- list.files(
+    pkg_dir,
+    pattern = files_regex,
+    recursive = TRUE,
+    full.names = TRUE
+  )
 
   scan_file <- function(f, pat) {
-    lines <- tryCatch(readLines(f, warn = FALSE), error = function(e) character())
+    lines <- tryCatch(readLines(f, warn = FALSE), error = function(e) {
+      character()
+    })
     if (!length(lines)) {
       return(NULL)
     }
     # Search for "endpoint = " prefix followed by the pattern
     # This makes the search more specific to endpoint assignments
     search_pattern <- paste0('endpoint\\s*=\\s*"', pat, '"')
-    hits <- which(stringr::str_detect(lines, stringr::regex(search_pattern, ignore_case = ignore_case)))
+    hits <- which(stringr::str_detect(
+      lines,
+      stringr::regex(search_pattern, ignore_case = ignore_case)
+    ))
     if (!length(hits)) {
       return(NULL)
     }
@@ -71,7 +85,10 @@ find_endpoint_usages_base <- function(
     bp <- base_paths[i]
     expected_file <- if (!is.null(expected_files)) expected_files[i] else NULL
     # Create pattern variations: with and without leading slash
-    pat_set <- unique(c(bp, if (include_no_leading_slash) stringr::str_remove(bp, "^/")))
+    pat_set <- unique(c(
+      bp,
+      if (include_no_leading_slash) stringr::str_remove(bp, "^/")
+    ))
     for (pat in pat_set) {
       for (f in files) {
         # If expected_file is specified, only check files with matching basename
@@ -170,7 +187,10 @@ find_endpoint_usages_base <- function(
           next
         }
 
-        lines <- tryCatch(readLines(candidate, warn = FALSE), error = function(e) character())
+        lines <- tryCatch(
+          readLines(candidate, warn = FALSE),
+          error = function(e) character()
+        )
         if (length(lines) == 0) {
           next
         }
@@ -178,7 +198,11 @@ find_endpoint_usages_base <- function(
         # Derive expected function name from the filename (e.g., ct_hazard.R -> ct_hazard)
         fn_name <- tools::file_path_sans_ext(basename(ef))
         # Check for a function definition: fn_name <- function or fn_name = function
-        fn_pattern <- paste0("^\\s*", gsub("\\.", "\\\\.", fn_name), "\\s*(<-|=)\\s*function\\b")
+        fn_pattern <- paste0(
+          "^\\s*",
+          gsub("\\.", "\\\\.", fn_name),
+          "\\s*(<-|=)\\s*function\\b"
+        )
         fn_hits <- which(stringr::str_detect(lines, fn_pattern))
 
         if (length(fn_hits) > 0) {
