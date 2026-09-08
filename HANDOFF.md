@@ -1,6 +1,7 @@
 # Handoff: Generalize wrapmaint into apipak
 
 **Generated**: 2026-09-08 14:26 -04:00
+**Hardened**: 2026-09-08, with source-level audit and implementation rules below.
 **Branch**: `docs/apipak-generalization-handoff`
 **Status**: Ready for implementation under a subsequent goal command.
 **Authority**: User-approved plan, cross-checked against the planning conversation.
@@ -18,7 +19,7 @@ real-world stress test and subsequent standalone client; its extra requirements
 must not delay the ComptoxR milestone. Overall completion includes full coverage
 of that API's frozen schema, not merely a representative subset.
 
-The current task is document creation only. No package implementation, remote
+The current task is handoff preparation and offline audit only. No package implementation, remote
 creation, schema freezing, installation, or release has been performed here.
 
 ## Completed
@@ -29,6 +30,8 @@ creation, schema freezing, installation, or release has been performed here.
 - [x] Inspected the supplied Natural Products OpenAPI document over HTTP.
 - [x] Audited ComptoxR's filter, example, documentation, and lifecycle behavior.
 - [x] Resolved the product decisions listed below and obtained approval of the plan.
+- [x] Reproduced six current implementation gaps with offline, sourceable probes.
+  Added concrete rules to prevent those gaps from surviving the migration.
 
 ## Key Decisions and Conversation Cross-check
 
@@ -82,7 +85,10 @@ ComptoxR renderer and parameter modules retain substantial implementation.
 No fresh claim of runtime breakage is made by this planning audit.
 
 **Verification status**: historical acceptance results in the source handoff are
-not fresh results. No package tests were rerun for this document-only task.
+not fresh results. No full package suites were rerun. Six fresh offline audit
+probes were run against the current source, using installed wrapmaint 0.1.0 for
+its namespace dependencies; all six expose unmet target contracts. These are
+diagnostic findings, not passing implementation acceptance.
 
 **Pinned legacy artifact**: wrapmaint 0.1.0, source `aae88f9`, attached to
 [ComptoxR v2.0.0](https://github.com/seanthimons/ComptoxR/releases/download/v2.0.0/wrapmaint_0.1.0.tar.gz).
@@ -102,6 +108,7 @@ prefix means the reference worktree above, not an arbitrary installed package.
 | `R/context.R`, `R/groups.R` | Compatibility rebinding and implicit context dependencies. |
 | `R/fixtures.R`, `R/test_renderer.R`, `R/scaffold.R` | Fixture precedence, contract tests, lifecycle protection. |
 | `tests/`, `inst/catalogue/` | Installed-package acceptance and non-chemical client. |
+| `evidence/handoff-audit.R` | Sourceable reproductions of six pre-migration gaps; convert these cases into acceptance tests while implementing. |
 | `ComptoxR/dev/toolkit_adapter.R`, `ComptoxR/dev/stub_specs.R` | Staging/apply adapter, service selection, naming, helper policy. |
 | `ComptoxR/dev/endpoint_eval/` | Mixed local implementation and toolkit shims; inspect definitions and every caller. |
 | `ComptoxR/dev/test_generation/` | Client fixture policy, metadata, test rendering, token preflight, and toolkit shims. |
@@ -161,6 +168,9 @@ configuration; avoid two editable sources of truth for the same hook setting.
 - [ ] Before renaming, freeze schema/policy hashes, selected operation identities,
   generated/protected files, signatures, exports, docs, hooks, and current results.
   Use current production output, not the historical pre-policy file counts.
+- [ ] Snapshot the Natural Products schema as a reference input early, recording
+  origin and checksum, so its later full-coverage target does not move. This is
+  input capture only; do not start its feature work before the ComptoxR gate.
 - [ ] Rename metadata, namespace lookups, installer checks, docs, and tests to
   apipak. Preserve legacy ownership headers and interrupted-apply recovery.
   Do not rewrite historical evidence or immutable artifact references.
@@ -258,9 +268,10 @@ configuration; avoid two editable sources of truth for the same hook setting.
 
 ### Phase 5: Natural Products full-coverage stress test
 
-- [ ] Freeze [the supplied schema](https://api.naturalproducts.net/latest/openapi.json)
+- [ ] Use the early frozen [supplied schema](https://api.naturalproducts.net/latest/openapi.json)
   with retrieval source/date and checksum. It was inspected but not saved during
-  planning; `/latest` may change before implementation.
+  planning; `/latest` may change before implementation. Later refreshes are
+  separate changes, not moving acceptance criteria.
 - [ ] Create the standalone client repository/package (provisional name above).
   Generate client-owned httr2 helpers and documentation through the same workflow.
   The client must work without apipak installed or loaded.
@@ -294,6 +305,316 @@ configuration; avoid two editable sources of truth for the same hook setting.
 | Generic pipeline retains hidden client machinery | Catalogue uses the same API; no chemistry defaults or giant local compatibility renderer. |
 | Scale regresses | Rerun existing 2,000-operation case; report time/memory/environment and avoid per-operation reparsing. |
 
+## Hardened Implementation Rules
+
+These rules resolve technical ambiguities in the approved plan. They do not add
+another product milestone or permit unrelated runtime changes. Apply them while
+completing the phases above, not as a separate framework-building exercise.
+
+### Fresh audit evidence
+
+Run `Rscript evidence/handoff-audit.R`, or interactively:
+
+```r
+source('evidence/handoff-audit.R')
+handoff_audit('.')
+```
+
+The script reads current source, uses the installed legacy namespace for shared
+dependencies, and writes only in a newly created, verified temporary directory.
+It is a pre-migration diagnostic, not the future acceptance runner. Convert these
+cases into positive regression tests as the affected functions are migrated.
+
+| Target contract | Observed before migration |
+|---|---|
+| Cross-service comparisons retain all operations | A change to the second service's `GET /items` produces zero changes because comparison keys omit service identity. |
+| Wrappers cannot overwrite their helpers | Naming a generated wrapper `request_helper` causes an unused-arguments error when it calls itself. |
+| Final hook validation checks selected wrapper existence | A configured hook for an absent wrapper returns `valid = TRUE`. |
+| Explicit-null fixture overrides retain their meaning | `override = NULL` selects the schema example instead. |
+| A generated header does not discard local edits | An edited header-bearing file is planned for replacement without a previous-content check. |
+| An unfinished apply blocks another apply | A recovery journal is ignored and the subsequent apply proceeds. |
+
+Further source inspection found swallowed errors in ComptoxR's generated tests,
+R-expression strings in existing hook configuration, and different skip-request
+semantics between its request templates and the neutral renderer. These are
+specific migration requirements, not claims that every existing wrapper is broken.
+
+### 1. Normalize without losing ComptoxR capabilities
+
+Do not funnel ComptoxR through the current strict neutral reader unchanged: it
+rejects body shapes and media before a renderer/callback can handle them. Build
+the raw operation index first, apply selection, resolve schema metadata and
+declared client adaptations, then validate support for the chosen request
+mapping. Retain one authoritative inventory; legacy endpoint tables may be
+temporary derived views, not a second source of identity or parameter truth.
+
+Keep original method/path/source, upstream parameter identity `(location, name)`,
+public formal names/defaults, and helper argument mappings separate. A hook may
+supply an upstream required field that is not a required public formal. Preserve
+that distinction, including `hook_missing_params`. Do not round-trip rich
+metadata through comma-separated parameter-name strings.
+
+New transport fields such as media type or upload metadata must flow only to
+helpers whose declared mapping accepts them. Do not add arguments to existing
+ComptoxR helper calls merely because the new default transport supports them.
+
+One logical service ID represents one request namespace. Different Chemi APIs
+sharing a route need separate service IDs even if they share filter settings.
+Duplicate operations within a service may be coalesced only if their normalized
+contracts agree; conflicts fail with both source locations. Never let file order
+choose a winner.
+
+### 2. Fix configuration semantics before exposing the loader
+
+- Exactly one of `spec` or `config` is accepted. Preserve positional R-list calls
+  and the public default check mode. Reject conflicting inputs, not silent merging.
+- Resolve service defaults, then operation overrides by stable method/path within
+  that service. Maps override named fields; sequences replace, not concatenate.
+  An absent field inherits; an empty sequence explicitly clears; null is allowed
+  only for fields whose documented meaning supports it. No implicit global policy.
+- Preserve dynamic production-schema discovery where current scripts use it:
+  allow declared root-relative file patterns with explicit filename exclusions,
+  expand deterministically, and record the resolved files/hashes. Missing literal
+  files and selectors matching nothing are errors, not valid empty inventories.
+  Schema files not configured as inputs must not silently become active.
+- Reject unknown operation/parameter override targets after source indexing.
+  An override targeting a deliberately excluded operation can be retained with
+  an inactive diagnostic; it must not resurrect that operation.
+- Use exact field lookup, strict scalar/sequence validation, and schema-aware
+  numeric normalization so YAML numeric values do not churn R integer defaults.
+  Test empty/one-element lists, null, false, zero, and quoted boolean-like strings.
+- Load UTF-8 YAML with `eval.expr = FALSE` explicitly, independent of session
+  options. Reject executable tags rather than merely warning and continuing.
+  Ordinary in-document aliases are supported; fix YAML merge precedence to
+  explicit-key override and reject duplicate explicit keys. No cross-file
+  inheritance or executable include mechanism.
+- Compile/validate all regexes before inventory changes. Use any-match semantics
+  across the exclusion list. Preserve case and anchors; do not silently normalize
+  regex text or use a different regex engine during migration.
+
+The YAML package defaults can depend on session options and its merge behavior
+is configurable: [official loader reference](https://yaml.r-lib.org/reference/yaml.load.html).
+
+### 3. Migrate legacy expression fields without changing runtime hooks
+
+ComptoxR's existing `inst/hook_config.yml` contains values such as
+`default: 'c("wide", "raw")'` and request arguments such as
+`endpoint: 'req_data$request$endpoint'`. Blindly copying them would violate the
+new data-only contract; treating them as ordinary strings would change behavior.
+
+Move generator-only settings to service YAML as typed literal values or explicit
+references: a request argument is either `value: ...` or
+`from: [hook_state, request, endpoint]`. Allowed reference roots are the public
+parameter map and hook state. Construct the corresponding R expressions from
+validated components; do not parse arbitrary new YAML strings as code. Defaults
+become typed YAML values/sequences. Nonliteral computation lives in named R
+callbacks, which may return data or language objects, not hidden renderer source
+strings. Do not build a general expression language.
+
+Audit consumers before removing old generator-only fields. Leave runtime hook
+chains and payload settings in the existing runtime file, with unchanged runtime
+merge semantics. Service configuration refers to that file for hook declarations
+rather than duplicating them. Any temporary legacy conversion is isolated,
+allowlisted, and removed from the ComptoxR path before its completion gate.
+
+`post_on_skip = TRUE` means skip HTTP but still run the post-response chain.
+The neutral renderer currently returns immediately on skip. Preserve both
+behaviors explicitly and test skipped requests, hook-mutated parameters,
+successful result shaping, and hook errors. Final hook validation uses the
+desired wrappers plus protected/manual wrappers and fails on missing selected
+wrappers. Pre-generation discovery can be permissive; final acceptance cannot.
+
+### 4. Protect namespace identity, not just filenames
+
+Check names against existing function definitions, helpers, runtime callbacks,
+generated support functions, and case-insensitive output paths. Do not silently
+rename established public wrappers. Reject collisions with an actionable source
+diagnostic; explicit naming overrides resolve them. Avoid generated local-name
+capture and qualify base helpers where a client-defined function could shadow
+them. Test legal-but-awkward parameter names, reserved names, and body/parameter
+name collisions. Keep docs and fixture calls mapped to the actual public names.
+
+Keep the schema path used for selection separate from the path passed to HTTP.
+Explicitly represent prefix removal required by existing helpers. Test duplicate
+`/api` or `/latest` prefixes, trailing slashes, and encoded path-segment values.
+An offline relative server URL needs its recorded origin; never infer it from
+the developer's working directory or contact the server during generation.
+
+### 5. Make ownership and reconciliation conservative
+
+Persist a versioned generation manifest, separate from the retired ComptoxR
+`dev/test_manifest.json`. Record relative output paths, operation ownership,
+last-applied content hashes, schema/config/callback inputs, toolkit and formatting
+versions. Hash text consistently as UTF-8/LF; exclude timestamps/absolute paths
+from deterministic comparisons. Include generated helpers, tests, and metadata,
+not just wrapper files.
+
+Seed legacy ownership only after baseline regeneration/classification verifies
+the file; a generated header alone cannot authorize replacing an unexplained
+local edit. On later runs, a changed last-applied hash is a protected conflict.
+Do not offer a blanket force flag that overwrites manual edits or lifecycle
+protection. Files that are protected but already correct are satisfied, not
+blocking conflicts.
+
+Keep selection status and file ownership as separate dimensions. A selected,
+manually implemented operation is valid and may count as implemented. An excluded
+protected wrapper is reported as retained; do not silently label it removed.
+For mixed manual/generated files, protect the whole file and report required
+changes; do not introduce an in-place function-splicing engine. Fully owned
+multi-function files can be rendered as a whole after retained definitions are
+accounted for.
+
+An explicit filter exclusion is removal intent. A missing schema, removed config
+entry, upstream disappearance, parser failure, or unsupported operation is not
+automatic deletion permission. Report potential retirement separately. Renaming
+an operation through explicit configuration may move verified owned output only
+as a paired write/removal after validation; protected originals block that move.
+
+### 6. Treat one apply as a validated publication of files
+
+Stage wrappers, tests, `man/`, `NAMESPACE`, generated hook metadata, and other
+owned outputs together. The current adapter stages wrappers but documentation
+is later generated by CI; preserve existing output while closing that partial
+apply gap. Use roxygen for tool-owned namespace/help generation; preserve manual
+directives and client-specific tag handlers such as `R/roxy_apistage.R`.
+
+Run formatting and documentation in an isolated R process so client loading and
+S3 registration do not leak into another client's generation session. Parsing
+R alone is insufficient documentation validation. Escape schema/configuration
+prose so it cannot introduce roxygen `@eval`, executable inline R, or unintended
+tags. Generator-owned lifecycle markup is a separate trusted template.
+See [roxygen formatting rules](https://roxygen2.r-lib.org/articles/rd-formatting.html).
+
+Before mutation, fail on blocking diagnostics, acquire a simple exclusive
+per-root apply lock, and recheck input/output hashes captured during planning.
+Another process or user edit makes the plan stale; do not apply it. Check/plan
+may use external temporary storage but do not write project reports/manifests.
+
+Detect both legacy and new unresolved recovery journals before another apply.
+Provide a documented recovery plan/apply path that validates every backup and
+destination against the project root before restoring anything. Retain evidence
+if restoration fails; never delete the journal just to unblock progress. Verify
+rollback success, including failure injection at multiple write stages. This
+remains recoverable file application, not a cross-file filesystem transaction.
+
+### 7. Replace weak test oracles and retain manual-wrapper coverage
+
+`dev/test_generation/04_renderer.R` currently emits
+`result <- try(..., silent = TRUE)` but checks captured calls rather than successful
+completion. It also has assertions equivalent to `length(value) >= 0`. Do not
+preserve those weaknesses merely to obtain generated-test text parity.
+
+Preserve wrapper/runtime contracts; intentionally strengthen generated tests.
+Require successful completion, expected result shape/value, exact meaningful
+request fields, and intended call count/order. Derive independent expectations
+from reviewed baseline behavior/specifications, not solely the wrapper being
+tested. Preserve bespoke suites and actually run them; a file mentioning the
+wrapper and `test_that` is only structural evidence.
+
+Maintain an observed manual-wrapper inventory alongside schema operations so
+PubChem and other existing wrappers absent from CTX/Chemi/EPI schemas do not lose
+tests. This is maintenance of existing code, not the deferred feature of authoring
+new endpoint schemas. Do not add these wrappers to unrelated schema denominators.
+Track implementation coverage separately from verified contract-test coverage.
+Selected-but-unsupported operations remain visible in totals; never improve
+coverage by silently removing hard cases from the denominator.
+
+Mutation checks must catch a wrong method, wrong parameter location/body, missing
+required-input enforcement, wrong hook order, and an error thrown after the
+correct helper call. Extend existing fault checks rather than inventing another
+test framework. The probe script's unmet contracts become positive acceptance
+tests; do not preserve its FALSE results as the definition of success.
+
+### 8. Preserve workflow behavior while making failures blocking
+
+Inventory readers of CLI flags, report schemas, coverage badges and
+`GITHUB_OUTPUT` names. Include `calculate_coverage.R`, `detect_test_gaps.R`, the
+canonical unit-test readiness audit, and schema-check/pipeline/coverage/readiness
+workflows. Keep client-specific schema acquisition and release automation local;
+"wholesale replacement" does not mean migrating unrelated database/build tasks.
+
+The current schema-diff CI step uses `continue-on-error: true`. A parsing or
+configuration failure must prevent subsequent generation/publication; keep
+best-effort diagnostics separate from that blocking validity gate. Core R
+functions return structured results/errors, never `quit()`; only thin CLI entry
+points choose process exit codes. Preserve intentional existing CLI defaults
+while the reusable generation function remains check-by-default.
+
+Compare old/new schemas using the same selection policy to report upstream
+changes. Report old/new policy selection changes separately; changing a filter
+must not masquerade as an upstream deletion. Run workflow-relevant checks with
+`stop_on_failure = TRUE` or equivalent verified exit status, and do not accept a
+successful R process exit alone as proof that test expectations passed.
+
+### 9. Define the release and escalation boundary
+
+If PR 309 is still unmerged, create the ComptoxR implementation branch from its
+reviewed production-policy head as a dependent branch rather than blocking work
+or dropping those changes. Rebase onto the normal integration base once merged;
+do not merge or release PR 309 merely to simplify this task.
+
+A candidate apipak archive can be installed from a local build into an isolated
+library during development. Do not keep running the old pinned installer after
+switching imports; it would reinstall wrapmaint. Record candidate package name,
+source revision, and installed location. Update the remote pin only once its
+immutable release artifact exists and download verification passes. The initial
+renamed package can retain version 0.1.0 under its distinct package name; follow
+the toolkit's established release tooling for later increments.
+
+Check installed artifacts on Windows and Linux, including paths/case, line
+endings, package loading, and regeneration. Run the large-case benchmark against
+the baseline in the same environment; investigate material regressions before
+completion rather than comparing unrelated machines.
+
+Proceed without user interaction on internal implementation choices consistent
+with these rules. Pause only for an actual public-contract change that cannot be
+preserved, unexplained user-edited/protected output blocking the result, missing
+credentials/permissions for an essential external action, or a naming/publication
+conflict that cannot use the stated defaults. Ordinary parser gaps, callback
+extraction, baseline fixes, and new generic support are implementation work.
+Do not silently redefine acceptance to avoid them.
+
+### 10. Keep new-client HTTP behavior explicit and bounded
+
+New-client initialization requires package metadata or obtains it from an
+existing DESCRIPTION; it must not silently assign apipak's authors/license to
+someone else's package. For this user's Natural Products package, the existing
+user-owned package metadata is the starting reference. Initialize only absent
+scaffold files, and report existing-file conflicts without overwriting them.
+The generated client declares its own httr2/runtime dependencies; apipak remains
+development-only. Existing ComptoxR initialization must not replace its helpers.
+
+The generated default transport performs one request, honoring the declared
+method, URL, parameter placement and body media. Do not infer all-pages loops,
+polling, chemistry transformations, or automatic retries of writes from endpoint
+names. Reuse httr2 request/response primitives rather than implementing another
+HTTP stack. Request/response adaptation beyond this contract uses explicit
+client callbacks.
+
+Default new-client returns: JSON decoded without automatic data-frame
+simplification, textual content including SVG as character data, binary content
+as raw bytes, and genuinely empty response bodies as NULL. HTTP failures raise
+errors; malformed nonempty JSON is not converted into an apparent empty success.
+No automatic tidying or cache. A declared response policy may override decoding
+for an endpoint; do not guess from its name. Follow the observed response media
+type and test both declared formats for multi-format operations.
+
+Omitted optional query parameters are omitted from the wire; false and zero are
+retained. Preserve explicit JSON null and array shape. Required-input presence
+and nullable values are separate checks. For ambiguous nullable query encoding,
+require a documented endpoint mapping rather than inventing a universal null
+string. Preserve plain-text bytes/newlines and multipart file/field names; upload
+the supplied file contents, not its local path string. Do not treat a server-side
+`path` parameter as permission to read a client file.
+
+Maintain per-operation schema support, independent offline verification, and
+live verification as distinct evidence. Full frozen-schema coverage requires
+all operations supported and offline-verified; it does not justify claiming
+untested upstream behavior or correctness of chemical calculations. Live checks
+remain explicit and bounded, especially for job-submitting endpoints that happen
+to use GET. Use small deterministic fixtures and do not send user/private data.
+See [httr2 body primitives](https://httr2.r-lib.org/reference/req_body.html).
+
 ## Verification and Resume Instructions
 
 1. Read this document and the original handoff fully. Check status, branches,
@@ -317,7 +638,8 @@ configuration; avoid two editable sources of truth for the same hook setting.
    source('dev/install_toolkit.R')
    install_toolkit()
    devtools::test(
-     filter = 'generate_tests_pipeline|stub_generation|diff_schemas|hooks'
+     filter = 'generate_tests_pipeline|stub_generation|diff_schemas|hooks',
+     stop_on_failure = TRUE
    )
    ```
 
