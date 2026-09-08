@@ -96,6 +96,20 @@ configuration_acceptance <- function() {
     put(lines)
     fails(apipak::generate_client(root, config = 'apipak.yml', mode = 'plan'))
   }
+  writeLines(
+    'strict_request <- function(endpoint) NULL',
+    file.path(root, 'R/strict.R')
+  )
+  put(sub(
+    'helper: catalogue_request',
+    'helper: strict_request',
+    service,
+    fixed = TRUE
+  ))
+  fails(
+    apipak::generate_client(root, config = 'apipak.yml', mode = 'plan'),
+    'Missing required helper arguments'
+  )
   old <- options(yaml.eval.expr = TRUE)
   on.exit(options(old), add = TRUE)
   marker <- tempfile('yaml-execution-')

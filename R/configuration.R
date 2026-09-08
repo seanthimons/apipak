@@ -178,10 +178,10 @@ load_project <- function(
     names <- service$names %or% list()
     defaults <- service$defaults %or% list()
     overrides <- service$operations %or% list()
-    validate_settings(defaults, paste(id, 'defaults'))
+    validate_settings(defaults, paste(id, 'defaults'), callbacks)
     config_fields(overrides, names(overrides), 'operations')
     for (key in names(overrides)) {
-      validate_settings(overrides[[key]], key)
+      validate_settings(overrides[[key]], key, callbacks)
       if (!is.null(overrides[[key]]$name)) {
         if (
           !is.null(names[[key]]) &&
@@ -262,6 +262,7 @@ load_project <- function(
       policy_version = service$policy_version %or% '1',
       package = package,
       prepare = prepare,
+      callbacks = callbacks,
       documentation = service$documentation,
       defaults = defaults,
       operations = overrides,

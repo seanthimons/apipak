@@ -73,6 +73,33 @@ A documentation mismatch was an unnecessary escaped underscore in plain text;
 the corrected rendered help matches the original. Hook parameter replacement
 is shallow, preserving ComptoxR's whole-value assignment semantics.
 
+The mappings/docs commit `f101c22` passes Windows and Ubuntu in
+[CI run 34281394668](https://github.com/seanthimons/apipak/actions/runs/34281394668).
+The client selection declaration is committed as `41a6cd0`; the sourceable
+`comptox-schema-support.R` and `comptox-selection-config.R` probes verify all
+343 selected original-path identities. Initial neutral support was 277/343.
+Scalar and nested JSON handling raises it to 292/343: all CTX 140 and EPI 12,
+plus Chemi 140. Remaining 51 Chemi diagnostics are 25 free-form objects,
+11 missing/unconstrained body schemas, 11 parameter types and 4 compositions.
+No unsupported cases are removed from selection totals.
+
+`comptox-interface-probe.R` captures candidate declarative interfaces for the
+152 CTX/EPI operations from the frozen definitions, without modifying wrappers.
+`comptox-contract-probe.R` checks exact formals, complete helper-call sequences,
+successful values and NULL inputs against unchanged baseline functions. All 152
+pass with the current candidate. This differential evidence does not replace
+the required independently authored final contracts or live API proof.
+
+The probe caught YAML's default numeric precision changing EPI's theta default;
+export now uses 17 significant digits, as documented by
+[yaml::as.yaml](https://yaml.r-lib.org/reference/as.yaml.html). Empty maps require
+named empty lists. Two wrappers assemble bodies field by field, so their typed
+mapping uses `compact_object` to omit NULL while retaining false/zero. The EPI
+search mock was a fixture defect: its hook expects an array of named search-hit
+records. The corrected probe supplies that documented shape; runtime code was
+not changed. Explicit input mappings retain R's supplied-NULL behavior while
+schema-derived inputs retain their existing presence guards.
+
 `maintenance-inventory.R` records definitions and references across scoped dev
 modules, R sources, tests and workflows. The initial inventory finds 90 local
 definitions plus 73 compatibility bindings; their final dispositions remain

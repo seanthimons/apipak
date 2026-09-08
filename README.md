@@ -126,9 +126,36 @@ one helper call. Optional `hooks` declare ordered `pre_request` and
 them. Pre-hook state contains `params`, and may return `skip_request`/`result`.
 Post-hook state contains `result` and `params`, and returns the final value.
 
+An existing client can declare its complete public `inputs` map instead of
+schema parameter overrides. Input records contain `required`, `default`, `type`
+and `description`; required inputs have no R default. This preserves ordinary R
+argument semantics, including explicitly supplied NULL, while the client's
+existing helper/hooks validate values. A complete input map requires an explicit
+request mapping. Original schema parameters/body remain in the operation's
+`schema_parameters` and `schema_body` metadata.
+
+Grouped request bindings use `object` (named list), `compact_object` (named list
+with NULL entries omitted), or `vector` (named `c()` values). Their entries are
+bindings too. A `callback` binding names an ordinary function in the explicit
+callback environment. It receives the operation and returns either literal data
+or an R language object to emit; strings remain quoted literals. This supports
+existing runtime computations without putting R source in YAML. For example:
+
+```r
+callbacks <- new.env(parent = emptyenv())
+callbacks$batch_limit <- function(operation) {
+  quote(as.numeric(Sys.getenv('batch_limit', '1000')))
+}
+apipak::generate_client(root, config = 'apipak.yml', callbacks = callbacks)
+```
+
+Use `{callback: batch_limit}` for the corresponding helper argument. YAML
+generation validates required and unknown helper arguments against the client's
+parsed function definitions before application.
+
 The neutral parser supports OpenAPI 3.0/3.1 and Swagger 2.0 local documents,
-scalar path/query parameters, local references, JSON objects with scalar
-properties, and arrays of scalars or such objects. Both clients use the extracted
+scalar path/query parameters, local references, JSON scalar payloads, nested
+objects with declared properties, and nested arrays. Both clients use the extracted
 endpoint-table parser. Neutral records add validated source metadata, including
 source identity/hash, version, serialization and default presence. Unsupported media,
 array/object parameters, external/cyclic references and composed/free-form bodies

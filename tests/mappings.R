@@ -189,6 +189,86 @@ mappings_acceptance <- function() {
     ),
     'true or false'
   )
+  mapped <- c(
+    'id: mapped',
+    'schemas: {files: [schema.json]}',
+    'helper: catalogue_request',
+    'selection: {methods: [GET], exclude: ["^/items$"]}',
+    'defaults:',
+    '  request: {arguments: {amount: {value: 10.0}}}',
+    'operations:',
+    '  GET /items/{item_id}:',
+    '    inputs:',
+    '      query: {type: character, required: true}',
+    '      limit: {type: numeric, default: 0.0}',
+    '    request:',
+    '      arguments:',
+    '        amount: {from: [params, limit]}',
+    '        body: {object: {search: {from: [params, query]}, nullable: {value: null}}}',
+    '        options: {vector: {limit: {from: [params, limit]}}}',
+    '        compact: {compact_object: {zero: {value: 0.0}, retained: {value: false}, omitted: {value: null}}}',
+    '        batch: {callback: batch_default}'
+  )
+  put(mapped)
+  callbacks <- new.env(parent = emptyenv())
+  callbacks$batch_default <- function(operation) {
+    quote(as.numeric(Sys.getenv('APIPAK_TEST_BATCH', '1000')))
+  }
+  previous_batch <- Sys.getenv('APIPAK_TEST_BATCH', unset = NA_character_)
+  Sys.unsetenv('APIPAK_TEST_BATCH')
+  on.exit(
+    if (is.na(previous_batch)) {
+      Sys.unsetenv('APIPAK_TEST_BATCH')
+    } else {
+      Sys.setenv(APIPAK_TEST_BATCH = previous_batch)
+    },
+    add = TRUE
+  )
+  project <- apipak::load_project(root, callbacks = callbacks)
+  selected <- project$services$mapped
+  operation <- apipak::read_operations(
+    selected$files,
+    selected$policy
+  )$operations[[1L]]
+  configured <- getFromNamespace('configure_operation', 'apipak')(
+    operation,
+    selected
+  )
+  eval(
+    parse(
+      text = apipak::render_operation(configured$operation, configured$spec)
+    ),
+    env
+  )
+  env$catalogue_request <- function(...) list(...)
+  stopifnot(identical(
+    formals(env$get_item),
+    formals(function(query, limit = 0) NULL)
+  ))
+  stopifnot(identical(
+    env$get_item('a/b'),
+    list(
+      amount = 0,
+      body = list(search = 'a/b', nullable = NULL),
+      options = c(limit = 0),
+      compact = list(zero = 0, retained = FALSE),
+      batch = 1000
+    )
+  ))
+  stopifnot(
+    length(configured$operation$schema_parameters) == 2L,
+    is.null(configured$operation$body)
+  )
+  stopifnot(inherits(tryCatch(env$get_item(), error = identity), 'error'))
+  stopifnot(identical(
+    env$get_item(NULL)$body,
+    list(search = NULL, nullable = NULL)
+  ))
+  error <- tryCatch(apipak::load_project(root), error = identity)
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('Unresolved callback', conditionMessage(error))
+  )
   cat(
     'Mappings: typed defaults, aliases, request bindings, hook order, skip/state semantics, and invalid configuration passed.\n'
   )

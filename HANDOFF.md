@@ -60,6 +60,22 @@ creation, schema freezing, installation, or release has been performed here.
 - ComptoxR implementation checkout:
   `C:/Users/sxthi/Documents/ComptoxR/.worktrees/apipak-maintenance`, branch
   `feat/apipak-maintenance`, based on PR 309's verified merge revision.
+- `f101c22` (toolkit mappings/docs) passes Windows and Linux CI run
+  `34281394668`. Client probe is committed as `e35e59f`.
+- Full service selection YAML is seeded in ComptoxR; all 343 original-path
+  identities match the frozen inventory. The broad exclusion list belongs only
+  to Chemi: applying it to CTX incorrectly dropped five file/image operations.
+  CTX has no path exclusions; EPI retains its four scoped exclusions.
+  These files are not yet wired into production commands. Request mappings and
+  replacement of the large renderer/parameter modules remain pending.
+- Nested/scalar JSON and explicit input/request interfaces now pass all nine
+  installed acceptance scripts with Windows R CMD check Status OK. The added
+  required-helper-argument regression also passes. `comptox-contract-probe.R`
+  is a blocking 152-operation CTX/EPI differential check: exact formals,
+  successful return values, complete helper calls and required-input NULL
+  variants agree with frozen original wrapper definitions. This supplements,
+  rather than replaces, final independent contracts and documentation parity.
+  Client wrappers and production workflow are still unchanged.
 
 ## Completed
 

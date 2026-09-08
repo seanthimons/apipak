@@ -203,6 +203,20 @@ new_client_acceptance <- function() {
       )
     )
   )
+  for (case in list(
+    list(value = 'one\ntwo', json = '"one\\ntwo"'),
+    list(value = FALSE, json = 'false'),
+    list(value = 0, json = '0')
+  )) {
+    response <- runtime$api_request(
+      'POST',
+      '/items',
+      list(),
+      list(),
+      case$value
+    )
+    stopifnot(identical(response$body, case$json))
+  }
   request <- function(path, query = list()) {
     runtime$api_request('GET', path, list(), query, NULL)
   }

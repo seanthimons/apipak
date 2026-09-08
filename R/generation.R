@@ -91,7 +91,10 @@ render_operation <- function(operation, spec) {
   parameter_capture <- tail(lines, 1L)
   lines <- head(lines, -1L)
   for (i in seq_along(params)) {
-    if (isTRUE(params[[i]]$public_required %or% params[[i]]$required)) {
+    if (
+      isTRUE(params[[i]]$public_required %or% params[[i]]$required) &&
+        !isTRUE(operation$explicit_inputs)
+    ) {
       lines <- c(
         lines,
         paste0(
@@ -111,36 +114,13 @@ render_operation <- function(operation, spec) {
         paste0('  if (is.null(', body_name, ')) stop("Required body")')
       )
     }
-    required <- operation$body$required %or% character()
-    lines <- c(
-      lines,
-      paste0(
-        '  if (!is.null(',
-        body_name,
-        ') && (!is.list(',
-        body_name,
-        ') || !all(',
-        r_literal(unlist(required)),
-        ' %in% names(',
-        body_name,
-        ')))) stop("Missing required body fields")'
-      )
-    )
-    if (
-      identical(operation$body$type, 'array') &&
-        identical(operation$body$items$type, 'object')
-    ) {
+    checks <- body_checks(operation$body, body_name)
+    if (length(checks)) {
       lines <- c(
         lines,
-        paste0(
-          '  if (!is.null(',
-          body_name,
-          ')) invisible(lapply(',
-          body_name,
-          ', function(.item) if (!is.list(.item) || !all(',
-          r_literal(unlist(operation$body$items$required %or% character())),
-          ' %in% names(.item))) stop("Missing required array item fields")))'
-        )
+        paste0('  if (!is.null(', body_name, ')) {'),
+        paste0('    ', checks),
+        '  }'
       )
     }
   }
@@ -198,7 +178,9 @@ render_operation <- function(operation, spec) {
               request_binding(
                 arguments[[name]],
                 formal_names,
-                length(hooks$pre_request) > 0L
+                length(hooks$pre_request) > 0L,
+                operation,
+                spec$callbacks %or% new.env(parent = emptyenv())
               )
             )
           },
@@ -348,6 +330,37 @@ generate_client <- function(
       }
       configured_operations[[op$name]] <- op
       desired[[paste0('R/', op$name, '.R')]] <- renderer(op, operation_spec)
+      if (!is.null(config)) {
+        helper_definition <- runtime_definitions[[operation_spec$helper]]
+        if (is.null(helper_definition)) {
+          stop('Missing client helper: ', operation_spec$helper)
+        }
+        helper_formals <- tg_formal_records(helper_definition$expr)
+        required_arguments <- names(Filter(
+          function(x) isTRUE(x$required),
+          helper_formals
+        ))
+        sent_arguments <- if (is.null(operation_spec$request)) {
+          c('method', 'path', 'path_params', 'query', 'body')
+        } else {
+          names(operation_spec$request$arguments)
+        }
+        missing_arguments <- setdiff(required_arguments, sent_arguments)
+        if (length(missing_arguments)) {
+          stop(
+            'Missing required helper arguments for ',
+            op$id,
+            ': ',
+            paste(missing_arguments, collapse = ', ')
+          )
+        }
+        if (
+          !'...' %in% names(helper_formals) &&
+            length(setdiff(sent_arguments, names(helper_formals)))
+        ) {
+          stop('Unknown helper arguments for ', op$id)
+        }
+      }
       owners[[paste0('R/', op$name, '.R')]] <- op$id
       if (op$name %in% names(service$contracts)) {
         desired[[paste0(
