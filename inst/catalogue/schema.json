@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Catalogue", "version": "1"},
+  "paths": {
+    "/items/{item_id}": {"get": {"operationId": "get_item", "parameters": [
+      {"name": "item_id", "in": "path", "required": true, "schema": {"type": "string"}},
+      {"name": "language", "in": "query", "schema": {"type": "string", "enum": ["en", "fr"]}}
+    ], "responses": {"200": {"description": "Item"}}}},
+    "/items": {
+      "get": {"operationId": "list_items", "parameters": [
+        {"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1}}
+      ], "responses": {"200": {"description": "Items"}}},
+      "post": {"operationId": "create_item", "requestBody": {"required": true, "content": {
+        "application/json": {"schema": {"$ref": "#/components/schemas/Item"}}
+      }}, "responses": {"201": {"description": "Created"}}}
+    },
+    "/refresh": {"post": {"operationId": "refresh", "responses": {"204": {"description": "Refreshed"}}}}
+  },
+  "components": {"schemas": {"Item": {"type": "object", "required": ["title"], "properties": {
+    "title": {"type": "string"}, "count": {"type": "integer"}
+  }}}}
+}

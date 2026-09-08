@@ -1,0 +1,11 @@
+Package: wrapmaint
+Title: Local API Wrapper Maintenance Tools
+Version: 0.1.0
+Authors@R: person('Sean', 'Thimons', role = c('aut', 'cre'), email = 'sxthi@outlook.com')
+Description: Development tools for local schema parsing, wrapper generation,
+    generated file ownership and hook validation. Generated clients retain
+    their own request helpers and hook execution and need no runtime tooling.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports: cli, dplyr, fs, jsonlite, purrr, readr, stringr, tibble, tidyr
+Suggests: testthat, httr2
