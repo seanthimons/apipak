@@ -206,6 +206,7 @@ mappings_acceptance <- function() {
     '        amount: {from: [params, limit]}',
     '        body: {object: {search: {from: [params, query]}, nullable: {value: null}}}',
     '        options: {vector: {limit: {from: [params, limit]}}}',
+    '        rows: {array: [{object: {query: {from: [params, query]}}}, {value: null}]}',
     '        compact: {compact_object: {zero: {value: 0.0}, retained: {value: false}, omitted: {value: null}}}',
     '        batch: {callback: batch_default}'
   )
@@ -251,6 +252,7 @@ mappings_acceptance <- function() {
       amount = 0,
       body = list(search = 'a/b', nullable = NULL),
       options = c(limit = 0),
+      rows = list(list(query = 'a/b'), NULL),
       compact = list(zero = 0, retained = FALSE),
       batch = 1000
     )
@@ -260,6 +262,16 @@ mappings_acceptance <- function() {
     is.null(configured$operation$body)
   )
   stopifnot(inherits(tryCatch(env$get_item(), error = identity), 'error'))
+  put(sub('rows: .*', 'rows: {array: {query: {value: 1}}}', mapped))
+  error <- tryCatch(
+    apipak::load_project(root, callbacks = callbacks),
+    error = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('sequence of bindings', conditionMessage(error))
+  )
+  put(mapped)
   stopifnot(identical(
     env$get_item(NULL)$body,
     list(search = NULL, nullable = NULL)

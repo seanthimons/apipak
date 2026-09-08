@@ -57,6 +57,29 @@ These were diagnosed test/transport issues; no ComptoxR runtime was changed.
 
 ## Investigation notes
 
+The nested-body/interface commit `0098221` passes Windows and Ubuntu installed
+checks in [CI run 34285051537](https://github.com/seanthimons/apipak/actions/runs/34285051537).
+The array-binding regression in `tests/mappings.R` passes locally, including
+nested records, retained NULL positions and rejection of a map where a sequence
+is required.
+
+`epi-batch-diagnosis.R` independently checks the `/api/submit/batch` array schema
+and intercepts actual httr2 requests from the unchanged client helper. The
+baseline uses CTX authentication/service and a flat JSON object. Correcting the
+candidate's declarative server/auth/body mappings produces one EPI request with
+an outer array, while retaining exact formals and the same successful tibble.
+No live request or outage claim is involved. This is a diagnosed generation
+defect under Question 2, distinct from the 152-operation parity probe.
+`comptox-interface-config.R` verifies the resulting 152 CTX/EPI interface mappings
+in client YAML. Runtime wrapper generation/adoption remains pending.
+
+The initial YAML writer simplified EPI's one-element schema-file sequence to a
+scalar. Strict loading rejected it. The writer now preserves sequence identity;
+the emitted field was repaired and the full read-only verification passes.
+An attempted scoped restore was blocked by the shell guard; a direct correction
+to that field retained the new mappings instead. Callback source environments
+use base R as their parent while callback resolution remains explicitly scoped.
+
 The `96034d3` milestone passed both Windows and Ubuntu installed package checks
 in [CI run 34278913658](https://github.com/seanthimons/apipak/actions/runs/34278913658).
 The next mapping/docs candidate passed all eight acceptance scripts with Windows

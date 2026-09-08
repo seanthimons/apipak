@@ -135,8 +135,9 @@ request mapping. Original schema parameters/body remain in the operation's
 `schema_parameters` and `schema_body` metadata.
 
 Grouped request bindings use `object` (named list), `compact_object` (named list
-with NULL entries omitted), or `vector` (named `c()` values). Their entries are
-bindings too. A `callback` binding names an ordinary function in the explicit
+with NULL entries omitted), `array` (an unnamed list, retaining NULL positions),
+or `vector` (named `c()` values). Their entries are bindings too. A `callback`
+binding names an ordinary function in the explicit
 callback environment. It receives the operation and returns either literal data
 or an R language object to emit; strings remain quoted literals. This supports
 existing runtime computations without putting R source in YAML. For example:

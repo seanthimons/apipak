@@ -11,6 +11,7 @@ merge_settings <- function(defaults, overrides) {
               'from',
               'object',
               'compact_object',
+              'array',
               'vector',
               'callback'
             )) &&
@@ -253,18 +254,34 @@ configure_operation <- function(operation, service) {
 validate_binding <- function(binding, callbacks) {
   config_fields(
     binding,
-    c('value', 'from', 'object', 'compact_object', 'vector', 'callback'),
+    c(
+      'value',
+      'from',
+      'object',
+      'compact_object',
+      'array',
+      'vector',
+      'callback'
+    ),
     'request binding'
   )
   if (length(binding) != 1L) {
     stop(
-      'Request binding must contain exactly one of value, from, object, compact_object, vector or callback'
+      'Request binding must contain exactly one of value, from, object, compact_object, array, vector or callback'
     )
   }
   if ('from' %in% names(binding)) {
     path <- config_sequence(binding$from, 'request reference')
     if (!length(path) || !path[[1L]] %in% c('params', 'hook_state')) {
       stop('Request reference must start with params or hook_state')
+    }
+  }
+  if ('array' %in% names(binding)) {
+    if (!is.list(binding$array) || !is.null(names(binding$array))) {
+      stop('Request array must be a sequence of bindings')
+    }
+    for (child in binding$array) {
+      validate_binding(child, callbacks)
     }
   }
   for (field in intersect(
@@ -307,6 +324,22 @@ request_binding <- function(
       inherits = FALSE
     )
     return(r_literal(callback(operation)))
+  }
+  if ('array' %in% names(binding)) {
+    return(paste0(
+      'list(',
+      paste(
+        vapply(
+          binding$array,
+          function(child) {
+            request_binding(child, parameters, has_hook, operation, callbacks)
+          },
+          character(1)
+        ),
+        collapse = ', '
+      ),
+      ')'
+    ))
   }
   for (field in intersect(
     names(binding),
