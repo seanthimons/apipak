@@ -875,6 +875,33 @@ worked in that installed version. Verify available APIs before repeating it.
 
 ## Warnings and Deferred Work
 
+### Implementation checkpoint (2026-09-08)
+
+Active isolated branches are `feat/apipak-generalization` in this repository's
+`.worktrees/apipak-generalization` and `feat/apipak-maintenance` in ComptoxR's
+`.worktrees/apipak-maintenance`. Work is committed and pushed to
+`seanthimons/apipak` and `seanthimons/ComptoxR`. The compact record of revisions,
+commands, outcomes, failed approaches and outstanding gates is
+[`evidence/verification.md`](evidence/verification.md).
+
+Installed toolkit acceptance, YAML interfaces, initialization and ownership/
+recovery groundwork are implemented. The 152 CTX/EPI candidates retain frozen
+formals and successful helper/hook behavior; their client YAML policy is at
+`e93292e`. EPI batch's wrong generated service/auth/body is independently
+diagnosed, and the corrected candidate preserves its public formals and return
+behavior. Client runtime files and exports remain unchanged. Chemi mapping and
+parity, full maintenance replacement, final adoption/release and NP schema stress
+gates remain unfinished; do not call this migration complete.
+
+A public-contract decision is required under section 9's pause rule: the frozen
+selection includes POST `/api/resolver/ghs-list-count`, named
+`chemi_resolver_ghs_list_count_bulk`, but that public wrapper is absent from frozen
+definitions and current exports. Only the GET wrapper exists. The sourceable
+`evidence/missing-selected-operation.R` verifies the discrepancy. No new public
+wrapper has been added pending clarification.
+
+### Original deferred-work notes
+
 - YAML configuration does not imply YAML schema support or full OpenAPI
   conformance. Retain the declared supported subset and extend for demonstrated
   requirements. Unsupported operations must remain visible.

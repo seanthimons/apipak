@@ -57,6 +57,59 @@ These were diagnosed test/transport issues; no ComptoxR runtime was changed.
 
 ## Investigation notes
 
+The array-binding milestone `9f8f7df` passes Windows and Ubuntu checks in
+[CI run 34287192970](https://github.com/seanthimons/apipak/actions/runs/34287192970).
+Client interface policy is committed/pushed at `e93292e`; no client runtime,
+exports, documentation, production command or development pin has changed.
+
+The schema-metadata candidate adds a tenth installed acceptance script,
+`tests/mapped-schemas.R`. Complete explicit client mappings retain native
+serializer limitations in `mapping_diagnostics` and inventory status
+`client-mapped`. Invalid metadata and broken references cannot be promoted.
+Native coverage remains 292/343. Four AMOS routes have invalid upstream type
+labels (`dict`, `array of strings`), separately diagnosed rather than coerced.
+JSON Pointer unescaping now follows [RFC 6901 section 4](https://www.rfc-editor.org/rfc/rfc6901#section-4),
+including a regression distinguishing `~01` from `~1`.
+
+The first package check caught R partial matching of `policy` to `policy_version`;
+exact indexing fixes that regression. Explicit input facades also retain a named
+NULL body slot, preventing partial matching to `body_required`. The ten-script
+Windows package check then passed. A later compact-object edge correction
+returns the original unnamed `list()` when all entries are omitted; targeted
+mapping tests and all 152 CTX/EPI differential cases pass after it. The EPI
+diagnosis passes using the actual explicit client callback file.
+The final compact-object candidate also passes the complete ten-script Windows
+check, Status OK. Subsequent guards rejecting array-shaped schema objects and
+properties pass `tests/mapped-schemas.R`; native ComptoxR support is unchanged.
+
+Changed toolkit files for this checkpoint are `R/configuration.R`, `R/context.R`,
+`R/generation.R`, `R/input_schema.R`, `R/mappings.R`, `R/operations.R`,
+`tests/mapped-schemas.R`, `tests/mappings.R`, `README.md`, this report and HANDOFF,
+plus the sourceable interface/contract/diagnosis evidence drivers. Client changes
+remain the two interface YAML files and `dev/apipak_callbacks.R` at `e93292e`.
+
+Chemi interface investigation now maps 186 of 187 structurally readable selected
+operations. Its blocking differential probe reports 169 successful parity cases,
+15 baseline fixture errors and 2 candidate mismatches. Fixture errors include
+invalid descriptor/WebTEST inputs and response fixtures; they are not outages.
+The mismatches are a manual resolver option builder and stable safety response
+processing; neither runtime implementation has been changed. The migration
+seed now recognizes optional option builders and R's pre-assignment list
+snapshot semantics. Public `options` inputs shadowed by existing local builders
+remain a separate diagnosis item before final migration acceptance.
+
+`missing-selected-operation.R` programmatically verifies a public-API decision
+point: frozen selection includes POST `/api/resolver/ghs-list-count` under
+`chemi_resolver_ghs_list_count_bulk`, but frozen definitions and current exports
+contain only the GET wrapper `chemi_resolver_ghs_list_count`. Adding the selected
+POST wrapper would introduce a public function absent from the baseline. No
+wrapper or export was added. HANDOFF's public-contract pause rule applies.
+
+Completion remains pending: the Chemi cases, protected/mixed ownership adoption,
+full documentation/contracts parity, maintenance definition/caller disposition,
+production CLI/workflow replacement, final benchmark/platform checks, immutable
+artifact and verified client pin, then Natural Products schema-only stress tests.
+
 The nested-body/interface commit `0098221` passes Windows and Ubuntu installed
 checks in [CI run 34285051537](https://github.com/seanthimons/apipak/actions/runs/34285051537).
 The array-binding regression in `tests/mappings.R` passes locally, including

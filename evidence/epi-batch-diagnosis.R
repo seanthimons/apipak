@@ -76,10 +76,8 @@ epi_batch_diagnosis <- function(root) {
   )
   mapping$request$arguments$server <- list(value = 'epi_burl')
   mapping$request$arguments$auth <- list(value = FALSE)
-  callbacks <- new.env(parent = emptyenv())
-  callbacks$batch_limit_1000 <- function(operation) {
-    quote(as.numeric(Sys.getenv('batch_limit', '1000')))
-  }
+  callbacks <- new.env(parent = baseenv())
+  sys.source(file.path(root, 'dev/apipak_callbacks.R'), callbacks)
   project <- apipak::load_project(root, callbacks = callbacks)
   service <- project$services$epi
   file <- tempfile(fileext = '.yml')

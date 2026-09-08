@@ -181,7 +181,7 @@ configure_operation <- function(operation, service) {
     operation$schema_parameters <- operation$parameters
     operation$schema_body <- operation$body
     operation$explicit_inputs <- TRUE
-    operation$body <- NULL
+    operation['body'] <- list(NULL)
     operation$body_required <- FALSE
     parameters <- list()
     extra_parameters <- settings$inputs
@@ -350,7 +350,7 @@ request_binding <- function(
       if (field == 'vector') {
         'c('
       } else if (field == 'compact_object') {
-        'Filter(Negate(is.null), list('
+        'local({ .body <- Filter(Negate(is.null), list('
       } else {
         'list('
       },
@@ -374,7 +374,11 @@ request_binding <- function(
         ),
         collapse = ', '
       ),
-      if (field == 'compact_object') '))' else ')'
+      if (field == 'compact_object') {
+        ')); if (length(.body)) .body else list() })'
+      } else {
+        ')'
+      }
     ))
   }
   path <- unlist(binding$from, use.names = FALSE)

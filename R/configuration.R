@@ -56,6 +56,44 @@ read_config_yaml <- function(path) {
 
 config_data <- function(x) if (is.list(x)) lapply(x, config_data) else x
 
+read_service_operations <- function(service) {
+  parsed <- read_operations(service$files, service[['policy']] %or% list())
+  mapped <- character()
+  for (operation in parsed$unsupported_operations) {
+    settings <- merge_settings(
+      service$defaults %or% list(),
+      service$operations[[operation$key]] %or% list()
+    )
+    if (!all(c('inputs', 'request') %in% names(settings))) {
+      next
+    }
+    # Complete mappings own the public facade and helper serialization. Schema
+    # limitations remain in the inventory; malformed metadata never reaches here.
+    configure_operation(operation, service)
+    request <- settings$request$arguments
+    if (!length(request)) {
+      stop('Explicit mapping requires helper arguments: ', operation$id)
+    }
+    parsed$operations[[operation$name]] <- operation
+    mapped <- c(mapped, operation$id)
+  }
+  parsed$mapping_diagnostics <- Filter(
+    function(x) x$id %in% mapped,
+    parsed$diagnostics
+  )
+  parsed$diagnostics <- Filter(
+    function(x) !x$id %in% mapped,
+    parsed$diagnostics
+  )
+  parsed$inventory <- lapply(parsed$inventory, function(x) {
+    if (x$id %in% mapped) {
+      x$status <- 'client-mapped'
+    }
+    x
+  })
+  parsed
+}
+
 load_project <- function(
   root,
   config = 'apipak.yml',

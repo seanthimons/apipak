@@ -208,6 +208,7 @@ mappings_acceptance <- function() {
     '        options: {vector: {limit: {from: [params, limit]}}}',
     '        rows: {array: [{object: {query: {from: [params, query]}}}, {value: null}]}',
     '        compact: {compact_object: {zero: {value: 0.0}, retained: {value: false}, omitted: {value: null}}}',
+    '        empty: {compact_object: {omitted: {value: null}}}',
     '        batch: {callback: batch_default}'
   )
   put(mapped)
@@ -254,6 +255,7 @@ mappings_acceptance <- function() {
       options = c(limit = 0),
       rows = list(list(query = 'a/b'), NULL),
       compact = list(zero = 0, retained = FALSE),
+      empty = list(),
       batch = 1000
     )
   ))

@@ -119,6 +119,13 @@ raw bytes, and returns NULL for empty bodies. HTTP failures and malformed JSON
 raise errors. The supported generated request body is JSON; multipart and
 other unsupported schema constructs remain diagnostics.
 
+`read_operations()` also returns `unsupported_operations` for structurally valid
+input metadata outside the default serializer's subset. A complete client
+`inputs` and `request` mapping can use that metadata. Generation reports these
+operations as `client-mapped`, retaining the original reasons in the inventory
+and `mapping_diagnostics`; it does not claim native serialization support.
+Malformed metadata and broken references remain blocking even with mappings.
+
 The default helper contract is `method`, `path`, `path_params`, `query`, `body`.
 The helper owns transport and serialization. A parameter named `page` causes
 one helper call. Optional `hooks` declare ordered `pre_request` and
@@ -135,7 +142,7 @@ request mapping. Original schema parameters/body remain in the operation's
 `schema_parameters` and `schema_body` metadata.
 
 Grouped request bindings use `object` (named list), `compact_object` (named list
-with NULL entries omitted), `array` (an unnamed list, retaining NULL positions),
+with NULL entries omitted, returning `list()` when empty), `array` (an unnamed list, retaining NULL positions),
 or `vector` (named `c()` values). Their entries are bindings too. A `callback`
 binding names an ordinary function in the explicit
 callback environment. It receives the operation and returns either literal data

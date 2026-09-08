@@ -1,11 +1,17 @@
 comptox_interface_probe <- function(
   baseline = 'evidence/baseline',
   support = 'evidence/schema-support.rds',
-  output = 'evidence/interface-probe.rds'
+  output = 'evidence/interface-probe.rds',
+  prefixes = c('ct', 'epi')
 ) {
   frozen <- readRDS(file.path(baseline, 'public-contracts.rds'))
   schemas <- readRDS(support)
-  operations <- do.call(c, unname(lapply(schemas, `[[`, 'operations')))
+  operations <- do.call(
+    c,
+    unname(lapply(schemas, function(x) {
+      c(x$operations, x$unsupported_operations)
+    }))
+  )
   definitions <- list()
   for (file in names(frozen)) {
     for (definition in frozen[[file]]$definitions) {
@@ -16,6 +22,9 @@ comptox_interface_probe <- function(
     }
   }
   constant <- function(x) {
+    if (identical(x, quote(structure(list(), names = character(0))))) {
+      return(stats::setNames(list(), character()))
+    }
     if (is.atomic(x) || is.null(x)) {
       return(x)
     }
@@ -33,7 +42,7 @@ comptox_interface_probe <- function(
   }
   results <- list()
   for (op in operations) {
-    if (!op$service %in% c('ct', 'epi')) {
+    if (!sub('-.*$', '', op$service) %in% prefixes) {
       next
     }
     definition <- definitions[[op$name]]
@@ -74,7 +83,7 @@ comptox_interface_probe <- function(
         }
         calls <- list()
         aliases <- list()
-        body_assignments <- list()
+        grouped_assignments <- list()
         visit <- function(x) {
           if (missing(x) || !is.call(x)) {
             return(invisible(NULL))
@@ -90,10 +99,28 @@ comptox_interface_probe <- function(
             if (
               head == '<-' &&
                 is.call(x[[2L]]) &&
-                identical(x[[2L]][[1L]], as.name('$')) &&
-                identical(x[[2L]][[2L]], as.name('request_body'))
+                as.character(x[[2L]][[1L]]) %in% c('$', '[[') &&
+                is.symbol(x[[2L]][[2L]]) &&
+                as.character(x[[2L]][[2L]]) %in%
+                  c('request_body', 'options', 'extra_options')
             ) {
-              body_assignments[[as.character(x[[2L]][[3L]])]] <<- x[[3L]]
+              group <- as.character(x[[2L]][[2L]])
+              value <- x[[3L]]
+              if (identical(value, as.name(group))) {
+                previous <- grouped_assignments[[group]]
+                value <- if (length(previous)) {
+                  call(
+                    'Filter',
+                    quote(Negate(is.null)),
+                    as.call(c(list(as.name('list')), previous))
+                  )
+                } else {
+                  quote(list())
+                }
+              }
+              grouped_assignments[[group]][[as.character(x[[2L]][[
+                3L
+              ]])]] <<- value
             }
           }
           for (child in as.list(x)[-1L]) {
@@ -124,9 +151,34 @@ comptox_interface_probe <- function(
         }
         binding <- function(x, seen = character()) {
           if (
-            identical(x, as.name('request_body')) && length(body_assignments)
+            is.call(x) &&
+              identical(x[[1L]], as.name('Filter')) &&
+              length(x) == 3L &&
+              identical(x[[2L]], quote(Negate(is.null))) &&
+              is.call(x[[3L]]) &&
+              identical(x[[3L]][[1L]], as.name('list'))
           ) {
-            return(list(compact_object = lapply(body_assignments, binding)))
+            values <- as.list(x[[3L]])[-1L]
+            if (is.null(names(values)) || any(!nzchar(names(values)))) {
+              stop('Unnamed compact object')
+            }
+            return(list(compact_object = lapply(values, binding)))
+          }
+          if (
+            identical(
+              x,
+              quote(if (!is.null(sort)) tolower(as.character(sort)) else NULL)
+            )
+          ) {
+            return(list(callback = 'lowercase_sort'))
+          }
+          if (is.symbol(x) && as.character(x) %in% names(grouped_assignments)) {
+            return(list(
+              compact_object = lapply(
+                grouped_assignments[[as.character(x)]],
+                binding
+              )
+            ))
           }
           if (is.atomic(x) || is.null(x)) {
             return(list(value = x))
@@ -223,5 +275,12 @@ comptox_interface_probe <- function(
   invisible(results)
 }
 if (sys.nframe() == 0L) {
-  comptox_interface_probe()
+  if ('--chemi' %in% commandArgs(trailingOnly = TRUE)) {
+    comptox_interface_probe(
+      output = 'evidence/chemi-interface-probe.rds',
+      prefixes = 'chemi'
+    )
+  } else {
+    comptox_interface_probe()
+  }
 }

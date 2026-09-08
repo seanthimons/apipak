@@ -53,6 +53,9 @@ bind_tools <- function(group, envir) {
 r_literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = '\n')
 
 local_ref <- function(node, document, seen = character()) {
+  if (!is.list(node)) {
+    stop('Reference target must be an object')
+  }
   ref <- node[['$ref']]
   if (is.null(ref)) {
     return(node)
@@ -61,9 +64,15 @@ local_ref <- function(node, document, seen = character()) {
     stop('Unsupported external or cyclic reference: ', ref, call. = FALSE)
   }
   parts <- strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1]]
-  parts <- gsub('~1', '/', gsub('~0', '~', parts, fixed = TRUE), fixed = TRUE)
+  if (any(grepl('~([^01]|$)', parts))) {
+    stop('Invalid reference escape: ', ref)
+  }
+  parts <- gsub('~0', '~', gsub('~1', '/', parts, fixed = TRUE), fixed = TRUE)
   value <- document
   for (part in parts) {
+    if (!is.list(value)) {
+      stop('Missing reference: ', ref, call. = FALSE)
+    }
     value <- value[[part]]
   }
   if (is.null(value)) {

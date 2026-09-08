@@ -266,9 +266,7 @@ generate_client <- function(
     function(x) digest::digest(file = x, algo = 'sha256'),
     character(1)
   )
-  parsed <- lapply(services, function(service) {
-    read_operations(service$files, service[['policy']] %or% list())
-  })
+  parsed <- lapply(services, read_service_operations)
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
   inventory <- do.call(c, unname(lapply(parsed, `[[`, 'inventory')))
@@ -487,6 +485,10 @@ generate_client <- function(
     files = result,
     operations = configured_operations,
     diagnostics = diagnostics,
+    mapping_diagnostics = do.call(
+      c,
+      unname(lapply(parsed, `[[`, 'mapping_diagnostics'))
+    ),
     unused_hooks = unused_hooks,
     inventory = inventory,
     manifest = list(

@@ -2,9 +2,12 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
-  methods <- policy$methods %or% c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
+  methods <- policy$methods %or%
+    c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
   patterns <- policy$exclude %or% character()
-  for (pattern in patterns) stringr::str_detect('', pattern)
+  for (pattern in patterns) {
+    stringr::str_detect('', pattern)
+  }
   for (file in files) {
     first_operation <- length(operations) + 1L
     document <- jsonlite::fromJSON(file, simplifyVector = FALSE)
@@ -24,18 +27,38 @@ read_operations <- function(files, policy = list()) {
       )) {
         key <- paste(toupper(method), path)
         id <- paste(policy$service %or% 'default', key)
-        selected <- toupper(method) %in% methods && !any(vapply(patterns, function(pattern) stringr::str_detect(path, pattern), logical(1)))
-        record <- list(id = id, key = key, service = policy$service %or% 'default', method = toupper(method),
-          path = path, source = file, source_hash = source_hash, status = if (selected) 'selected' else 'excluded',
-          reason = if (selected) '' else 'Explicit selection policy')
+        selected <- toupper(method) %in%
+          methods &&
+          !any(vapply(
+            patterns,
+            function(pattern) stringr::str_detect(path, pattern),
+            logical(1)
+          ))
+        record <- list(
+          id = id,
+          key = key,
+          service = policy$service %or% 'default',
+          method = toupper(method),
+          path = path,
+          source = file,
+          source_hash = source_hash,
+          status = if (selected) 'selected' else 'excluded',
+          reason = if (selected) '' else 'Explicit selection policy'
+        )
         inventory[[length(inventory) + 1L]] <- record
-        if (!selected) next
+        if (!selected) {
+          next
+        }
         operation <- tryCatch(
           {
             if (!startsWith(path, '/') || grepl('[\r\n]', path)) {
               stop('Invalid route')
             }
             op <- item[[method]]
+            transport_diagnostics <- character()
+            unsupported <- function(reason) {
+              transport_diagnostics <<- unique(c(transport_diagnostics, reason))
+            }
             params <- lapply(
               c(item$parameters, op$parameters),
               local_ref,
@@ -48,6 +71,7 @@ read_operations <- function(files, policy = list()) {
             )
             params <- params[!duplicated(ids, fromLast = TRUE)]
             body <- op$requestBody
+            body_present <- !is.null(body)
             body_required <- FALSE
             if (startsWith(version, '2.')) {
               bodies <- Filter(function(p) identical(p[['in']], 'body'), params)
@@ -56,6 +80,7 @@ read_operations <- function(files, policy = list()) {
               }
               body_required <- length(bodies) == 1L &&
                 isTRUE(bodies[[1]]$required)
+              body_present <- length(bodies) == 1L
               body <- if (length(bodies)) bodies[[1]]$schema else NULL
               params <- Filter(
                 function(p) !identical(p[['in']], 'body'),
@@ -71,19 +96,31 @@ read_operations <- function(files, policy = list()) {
             }
             params <- lapply(params, function(p) {
               location <- p[['in']]
+              if (
+                length(location) != 1L ||
+                  !location %in%
+                    c('path', 'query', 'header', 'cookie', 'formData')
+              ) {
+                stop('Invalid parameter location')
+              }
               if (!location %in% c('path', 'query')) {
-                stop('Unsupported parameter location')
+                unsupported('Unsupported parameter location')
               }
               if (
                 !is.character(p$name) || length(p$name) != 1L || !nzchar(p$name)
               ) {
                 stop('Invalid parameter name')
               }
-              schema <- local_ref(p$schema %or% p, document)
+              schema <- p$schema %or% p
+              if (is.null(p$schema)) {
+                schema$required <- NULL
+              }
+              schema <- input_schema(schema, document)
               if (
-                !schema$type %in% c('string', 'integer', 'number', 'boolean')
+                length(schema$type) != 1L ||
+                  !schema$type %in% c('string', 'integer', 'number', 'boolean')
               ) {
-                stop('Unsupported parameter type')
+                unsupported('Unsupported parameter type')
               }
               style <- if (location == 'path') 'simple' else 'form'
               if (
@@ -92,7 +129,7 @@ read_operations <- function(files, policy = list()) {
                   !is.null(p$content) ||
                   isTRUE(p$allowReserved)
               ) {
-                stop('Unsupported parameter serialization')
+                unsupported('Unsupported parameter serialization')
               }
               if (location == 'path' && !isTRUE(p$required)) {
                 stop('Path parameter must be required')
@@ -106,8 +143,15 @@ read_operations <- function(files, policy = list()) {
                 explode = p$explode %or% (location == 'query')
               )
             })
-            if (!is.null(body)) {
-              body <- supported_body(body, document)
+            if (body_present) {
+              body <- input_schema(body, document)
+              body <- tryCatch(
+                supported_body(body, document),
+                error = function(e) {
+                  unsupported(conditionMessage(e))
+                  body
+                }
+              )
             }
             candidate <- op$operationId
             if (
@@ -137,6 +181,7 @@ read_operations <- function(files, policy = list()) {
               source = normalizePath(file, winslash = '/'),
               source_hash = source_hash,
               schema_version = version,
+              transport_diagnostics = transport_diagnostics,
               source_operation = op,
               response = op$responses,
               summary = op$summary %or% name
@@ -156,12 +201,29 @@ read_operations <- function(files, policy = list()) {
         )
         if (!is.null(operation)) {
           operations[[length(operations) + 1L]] <- operation
+          if (length(operation$transport_diagnostics)) {
+            diagnostics[[length(diagnostics) + 1L]] <- list(
+              id = id,
+              service = policy$service %or% 'default',
+              key = key,
+              source = file,
+              status = 'unsupported',
+              reason = paste(operation$transport_diagnostics, collapse = '; ')
+            )
+          }
         }
       }
     }
     if (length(operations) >= first_operation) {
       indices <- seq.int(first_operation, length(operations))
-      operations[indices] <- endpoint_records(document, operations[indices])
+      indices <- indices[vapply(
+        operations[indices],
+        function(op) !length(op$transport_diagnostics),
+        logical(1)
+      )]
+      if (length(indices)) {
+        operations[indices] <- endpoint_records(document, operations[indices])
+      }
     }
   }
   ids <- vapply(operations, `[[`, character(1), 'id')
@@ -169,14 +231,30 @@ read_operations <- function(files, policy = list()) {
   for (id in duplicate_ids) {
     group <- operations[ids == id]
     contract <- function(x) x[setdiff(names(x), c('source', 'source_hash'))]
-    if (!all(vapply(group[-1L], function(x) identical(contract(x), contract(group[[1L]])), logical(1)))) {
-      stop('Conflicting duplicate operation ', id, ' in ', paste(vapply(group, `[[`, character(1), 'source'), collapse = ', '))
+    if (
+      !all(vapply(
+        group[-1L],
+        function(x) identical(contract(x), contract(group[[1L]])),
+        logical(1)
+      ))
+    ) {
+      stop(
+        'Conflicting duplicate operation ',
+        id,
+        ' in ',
+        paste(vapply(group, `[[`, character(1), 'source'), collapse = ', ')
+      )
     }
   }
   operations <- operations[!duplicated(ids)]
   indexed_keys <- vapply(inventory, `[[`, character(1), 'key')
-  unknown <- setdiff(union(names(policy$names), policy$override_keys), indexed_keys)
-  if (length(unknown)) stop('Unknown operation override: ', paste(unknown, collapse = ', '))
+  unknown <- setdiff(
+    union(names(policy$names), policy$override_keys),
+    indexed_keys
+  )
+  if (length(unknown)) {
+    stop('Unknown operation override: ', paste(unknown, collapse = ', '))
+  }
   operation_names <- vapply(operations, `[[`, character(1), 'name')
   if (anyDuplicated(operation_names)) {
     stop('Operation name collision; supply reviewed name overrides')
@@ -190,11 +268,23 @@ read_operations <- function(files, policy = list()) {
     }
     x
   })
-  list(operations = operations, diagnostics = diagnostics, inventory = inventory)
+  supported <- vapply(
+    operations,
+    function(op) !length(op$transport_diagnostics),
+    logical(1)
+  )
+  list(
+    operations = operations[supported],
+    unsupported_operations = operations[!supported],
+    diagnostics = diagnostics,
+    inventory = inventory
+  )
 }
 
 compare_operations <- function(old, new) {
-  identity <- function(op) paste(op$service %or% basename(op$source %or% ''), op$key)
+  identity <- function(op) {
+    paste(op$service %or% basename(op$source %or% ''), op$key)
+  }
   old <- setNames(
     old$operations,
     vapply(old$operations, identity, character(1))

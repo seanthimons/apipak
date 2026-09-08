@@ -1,0 +1,126 @@
+mapped_schema_acceptance <- function() {
+  root <- tempfile('mapped-schema-')
+  dir.create(root)
+  dir.create(file.path(root, 'R'))
+  on.exit(unlink(root, recursive = TRUE), add = TRUE)
+  writeLines(
+    'request_helper <- function(body) body',
+    file.path(root, 'R/helper.R')
+  )
+  writeLines(
+    c('config_version: 1', 'services: [service.yml]'),
+    file.path(root, 'apipak.yml')
+  )
+  writeLines(
+    c(
+      'id: records',
+      'schemas: {files: [schema.json]}',
+      'helper: request_helper',
+      'operations:',
+      '  POST /records:',
+      '    inputs: {payload: {type: object, required: true}}',
+      '    request: {arguments: {body: {from: [params, payload]}}}'
+    ),
+    file.path(root, 'service.yml')
+  )
+  document <- list(
+    openapi = '3.0.3',
+    paths = list(
+      '/records' = list(
+        post = list(
+          operationId = 'submit_records',
+          requestBody = list(
+            required = TRUE,
+            content = list(
+              'application/json' = list(
+                schema = list(type = 'object', additionalProperties = TRUE)
+              )
+            )
+          ),
+          responses = list('200' = list(description = 'ok'))
+        )
+      )
+    )
+  )
+  file <- file.path(root, 'schema.json')
+  put <- function(schema) {
+    document$paths[['/records']]$post$requestBody$content[[
+      'application/json'
+    ]]$schema <- schema
+    jsonlite::write_json(document, file, auto_unbox = TRUE)
+  }
+  for (schema in list(
+    list(type = 'object', additionalProperties = TRUE),
+    stats::setNames(list(), character()),
+    list(oneOf = list(list(type = 'string'), list(type = 'number')))
+  )) {
+    put(schema)
+    native <- apipak::read_operations(file)
+    stopifnot(
+      length(native$operations) == 0L,
+      length(native$unsupported_operations) == 1L,
+      length(native$diagnostics) == 1L,
+      native$inventory[[1L]]$status == 'unsupported'
+    )
+    result <- apipak::generate_client(
+      root,
+      config = 'apipak.yml',
+      mode = 'apply'
+    )
+    stopifnot(
+      length(result$operations) == 1L,
+      !length(result$diagnostics),
+      length(result$mapping_diagnostics) == 1L,
+      result$inventory[[1L]]$status == 'client-mapped',
+      nzchar(result$inventory[[1L]]$reason)
+    )
+    env <- new.env(parent = baseenv())
+    sys.source(file.path(root, 'R/helper.R'), env)
+    sys.source(file.path(root, 'R/submit_records.R'), env)
+    payload <- list(arbitrary = list(FALSE, 0, NULL))
+    stopifnot(identical(env$submit_records(payload), payload))
+    apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+  }
+  for (schema in list(
+    list(type = 'dict'),
+    list(type = 'object', properties = list()),
+    list('$ref' = '#/missing'),
+    list('$ref' = 'https://example.test/schema.json'),
+    list(oneOf = list())
+  )) {
+    put(schema)
+    parsed <- apipak::read_operations(file)
+    stopifnot(
+      !length(parsed$unsupported_operations),
+      length(parsed$diagnostics) == 1L
+    )
+    error <- tryCatch(
+      apipak::generate_client(root, config = 'apipak.yml', mode = 'apply'),
+      error = identity
+    )
+    stopifnot(
+      inherits(error, 'error'),
+      grepl('Unsupported selected', conditionMessage(error))
+    )
+  }
+  resolve <- getFromNamespace('local_ref', 'apipak')
+  references <- list('~1' = list(type = 'string'), '/' = list(type = 'number'))
+  stopifnot(identical(
+    resolve(list('$ref' = '#/~01'), references),
+    list(type = 'string')
+  ))
+  error <- tryCatch(
+    resolve(list('$ref' = '#/~2'), references),
+    error = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('Invalid reference escape', conditionMessage(error))
+  )
+  cat(
+    'Mapped schemas: explicit facade mappings retain native diagnostics; malformed metadata and references remain blocking.\n'
+  )
+}
+if (sys.nframe() == 0L) {
+  mapped_schema_acceptance()
+}

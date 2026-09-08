@@ -2,7 +2,8 @@ comptox_contract_probe <- function(
   root,
   support = 'evidence/schema-support.rds',
   mappings = 'evidence/interface-probe.rds',
-  output = 'evidence/contract-probe.rds'
+  output = 'evidence/contract-probe.rds',
+  expected_count = 152L
 ) {
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
   Sys.setenv(COMPTOXR_CRAN_SAFE_TESTS = 'true', NOT_CRAN = 'false')
@@ -22,9 +23,19 @@ comptox_contract_probe <- function(
   callbacks$batch_limit_100 <- function(operation) {
     quote(as.numeric(Sys.getenv('batch_limit', '100')))
   }
+  callbacks$lowercase_sort <- function(operation) {
+    quote(
+      if (!is.null(params$sort)) tolower(as.character(params$sort)) else NULL
+    )
+  }
   project <- apipak::load_project(root, callbacks = callbacks)
   schemas <- readRDS(support)
-  operations <- do.call(c, unname(lapply(schemas, `[[`, 'operations')))
+  operations <- do.call(
+    c,
+    unname(lapply(schemas, function(x) {
+      c(x$operations, x$unsupported_operations)
+    }))
+  )
   mappings <- readRDS(mappings)
   frozen <- readRDS('evidence/baseline/public-contracts.rds')
   original_definitions <- list()
@@ -200,9 +211,19 @@ comptox_contract_probe <- function(
   for (record in failures) {
     cat(record$name, ': ', record$status, ': ', record$message, '\n', sep = '')
   }
-  stopifnot(length(results) == 152L, !length(failures))
+  stopifnot(length(results) == expected_count, !length(failures))
   invisible(results)
 }
 if (sys.nframe() == 0L) {
-  comptox_contract_probe(commandArgs(trailingOnly = TRUE)[[1L]])
+  args <- commandArgs(trailingOnly = TRUE)
+  if ('--chemi' %in% args) {
+    comptox_contract_probe(
+      args[[1L]],
+      mappings = 'evidence/chemi-interface-probe.rds',
+      output = 'evidence/chemi-contract-probe.rds',
+      expected_count = 186L
+    )
+  } else {
+    comptox_contract_probe(args[[1L]])
+  }
 }
