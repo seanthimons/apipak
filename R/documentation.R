@@ -6,8 +6,91 @@ roxygen_prose <- function(text) {
   gsub('@', '@@', text, fixed = TRUE)
 }
 
-operation_documentation <- function(op) {
+validate_documentation <- function(docs) {
+  config_fields(
+    docs,
+    c(
+      'title',
+      'description',
+      'parameters',
+      'return',
+      'lifecycle',
+      'tags',
+      'examples'
+    ),
+    'docs'
+  )
+  for (name in intersect(
+    names(docs),
+    c('title', 'description', 'return', 'lifecycle')
+  )) {
+    config_string(docs[[name]], paste('docs', name))
+  }
+  if (
+    !is.null(docs$lifecycle) &&
+      !docs$lifecycle %in%
+        c(
+          'experimental',
+          'stable',
+          'maturing',
+          'superseded',
+          'deprecated',
+          'defunct',
+          'questioning',
+          'soft-deprecated'
+        )
+  ) {
+    stop('Invalid lifecycle policy')
+  }
+  for (field in intersect(names(docs), c('parameters', 'tags'))) {
+    config_fields(docs[[field]], names(docs[[field]]), paste('docs', field))
+    for (value in docs[[field]]) {
+      config_string(value, paste('docs', field))
+    }
+  }
+  # Built-in code/structural tags cannot enter through a custom metadata map.
+  builtins <- sub(
+    '^roxy_tag_parse.roxy_tag_',
+    '',
+    grep(
+      '^roxy_tag_parse.roxy_tag_',
+      ls(asNamespace('roxygen2'), all.names = TRUE),
+      value = TRUE
+    )
+  )
+  forbidden <- setdiff(builtins, c('family', 'keywords', 'seealso', 'aliases'))
+  if (
+    any(names(docs$tags) %in% forbidden) ||
+      any(!grepl('^[A-Za-z][A-Za-z0-9]*$', names(docs$tags)))
+  ) {
+    stop('Unsafe documentation tag')
+  }
+  if ('examples' %in% names(docs)) {
+    if (!is.list(docs$examples) || !is.null(names(docs$examples))) {
+      stop('docs examples must be a sequence of input maps')
+    }
+    for (example in docs$examples) {
+      config_fields(example, names(example), 'example inputs')
+    }
+  }
+  invisible(docs)
+}
+
+operation_documentation <- function(op, policy = list()) {
+  validate_documentation(policy)
   parameters <- parameter_names(op$parameters)
+  if (length(setdiff(names(policy$parameters), parameters))) {
+    stop('Documentation references missing public parameter')
+  }
+  prose <- function(text) {
+    text <- roxygen_prose(text)
+    if (!is.null(policy$lifecycle)) {
+      for (character in c('`', '[', ']')) {
+        text <- gsub(character, paste0('\\', character), text, fixed = TRUE)
+      }
+    }
+    text
+  }
   docs <- vapply(
     seq_along(parameters),
     function(i) {
@@ -15,8 +98,10 @@ operation_documentation <- function(op) {
         '@param ',
         parameters[[i]],
         ' ',
-        roxygen_prose(
-          op$parameters[[i]]$schema$description %or% op$parameters[[i]]$name
+        prose(
+          policy$parameters[[parameters[[i]]]] %or%
+            op$parameters[[i]]$schema$description %or%
+            op$parameters[[i]]$name
         )
       )
     },
@@ -26,12 +111,70 @@ operation_documentation <- function(op) {
     docs <- c(docs, '@param body Request body.')
   }
   text <- c(
-    roxygen_prose(op$summary),
+    prose(policy$title %or% op$summary),
     '',
-    '@noMd',
+    if (is.null(policy$lifecycle)) '@noMd' else '@md',
+    if (!is.null(policy$lifecycle) || !is.null(policy$description)) {
+      '@description'
+    },
+    if (!is.null(policy$lifecycle)) {
+      paste0('`r lifecycle::badge(', r_literal(policy$lifecycle), ')`')
+    },
+    if (!is.null(policy$description)) prose(policy$description),
     docs,
-    '@return Decoded response returned by the client request helper.',
-    '@export'
+    paste0(
+      '@return ',
+      prose(
+        policy$return %or%
+          'Decoded response returned by the client request helper.'
+      )
+    ),
+    vapply(
+      names(policy$tags),
+      function(name) paste0('@', name, ' ', prose(policy$tags[[name]])),
+      character(1)
+    ),
+    '@export',
+    if (length(policy$examples)) {
+      c(
+        '@examples',
+        '\\dontrun{',
+        vapply(
+          policy$examples,
+          function(inputs) {
+            if (
+              length(setdiff(
+                names(inputs),
+                c(parameters, if (!is.null(op$body)) 'body')
+              ))
+            ) {
+              stop('Example references missing public parameter')
+            }
+            paste0(
+              op$name,
+              '(',
+              paste(
+                vapply(
+                  names(inputs),
+                  function(name) {
+                    paste0(
+                      name,
+                      ' = ',
+                      r_literal(config_data(inputs[[name]]))
+                    )
+                  },
+                  character(1)
+                ),
+                collapse = ', '
+              ),
+              ')'
+            )
+          },
+          character(1)
+        ),
+        '}'
+      )
+    }
   )
   paste(
     paste0("#' ", unlist(strsplit(text, '\n', fixed = TRUE))),
@@ -86,12 +229,15 @@ document_output <- function(root, desired, remove = character()) {
   }
   files <- c(
     'NAMESPACE',
-    paste0('man/', list.files(file.path(stage, 'man'), '\\.Rd$'))
+    paste0(
+      'man/',
+      list.files(file.path(stage, 'man'), '\\.(Rd|svg)$', recursive = TRUE)
+    )
   )
   files <- files[file.exists(file.path(stage, files))]
   for (name in files) {
     if (endsWith(name, '.Rd')) {
-      tools::parse_Rd(file.path(stage, name))
+      tools::parse_Rd(file.path(stage, name), encoding = 'UTF-8')
     }
     desired[[name]] <- file_text(file.path(stage, name))
   }

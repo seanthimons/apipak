@@ -1,7 +1,9 @@
 render_operation <- function(operation, spec) {
   helper <- spec$helper
   callback <- spec$hook_callback %or% 'run_hook'
-  if (operation$name %in% c(helper, callback)) stop('Wrapper name collides with a helper or callback: ', operation$name)
+  if (operation$name %in% c(helper, callback)) {
+    stop('Wrapper name collides with a helper or callback: ', operation$name)
+  }
   stopifnot(
     identical(make.names(helper), helper),
     identical(make.names(callback), callback)
@@ -22,7 +24,16 @@ render_operation <- function(operation, spec) {
     function(i) {
       paste0(
         formal_names[[i]],
-        if (!isTRUE(params[[i]]$required)) ' = NULL' else ''
+        if (!isTRUE(params[[i]]$public_required %or% params[[i]]$required)) {
+          value <- if ('public_default' %in% names(params[[i]])) {
+            params[[i]]$public_default
+          } else {
+            params[[i]]$schema$default
+          }
+          paste0(' = ', r_literal(value))
+        } else {
+          ''
+        }
       )
     },
     character(1)
@@ -80,7 +91,7 @@ render_operation <- function(operation, spec) {
   parameter_capture <- tail(lines, 1L)
   lines <- head(lines, -1L)
   for (i in seq_along(params)) {
-    if (isTRUE(params[[i]]$required)) {
+    if (isTRUE(params[[i]]$public_required %or% params[[i]]$required)) {
       lines <- c(
         lines,
         paste0(
@@ -145,33 +156,79 @@ render_operation <- function(operation, spec) {
         r_literal(operation$name),
         ', "pre_request", list(params = params))'
       ),
-      '  if (isTRUE(state$skip_request)) return(state$result)',
-      '  params <- state$params'
+      if (!isTRUE(spec$post_on_skip)) {
+        '  if (isTRUE(state$skip_request)) return(state$result)'
+      },
+      '  changed <- intersect(names(params), names(state$params))',
+      '  params[changed] <- state$params[changed]'
     )
   }
-  lines <- c(
-    lines,
-    paste0(
+  request <- paste0(
+    '  result <- ',
+    helper,
+    '(method = ',
+    r_literal(operation$method),
+    ', path = ',
+    r_literal(operation$path),
+    ', path_params = ',
+    refs('path'),
+    ', query = ',
+    refs('query'),
+    ', body = ',
+    if (is.null(body_name)) {
+      'NULL'
+    } else {
+      paste0('params[[', r_literal(body_name), ']]')
+    },
+    ')'
+  )
+  if (!is.null(spec$request)) {
+    arguments <- spec$request$arguments
+    request <- paste0(
       '  result <- ',
       helper,
-      '(method = ',
-      r_literal(operation$method),
-      ', path = ',
-      r_literal(operation$path),
-      ', path_params = ',
-      refs('path'),
-      ', query = ',
-      refs('query'),
-      ', body = ',
-      if (is.null(body_name)) {
-        'NULL'
-      } else {
-        paste0('params[[', r_literal(body_name), ']]')
-      },
+      '(',
+      paste(
+        vapply(
+          names(arguments),
+          function(name) {
+            paste0(
+              r_literal(name),
+              ' = ',
+              request_binding(
+                arguments[[name]],
+                formal_names,
+                length(hooks$pre_request) > 0L
+              )
+            )
+          },
+          character(1)
+        ),
+        collapse = ', '
+      ),
       ')'
     )
-  )
+  }
+  if (isTRUE(spec$post_on_skip)) {
+    if (!length(hooks$pre_request)) {
+      stop('post_on_skip requires a pre-request hook')
+    }
+    request <- c(
+      '  if (isTRUE(state$skip_request)) {',
+      '    result <- state$result',
+      '  } else {',
+      paste0('  ', request),
+      '  }'
+    )
+  }
+  lines <- c(lines, request)
   if (length(hooks$post_response)) {
+    if (identical(spec$post_state, 'hook_state')) {
+      if (!length(hooks$pre_request)) {
+        stop('post_state hook_state requires a pre-request hook')
+      }
+      lines <- c(lines, '  state["result"] <- list(result)')
+    }
     lines <- c(
       lines,
       paste0(
@@ -179,95 +236,221 @@ render_operation <- function(operation, spec) {
         callback,
         '(',
         r_literal(operation$name),
-        ', "post_response", list(result = result, params = params))'
+        if (identical(spec$post_state, 'hook_state')) {
+          ', "post_response", state)'
+        } else {
+          ', "post_response", list(result = result, params = params))'
+        }
       )
     )
   }
   code <- paste(c(lines, '  result', '}'), collapse = '\n')
-  if (isTRUE(spec$documentation)) paste(operation_documentation(operation), code, sep = '\n') else code
+  if (isTRUE(spec$documentation)) {
+    paste(
+      operation_documentation(operation, spec$docs %or% list()),
+      code,
+      sep = '\n'
+    )
+  } else {
+    code
+  }
 }
 
-generate_client <- function(root, spec = NULL, mode = c('check', 'plan', 'apply'), config = NULL,
-                            callbacks = new.env(parent = emptyenv())) {
+generate_client <- function(
+  root,
+  spec = NULL,
+  mode = c('check', 'plan', 'apply'),
+  config = NULL,
+  callbacks = new.env(parent = emptyenv())
+) {
   mode <- match.arg(mode)
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
-  if (is.null(spec) == is.null(config)) stop('Supply exactly one of spec or config')
+  if (is.null(spec) == is.null(config)) {
+    stop('Supply exactly one of spec or config')
+  }
   if (!is.null(config)) {
     project <- load_project(root, config, callbacks)
     services <- project$services
     inputs <- project$inputs
   } else {
-    if (!is.list(spec)) stop('spec must be a list')
+    if (!is.list(spec)) {
+      stop('spec must be a list')
+    }
     services <- list(spec)
     inputs <- spec$files
   }
-  input_hashes <- vapply(inputs, function(x) digest::digest(file = x, algo = 'sha256'), character(1))
-  parsed <- lapply(services, function(service) read_operations(service$files, service[['policy']] %or% list()))
+  input_hashes <- vapply(
+    inputs,
+    function(x) digest::digest(file = x, algo = 'sha256'),
+    character(1)
+  )
+  parsed <- lapply(services, function(service) {
+    read_operations(service$files, service[['policy']] %or% list())
+  })
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
   inventory <- do.call(c, unname(lapply(parsed, `[[`, 'inventory')))
   operation_names <- vapply(operations, `[[`, character(1), 'name')
-  if (anyDuplicated(tolower(operation_names))) stop('Operation names collide across services (including case)')
-  reserved <- unlist(lapply(services, function(x) c(x$helper, x$hook_callback %or% 'run_hook')), use.names = FALSE)
-  if (any(operation_names %in% reserved)) stop('Wrapper name collides with a helper or callback')
+  if (anyDuplicated(tolower(operation_names))) {
+    stop('Operation names collide across services (including case)')
+  }
+  reserved <- unlist(
+    lapply(services, function(x) c(x$helper, x$hook_callback %or% 'run_hook')),
+    use.names = FALSE
+  )
+  if (any(operation_names %in% reserved)) {
+    stop('Wrapper name collides with a helper or callback')
+  }
   runtime_definitions <- list()
   for (file in list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)) {
     parse(file)
     definitions <- tg_find_function_defs_in_file(file)
     runtime_definitions <- c(runtime_definitions, definitions)
     collisions <- intersect(operation_names, names(definitions))
-    if (length(collisions) && any(basename(file) != paste0(collisions, '.R'))) stop('Wrapper collides with an existing definition in ', file)
+    if (length(collisions) && any(basename(file) != paste0(collisions, '.R'))) {
+      stop('Wrapper collides with an existing definition in ', file)
+    }
   }
-  if (!is.null(config) && any(!reserved %in% c(names(runtime_definitions), 'run_hook'))) stop('Configured helper or callback has no client runtime definition')
-  if (mode != 'plan' && length(diagnostics)) stop('Unsupported selected operations; inspect plan diagnostics before generation')
+  if (
+    !is.null(config) &&
+      any(!reserved %in% c(names(runtime_definitions), 'run_hook'))
+  ) {
+    stop('Configured helper or callback has no client runtime definition')
+  }
+  if (mode != 'plan' && length(diagnostics)) {
+    stop(
+      'Unsupported selected operations; inspect plan diagnostics before generation'
+    )
+  }
   desired <- list()
   owners <- list()
+  configured_operations <- list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
     for (op in parsed[[i]]$operations) {
+      configured <- configure_operation(op, service)
+      op <- configured$operation
+      operation_spec <- configured$spec
       if (!is.null(service$prepare)) {
         prepared <- service$prepare(op)
-        if (!identical(prepared[c('id', 'name', 'service', 'key')], op[c('id', 'name', 'service', 'key')])) stop('Preparation callback must preserve operation identity and configured name')
+        if (
+          !identical(
+            prepared[c('id', 'name', 'service', 'key')],
+            op[c('id', 'name', 'service', 'key')]
+          )
+        ) {
+          stop(
+            'Preparation callback must preserve operation identity and configured name'
+          )
+        }
         op <- prepared
       }
-      desired[[paste0('R/', op$name, '.R')]] <- renderer(op, service)
+      configured_operations[[op$name]] <- op
+      desired[[paste0('R/', op$name, '.R')]] <- renderer(op, operation_spec)
       owners[[paste0('R/', op$name, '.R')]] <- op$id
       if (op$name %in% names(service$contracts)) {
-        desired[[paste0('tests/testthat/test-', op$name, '.R')]] <- render_contract(op, service, service$contracts[[op$name]])
+        desired[[paste0(
+          'tests/testthat/test-',
+          op$name,
+          '.R'
+        )]] <- render_contract(op, operation_spec, service$contracts[[op$name]])
         owners[[paste0('tests/testthat/test-', op$name, '.R')]] <- op$id
       }
     }
   }
-  if (!identical(input_hashes, vapply(inputs, function(x) digest::digest(file = x, algo = 'sha256'), character(1)))) stop('Stale input plan; schema or configuration changed during generation')
   attr(desired, 'operations') <- owners
-  labels <- ifelse(startsWith(inputs, paste0(root, '/')), substring(inputs, nchar(root) + 2L), basename(inputs))
+  labels <- ifelse(
+    startsWith(inputs, paste0(root, '/')),
+    substring(inputs, nchar(root) + 2L),
+    basename(inputs)
+  )
   attr(desired, 'inputs') <- as.list(stats::setNames(input_hashes, labels))
   removals <- character()
   manifest_path <- project_path(root, '.apipak/manifest.json')
   if (file.exists(manifest_path)) {
     previous <- jsonlite::read_json(manifest_path)$files
-    excluded <- vapply(Filter(function(x) x$status == 'excluded', inventory), `[[`, character(1), 'id')
-    removals <- names(Filter(function(x) length(x$operations) && all(unlist(x$operations) %in% excluded), previous))
+    excluded <- vapply(
+      Filter(function(x) x$status == 'excluded', inventory),
+      `[[`,
+      character(1),
+      'id'
+    )
+    removals <- names(Filter(
+      function(x) {
+        length(x$operations) && all(unlist(x$operations) %in% excluded)
+      },
+      previous
+    ))
     removals <- setdiff(removals, names(desired))
   }
-  if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) desired <- document_output(root, desired, removals)
+  if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) {
+    desired <- document_output(root, desired, removals)
+  }
+  unused_hooks <- list()
   if (any(vapply(services, function(x) length(x$hooks) > 0L, logical(1)))) {
-    wrapper_functions <- lapply(runtime_definitions, function(x) eval(x$expr, baseenv()))
+    wrapper_functions <- lapply(runtime_definitions, function(x) {
+      eval(x$expr, baseenv())
+    })
+    for (name in removals[grepl('^R/.*\\.R$', removals)]) {
+      if (!file.exists(project_path(root, name))) {
+        next
+      }
+      removed <- names(tg_find_function_defs_in_file(project_path(root, name)))
+      wrapper_functions[removed] <- NULL
+    }
     for (name in names(desired)[grepl('\\.R$', names(desired))]) {
       for (expression in as.list(parse(text = desired[[name]]))) {
-        if (is.call(expression) && identical(expression[[1L]], as.name('<-')) && is.symbol(expression[[2L]]) &&
-            is.call(expression[[3L]]) && identical(expression[[3L]][[1L]], as.name('function'))) {
-          wrapper_functions[[as.character(expression[[2L]])]] <- eval(expression[[3L]], baseenv())
+        if (
+          is.call(expression) &&
+            identical(expression[[1L]], as.name('<-')) &&
+            is.symbol(expression[[2L]]) &&
+            is.call(expression[[3L]]) &&
+            identical(expression[[3L]][[1L]], as.name('function'))
+        ) {
+          wrapper_functions[[as.character(expression[[2L]])]] <- eval(
+            expression[[3L]],
+            baseenv()
+          )
         }
       }
     }
     hook_environment <- list2env(wrapper_functions, parent = emptyenv())
     for (service in services) {
-      if (!length(service$hooks)) next
-      validation <- validate_hooks(service$hooks, wrapper_functions, hook_environment, service$hook_callback %or% 'run_hook')
+      if (!length(service$hooks)) {
+        next
+      }
+      declarations <- service$hooks
+      if (!is.null(service$hook_config)) {
+        unused_hooks[[service$id]] <- setdiff(
+          names(declarations),
+          names(wrapper_functions)
+        )
+        declarations <- declarations[intersect(
+          names(declarations),
+          names(wrapper_functions)
+        )]
+      }
+      validation <- validate_hooks(
+        declarations,
+        wrapper_functions,
+        hook_environment,
+        service$hook_callback %or% 'run_hook'
+      )
       if (!validation$valid) stop(paste(validation$errors, collapse = '\n'))
     }
+  }
+  if (
+    !identical(
+      input_hashes,
+      vapply(
+        inputs,
+        function(x) digest::digest(file = x, algo = 'sha256'),
+        character(1)
+      )
+    )
+  ) {
+    stop('Stale input plan; schema or configuration changed during generation')
   }
   # Unsupported operations never remove previous output or manual files.
   result <- apply_files(
@@ -277,16 +460,30 @@ generate_client <- function(root, spec = NULL, mode = c('check', 'plan', 'apply'
     mode = mode,
     headers = '# Generated by wrapmaint; do not edit by hand.'
   )
-  if (mode == 'check' && any(vapply(result, function(x) !x$action %in% c('unchanged', 'retained'), logical(1)))) stop('Generated output is stale or protected; inspect plan')
+  if (
+    mode == 'check' &&
+      any(vapply(
+        result,
+        function(x) !x$action %in% c('unchanged', 'retained'),
+        logical(1)
+      ))
+  ) {
+    stop('Generated output is stale or protected; inspect plan')
+  }
   list(
     files = result,
-    operations = operations,
+    operations = configured_operations,
     diagnostics = diagnostics,
+    unused_hooks = unused_hooks,
     inventory = inventory,
     manifest = list(
       toolkit_version = as.character(utils::packageVersion('apipak')),
       inputs = input_hashes,
-      policy_version = vapply(services, function(x) x$policy_version %or% 'unspecified', character(1))
+      policy_version = vapply(
+        services,
+        function(x) x$policy_version %or% 'unspecified',
+        character(1)
+      )
     )
   )
 }

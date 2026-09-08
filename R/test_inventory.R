@@ -26,7 +26,11 @@ tg_call_name <- function(call) {
     return(as.character(head))
   }
 
-  if (is.call(head) && as.character(head[[1]]) %in% c("::", ":::")) {
+  if (
+    is.call(head) &&
+      is.symbol(head[[1]]) &&
+      as.character(head[[1]]) %in% c("::", ":::")
+  ) {
     return(as.character(head[[3]]))
   }
 
@@ -41,14 +45,15 @@ tg_all_call_names <- function(expr) {
 }
 
 tg_find_function_defs_in_file <- function(file) {
-  exprs <- tryCatch(
-    parse(file = file, keep.source = FALSE),
-    error = function(e) expression()
-  )
+  exprs <- parse(file = file, keep.source = FALSE)
   defs <- list()
 
   for (expr in as.list(exprs)) {
-    if (!is.call(expr) || !(as.character(expr[[1]]) %in% c("<-", "="))) {
+    if (
+      !is.call(expr) ||
+        !is.symbol(expr[[1]]) ||
+        !(as.character(expr[[1]]) %in% c("<-", "="))
+    ) {
       next
     }
 

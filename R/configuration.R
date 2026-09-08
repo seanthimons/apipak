@@ -101,7 +101,10 @@ load_project <- function(
         'contracts',
         'response_fixture',
         'prepare',
-        'documentation'
+        'documentation',
+        'defaults',
+        'operations',
+        'hook_config'
       ),
       file
     )
@@ -173,6 +176,22 @@ load_project <- function(
       stop(id, ': helper must be an R function name')
     }
     names <- service$names %or% list()
+    defaults <- service$defaults %or% list()
+    overrides <- service$operations %or% list()
+    validate_settings(defaults, paste(id, 'defaults'))
+    config_fields(overrides, names(overrides), 'operations')
+    for (key in names(overrides)) {
+      validate_settings(overrides[[key]], key)
+      if (!is.null(overrides[[key]]$name)) {
+        if (
+          !is.null(names[[key]]) &&
+            !identical(names[[key]], overrides[[key]]$name)
+        ) {
+          stop('Conflicting name overrides for ', key)
+        }
+        names[[key]] <- overrides[[key]]$name
+      }
+    }
     config_fields(names, names(names), paste(id, 'names'))
     for (name in names) {
       if (!identical(make.names(config_string(name, 'wrapper name')), name)) {
@@ -185,6 +204,21 @@ load_project <- function(
       stop('Invalid hook callback name')
     }
     hooks <- service$hooks %or% list()
+    if ('hook_config' %in% names(service)) {
+      if ('hooks' %in% names(service)) {
+        stop('Use hooks or hook_config, not both')
+      }
+      hook_file <- project_path(
+        root,
+        config_string(service$hook_config, 'hook_config')
+      )
+      declarations <- read_config_yaml(hook_file)
+      inputs <<- c(inputs, hook_file)
+      hooks <- lapply(declarations, function(x) {
+        x[intersect(names(x), c('pre_request', 'post_response'))]
+      })
+      hooks <- Filter(function(x) length(x) > 0L, hooks)
+    }
     config_fields(hooks, names(hooks), 'hooks')
     for (hook in hooks) {
       config_fields(hook, c('pre_request', 'post_response'), 'hook stages')
@@ -216,17 +250,21 @@ load_project <- function(
       files = schema_files,
       helper = helper,
       hooks = hooks,
+      hook_config = service$hook_config,
       hook_callback = hook_callback,
       policy = list(
         service = id,
         methods = methods,
         exclude = exclude,
-        names = names
+        names = names,
+        override_keys = names(overrides)
       ),
       policy_version = service$policy_version %or% '1',
       package = package,
       prepare = prepare,
       documentation = service$documentation,
+      defaults = defaults,
+      operations = overrides,
       contracts = config_data(service$contracts),
       response_fixture = config_data(service$response_fixture)
     )

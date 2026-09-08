@@ -53,6 +53,51 @@ it receives one operation and must preserve its identity. Configuration contains
 data, never R source. YAML aliases are supported, explicit keys override merges,
 and duplicate explicit keys are rejected.
 
+Existing helper contracts use typed `defaults` and `operations` mappings:
+
+```yaml
+operations:
+  GET /items/{id}:
+    name: fetch_item
+    parameters:
+      path id: {name: identifier}
+      query language: {default: en}
+    extra_parameters:
+      verbose: {type: logical, default: false}
+    request:
+      arguments:
+        endpoint: {value: items}
+        identifier: {from: [params, identifier]}
+        language: {from: [params, language]}
+    docs:
+      title: Fetch an item
+      lifecycle: experimental
+      return: The client helper response.
+      examples: [{identifier: example}]
+```
+
+Parameter overrides are keyed by original location and name. They support
+`name`, `default`, `required`, `exclude`, and `description`. `parameter_order`
+orders named public parameters before any remaining parameters. Extra parameters
+are client inputs; they are sent only through explicit request bindings.
+`request.arguments` replaces the default helper arguments. Each binding has
+exactly `value` (literal data) or `from` (a path rooted at `params` or
+`hook_state`). NULL, false, zero, and one-element lists remain distinct.
+
+Pre-hooks replace only the public parameters they return. By default, a skipped
+request returns immediately. `post_on_skip: true` also runs the post hook, and
+`post_state: hook_state` passes the complete pre-hook state with its result
+replaced. Both options require a pre-hook. A root-relative `hook_config` may
+select existing runtime hook declarations instead of duplicating `hooks`;
+unused declarations are returned separately in `unused_hooks`.
+
+Documentation policy supports `title`, `description`, `parameters` (public-name
+map), `return`, `lifecycle`, `tags`, and `examples` (a sequence of input maps).
+Examples are rendered inside `dontrun`. Custom metadata tags use the client's
+existing roxygen handlers; executable and structural built-in tags are rejected.
+Schema prose and examples are never executable configuration. Lifecycle badges
+come from validated policy, and protected badges continue to protect output.
+
 For a new client, supply its metadata explicitly:
 
 ```r

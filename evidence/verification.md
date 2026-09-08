@@ -57,6 +57,30 @@ These were diagnosed test/transport issues; no ComptoxR runtime was changed.
 
 ## Investigation notes
 
+The `96034d3` milestone passed both Windows and Ubuntu installed package checks
+in [CI run 34278913658](https://github.com/seanthimons/apipak/actions/runs/34278913658).
+The next mapping/docs candidate passed all eight acceptance scripts with Windows
+R CMD check Status OK. `comptox-pilot.R` validates the unchanged original against
+the YAML-generated candidate for four inputs, then exercises temporary output
+plan/apply/check/second apply, rendered Rd parity, and retained/generated tests
+(8 and 3 assertions respectively; zero failures/skips/test warnings).
+Dependency-build warnings remain for testthat 4.5.3 and vcr 4.5.2.
+
+The pilot revealed a Windows Rd encoding issue, fixed by explicit UTF-8 parsing.
+Runtime hook declarations for six absent wrappers are reported as unused instead
+of being mistaken for selected output. The runtime registry itself is unchanged.
+A documentation mismatch was an unnecessary escaped underscore in plain text;
+the corrected rendered help matches the original. Hook parameter replacement
+is shallow, preserving ComptoxR's whole-value assignment semantics.
+
+`maintenance-inventory.R` records definitions and references across scoped dev
+modules, R sources, tests and workflows. The initial inventory finds 90 local
+definitions plus 73 compatibility bindings; their final dispositions remain
+pending. It exposed a parser bug on namespaced top-level calls. That shared
+parser now handles such expressions without executing them, and malformed
+source is a blocking error rather than an empty successful inventory. A targeted
+regression passes. This fix follows the eight-script package check above.
+
 The first inventory driver ran outside the ComptoxR working directory and the
 legacy EPI selector returned no files. Running from the explicit client root
 captures all 12 EPI operations. The migration must remove this working-directory

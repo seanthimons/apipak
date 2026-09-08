@@ -109,6 +109,11 @@ new_client_acceptance <- function() {
     license = 'MIT + file LICENSE',
     base_url = base_url
   )
+  cat(
+    '\ndefaults:\n  docs: {lifecycle: experimental}\n',
+    file = file.path(root, 'apis/default.yml'),
+    append = TRUE
+  )
   hashes <- function() {
     tools::md5sum(list.files(
       root,

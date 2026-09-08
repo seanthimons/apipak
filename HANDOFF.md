@@ -43,11 +43,20 @@ creation, schema freezing, installation, or release has been performed here.
   on Windows. Commits `fc574ca` and `4178b3a` pushed to `seanthimons/apipak`.
 - Sourceable baseline and contract-freezing drivers and verification notes live
   in `evidence/`. Raw baseline artifacts remain in its ignored `baseline/`.
-- Ownership/recovery hardening and a first YAML catalogue path are under
-  development. Their targeted regressions are passing; final package checks,
-  ComptoxR integration, docs, initialization, Linux, release/pin adoption and
-  Natural Products stress tests remain pending. No completion gate is inferred
-  from the rename alone.
+- YAML catalogue, ownership/recovery, staged documentation, initialization and
+  generated client transport passed seven installed acceptance scripts and
+  Windows/Linux CI at `96034d3` (run `34278913658`).
+- The first ComptoxR operation, `ct_chemical_list_all`, now has a typed YAML
+  probe in the client implementation checkout. It preserves formals/defaults,
+  exact helper calls and successful return values across four inputs. The
+  retained hook tests pass (8 assertions), generated test passes (3 assertions),
+  and temporary generation preserves rendered help, exports and lifecycle while
+  passing read-only plan, apply, check and unchanged second apply. The stable
+  original wrapper and production maintenance commands/pin remain untouched.
+- Added mapping/docs regressions; all eight installed acceptance scripts pass
+  Windows package check. A subsequent inventory-parser fix passes its targeted
+  regression; CI will rerun on the next commit. Full ComptoxR migration,
+  definition disposition, release/pin adoption and NP evidence remain pending.
 - ComptoxR implementation checkout:
   `C:/Users/sxthi/Documents/ComptoxR/.worktrees/apipak-maintenance`, branch
   `feat/apipak-maintenance`, based on PR 309's verified merge revision.

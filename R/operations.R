@@ -175,7 +175,7 @@ read_operations <- function(files, policy = list()) {
   }
   operations <- operations[!duplicated(ids)]
   indexed_keys <- vapply(inventory, `[[`, character(1), 'key')
-  unknown <- setdiff(names(policy$names), indexed_keys)
+  unknown <- setdiff(union(names(policy$names), policy$override_keys), indexed_keys)
   if (length(unknown)) stop('Unknown operation override: ', paste(unknown, collapse = ', '))
   operation_names <- vapply(operations, `[[`, character(1), 'name')
   if (anyDuplicated(operation_names)) {
