@@ -1,6 +1,6 @@
 Package: apipak
 Title: Local API Wrapper Maintenance Tools
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: person('Sean', 'Thimons', role = c('aut', 'cre'), email = 'sxthi@outlook.com')
 Description: Development tools for local schema parsing, wrapper generation,
     generated file ownership and hook validation. Generated clients retain
