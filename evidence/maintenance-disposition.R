@@ -2,8 +2,10 @@
 maintenance_disposition <- function(root) {
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
   records <- jsonlite::read_json('evidence/maintenance-inventory.json')
-  stopifnot(length(records) == 240L)
+  stopifnot(length(records) == 244L)
   target <- function(file) {
+    if (grepl('generate_local_client', file)) return(c('R/initialization.R: initialize_client; R/generation.R: generate_client', 'Only client repository-boundary policy remains; explicit metadata replaces hard-coded authorship and embedded transport/scaffolding.'))
+    if (grepl('install_toolkit', file)) return(c('dev/install_toolkit.R', 'Necessary pre-install bootstrap: script-relative lockfile, checksum verification and isolated R CMD INSTALL; cannot depend on the package it installs.'))
     if (grepl('unit_test_readiness_audit', file)) return(c('R/readiness.R', 'Client audit policy is apipak-readiness.yml; command binds installed functions.'))
     if (grepl('07_token_preflight', file)) return(c('R/maintenance.R: credential_status, credential_preflight', 'dev/token_preflight.R retains only the client environment name and recording guidance.'))
     if (grepl('calculate_coverage', file)) return(c('R/coverage.R: coverage_report', 'Client partitions and badge paths are apipak-coverage.yml.'))
@@ -44,6 +46,6 @@ maintenance_disposition <- function(root) {
   stale <- Filter(function(path) any(grepl('source.*(endpoint_eval/|test_generation/|stub_specs\\.R|remove_experimental\\.R)',
     readLines(path, warn = FALSE, encoding = 'UTF-8'))), readers)
   stopifnot(!length(stale))
-  cat('240 baseline definitions, compatibility bindings and modules have replacements and caller dispositions; no active retired source calls.\n')
+  cat('244 baseline definitions, compatibility bindings and modules have replacements and caller dispositions; no active retired source calls.\n')
 }
 if (sys.nframe() == 0L) maintenance_disposition(commandArgs(trailingOnly = TRUE)[[1L]])

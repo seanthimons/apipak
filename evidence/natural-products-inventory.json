@@ -1,0 +1,395 @@
+{
+  "inventory": [
+    {
+      "key": "GET /chem/stereoisomers",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/descriptors",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/descriptors/multiple",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/HOSEcode",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "POST /chem/standardize",
+      "status": "unsupported",
+      "request_media": "text/plain",
+      "response_media": "application/json",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "key": "GET /chem/errors",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/nplikeness/score",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/tanimoto",
+      "status": "unsupported",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": "Unsupported parameter type"
+    },
+    {
+      "key": "GET /chem/coconut/pre-processing",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/classyfire/classify",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/classyfire/{jobid}/result",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "POST /chem/all_filters",
+      "status": "unsupported",
+      "request_media": "text/plain",
+      "response_media": "application/json",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "key": "POST /chem/all_filters_detailed",
+      "status": "unsupported",
+      "request_media": "text/plain",
+      "response_media": "application/json",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "key": "GET /chem/ertlfunctionalgroup",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/standarizedTautomer",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/fixRadicals",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /chem/pubchem/smiles",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/mol2D",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/mol3D",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/smiles",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/canonicalsmiles",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/cxsmiles",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/inchi",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/inchikey",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/selfies",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/formats",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /convert/smarts",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "POST /convert/molblock",
+      "status": "unsupported",
+      "request_media": "text/plain",
+      "response_media": "application/json",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "key": "POST /convert/batch",
+      "status": "unsupported",
+      "request_media": "application/json",
+      "response_media": "application/json",
+      "reason": "Unsupported free-form body object"
+    },
+    {
+      "key": "POST /convert/cdx-to-mol",
+      "status": "unsupported",
+      "request_media": "multipart/form-data",
+      "response_media": "application/json",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "key": "POST /convert/xyz",
+      "status": "unsupported",
+      "request_media": "text/plain",
+      "response_media": "application/json",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "key": "GET /depict/2D",
+      "status": "unsupported",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": "Unsupported parameter type"
+    },
+    {
+      "key": "GET /depict/3D",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /depict/2D_enhanced",
+      "status": "unsupported",
+      "request_media": null,
+      "response_media": ["application/json", "image/svg+xml"],
+      "reason": "Unsupported parameter type"
+    },
+    {
+      "key": "GET /tools/generate-structures",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /tools/sugars-info",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /tools/remove-linear-sugars",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /tools/remove-circular-sugars",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /tools/remove-sugars",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /tools/extract-aglycone-and-sugars",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "GET /tools/get-aglycone-and-sugar-indices",
+      "status": "selected",
+      "request_media": null,
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "POST /ocsr/process",
+      "status": "selected",
+      "request_media": "application/json",
+      "response_media": "application/json",
+      "reason": ""
+    },
+    {
+      "key": "POST /ocsr/process-upload",
+      "status": "unsupported",
+      "request_media": "multipart/form-data",
+      "response_media": "application/json",
+      "reason": "Unsupported body media type"
+    }
+  ],
+  "diagnostics": [
+    {
+      "id": "default POST /chem/standardize",
+      "service": "default",
+      "key": "POST /chem/standardize",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "id": "default GET /chem/tanimoto",
+      "service": "default",
+      "key": "GET /chem/tanimoto",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported parameter type"
+    },
+    {
+      "id": "default POST /chem/all_filters",
+      "service": "default",
+      "key": "POST /chem/all_filters",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "id": "default POST /chem/all_filters_detailed",
+      "service": "default",
+      "key": "POST /chem/all_filters_detailed",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "id": "default POST /convert/molblock",
+      "service": "default",
+      "key": "POST /convert/molblock",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "id": "default POST /convert/batch",
+      "service": "default",
+      "key": "POST /convert/batch",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported free-form body object"
+    },
+    {
+      "id": "default POST /convert/cdx-to-mol",
+      "service": "default",
+      "key": "POST /convert/cdx-to-mol",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "id": "default POST /convert/xyz",
+      "service": "default",
+      "key": "POST /convert/xyz",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported body media type"
+    },
+    {
+      "id": "default GET /depict/2D",
+      "service": "default",
+      "key": "GET /depict/2D",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported parameter type"
+    },
+    {
+      "id": "default GET /depict/2D_enhanced",
+      "service": "default",
+      "key": "GET /depict/2D_enhanced",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported parameter type"
+    },
+    {
+      "id": "default POST /ocsr/process-upload",
+      "service": "default",
+      "key": "POST /ocsr/process-upload",
+      "source": "inst/schema-stress/natural-products.json",
+      "status": "unsupported",
+      "reason": "Unsupported body media type"
+    }
+  ]
+}

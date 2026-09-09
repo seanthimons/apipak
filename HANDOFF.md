@@ -33,31 +33,23 @@ delay ComptoxR delivery; report unsupported schema features explicitly.
 The original preparation stage performed only offline planning/audit. The user
 has since authorized implementation through every completion gate in this plan.
 
-### Latest implementation checkpoint
+### Latest implementation checkpoint (2026-09-09)
 
-Toolkit `59f21db` passes 16 installed acceptance scripts and Windows archive
-check; Windows and Ubuntu CI run 34305997020 both pass. Readiness, public/hook
-checks, generation, schema diff, coverage and gap-report implementations are now
-in apipak. Client thin commands/report YAML are being adopted on the isolated
-implementation branch; its development pin is still the legacy artifact.
+Toolkit source `8da0f990e650eb918a98f1851ed63926c88df46d` (0.1.2) passes all
+17 installed acceptance scripts, Windows R CMD check (Status OK), and Windows/
+Ubuntu CI run 34365336691. ComptoxR migration `5e9b509` and portable manifest
+`e57163e` are committed and pushed on `feat/apipak-maintenance`. All 343 selected
+operations have independent successful contracts; 603 signatures and 451 rendered
+help files retain parity, except five reviewed literal-brace corrections and the
+publicly confirmed new resolver POST export.
 
-The 343-operation candidate passes 687 fixed-contract assertions. Formals,
-exports and rendered docs retain parity except the approved public resolver POST
-and five literal-brace documentation corrections. All four staged CLI checks,
-separate no-op wrapper/test apply, outside-root execution and CI fields pass.
-`evidence/adopt-comptox.R` has now adopted reviewed runtime, docs and test output
-into the actual client worktree and verified check/unchanged second apply.
-Do not rerun that one-time adoption against the now-generated sources.
-
-Broader adoption tests exposed a missing-argument regression in two WebTEST
-wrappers and two brittle local-variable-name assertions. Explicit
-`missing_as_null` mappings restore the original typed hook conditions without
-changing formals; behavioral state/order assertions replace the brittle tests.
-All 96 targeted WebTEST assertions now pass. This correction and client adoption
-are not yet committed. Remaining work includes old pipeline/caller retirement,
-the final disposition ledger, broader client checks, remaining ownership/recovery
-and audit gates, immutable artifact/pin adoption, and NP schema-only stress tests.
-See `evidence/verification.md` for exact evidence and prior checkpoints.
+The 244-record definition/caller ledger accounts for maintenance replacement.
+All six audit cases, ownership/recovery, catalogue/new-client and NP schema-only
+stress gates pass. Immutable 0.1.0 and 0.1.1 assets are preserved. Candidate client
+CI and immutable 0.1.2 publication/pin verification remain pending. The compact
+current evidence is [evidence/completion.md](evidence/completion.md); the older
+progress entries below are historical. Do not rerun one-time adoption/retirement
+drivers against the already-adopted client.
 
 ## Implementation progress (2026-09-08)
 
@@ -105,12 +97,8 @@ See `evidence/verification.md` for exact evidence and prior checkpoints.
 
 ## Completed
 
-Latest candidate: all 343 operations have fixed successful contracts and the
-isolated, formatted client passes 687 assertions with no failures/warnings/skips,
-plus apply/check/unchanged second apply. Existing runtime files remain unchanged.
-The complete YAML, retention, documentation and fixture checkpoint is recorded
-in `evidence/verification.md`. Full maintenance replacement, publication/pin
-adoption and NP schema stress testing remain required.
+Implementation results are recorded in the latest checkpoint and compact report.
+The checked planning tasks below remain historical preparation evidence.
 
 - [x] Read the original generalization handoff and inspected both generation paths.
 - [x] Inspected boosterpak's TOML configuration and reusable pack organization.
@@ -149,7 +137,7 @@ source remote `seanthimons/apipak`. The earlier provisional second-client name
 Check apipak repository availability before publication. Keep the current
 local directory name during implementation to avoid path disruption.
 
-## Current State
+## Planning baseline (historical)
 
 **Toolkit source**: `C:/Users/sxthi/Documents/wrapmaint`, implementation commit
 `aae88f99f6bd355a06d3404fd100b86620609e83`, originally on `feat/schema-toolkit`.
@@ -256,7 +244,7 @@ resolved only in the supplied environment. Do not put arbitrary R source strings
 in YAML or evaluate schema descriptions/examples. Retain client runtime hook
 configuration; avoid two editable sources of truth for the same hook setting.
 
-## Not Yet Done: Ordered Implementation
+## Ordered Implementation Gates
 
 ### Step 0: Baseline and rename
 
@@ -891,7 +879,8 @@ from an interactive R session. Offline acceptance needs no production credential
 
 ## Failed Approaches
 
-No generalization implementation has been attempted in this conversation.
+The following notes describe rejected approaches from planning; implementation
+failures and their verified fixes are recorded in evidence/completion.md.
 Calling all remaining ComptoxR modules thin shims was an earlier characterization
 error; the source handoff corrects it. Treat file deletion alone as insufficient.
 
@@ -908,23 +897,11 @@ worked in that installed version. Verify available APIs before repeating it.
 
 ## Warnings and Deferred Work
 
-### Implementation checkpoint (2026-09-08)
+### Scope resolution and active workspaces
 
-Active isolated branches are `feat/apipak-generalization` in this repository's
-`.worktrees/apipak-generalization` and `feat/apipak-maintenance` in ComptoxR's
-`.worktrees/apipak-maintenance`. Work is committed and pushed to
-`seanthimons/apipak` and `seanthimons/ComptoxR`. The compact record of revisions,
-commands, outcomes, failed approaches and outstanding gates is
-[`evidence/verification.md`](evidence/verification.md).
-
-Installed toolkit acceptance, YAML interfaces, initialization and ownership/
-recovery groundwork are implemented. The 152 CTX/EPI candidates retain frozen
-formals and successful helper/hook behavior; their client YAML policy is at
-`e93292e`. EPI batch's wrong generated service/auth/body is independently
-diagnosed, and the corrected candidate preserves its public formals and return
-behavior. Client runtime files and exports remain unchanged. Chemi mapping and
-parity, full maintenance replacement, final adoption/release and NP schema stress
-gates remain unfinished; do not call this migration complete.
+Work is isolated in `wrapmaint/.worktrees/apipak-generalization` and
+`ComptoxR/.worktrees/apipak-maintenance`, pushed to their matching feature branches.
+Original checkouts and unrelated user changes remain untouched.
 
 The user resolved the public-contract decision: operations absent from the public
 schema must not be added. A read-only GET of the public resolver schema on
@@ -933,7 +910,9 @@ schema must not be added. A read-only GET of the public resolver schema on
 after canonicalizing object-key order. The sourceable
 `evidence/missing-selected-operation.R --verify-public` records the source and
 SHA-256. Its missing POST wrapper therefore remains in scope. The declaration
-and independent offline HTTP contract are prepared; runtime adoption is pending.
+and independent offline HTTP contract are adopted. Existing manual wrappers
+outside the selected schema denominator remain protected under this plan's
+explicit preservation requirements.
 
 ### Original deferred-work notes
 
@@ -950,4 +929,4 @@ and independent offline HTTP contract are prepared; runtime adoption is pending.
 - Preserve users' unrelated `endpoint-audit.md` and harmonizer `CONTEXT.md`
   changes mentioned in the original handoff; do not reset/clean other checkouts.
 - Future packaging should omit this development handoff from the source archive.
-  No package build configuration is changed by this document-only task.
+  The implemented .Rbuildignore excludes this handoff and development evidence.

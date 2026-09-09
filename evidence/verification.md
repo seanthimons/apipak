@@ -1,5 +1,9 @@
 # Generalization verification
 
+The current gate results are in [completion.md](completion.md). This file retains
+the baseline and chronological implementation evidence; earlier pending-state
+descriptions do not supersede the current completion record.
+
 ## Baseline, 2026-09-08
 
 - Toolkit base: `4722e0e` (implementation `aae88f9`), branch

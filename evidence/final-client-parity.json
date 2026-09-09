@@ -1,0 +1,8 @@
+{
+  "public_formals": 603,
+  "baseline_docs": 451,
+  "rendered_corrections": ["chemi_amos_analytical_qc_keyset_pagination_bulk.Rd", "chemi_amos_fact_sheet_keyset_pagination_bulk.Rd", "chemi_amos_method_keyset_pagination_bulk.Rd", "chemi_amos_product_declaration_keyset_pagination_bulk.Rd", "chemi_amos_safety_data_sheet_keyset_pagination_bulk.Rd"],
+  "added_export": "export(chemi_resolver_ghs_list_count_bulk)",
+  "unchanged_cassettes": 0,
+  "fixed_fixture_files_scanned": 24
+}

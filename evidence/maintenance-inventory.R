@@ -10,7 +10,7 @@ maintenance_inventory <- function(
     full.names = TRUE
   )
   files <- files[grepl(
-    '/(endpoint_eval|test_generation)/|/(stub_specs|toolkit_adapter|generate_stubs|generate_tests|calculate_coverage|detect_test_gaps|check_hook_config|check_public_api|diff_schemas|remove_experimental|unit_test_readiness_audit|endpoint_eval_utils|check-coverage|ct_endpoint_eval|chemi_endpoint_eval|epi_endpoint_eval|cc_endpoint_eval)\\.R$',
+    '/(endpoint_eval|test_generation)/|/(stub_specs|toolkit_adapter|generate_stubs|generate_tests|generate_local_client|install_toolkit|calculate_coverage|detect_test_gaps|check_hook_config|check_public_api|diff_schemas|remove_experimental|unit_test_readiness_audit|endpoint_eval_utils|check-coverage|ct_endpoint_eval|chemi_endpoint_eval|epi_endpoint_eval|cc_endpoint_eval)\\.R$',
     files
   )]
   readers <- unlist(lapply(c('R', 'dev', 'tests', '.github'), function(path) {
