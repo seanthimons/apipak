@@ -140,6 +140,23 @@ reconciliation_acceptance <- function() {
   }
   apipak::apply_files(root, desired, mode = 'apply')
   stopifnot(length(apipak::apply_files(root, desired, mode = 'check')) == 1L)
+  # Shared-file owner arrays survive a later test-only publication unchanged.
+  grouped <- list(
+    grouped.R = 'first <- function() 1\nsecond <- function() 2',
+    test.R = 'test <- TRUE'
+  )
+  attr(grouped, 'operations') <- list(
+    grouped.R = c('service GET /first', 'service GET /second'),
+    test.R = 'service GET /first'
+  )
+  apipak::apply_files(root, grouped, mode = 'apply')
+  scoped <- grouped['test.R']
+  attr(scoped, 'operations') <- attr(grouped, 'operations')['test.R']
+  stopifnot(all(vapply(
+    apipak::apply_files(root, scoped, mode = 'check'),
+    function(x) x$action == 'unchanged',
+    logical(1)
+  )))
   journal <- file.path(root, '.wrapmaint-interrupted')
   dir.create(journal)
   saveRDS(list(), file.path(journal, 'recovery.rds'))

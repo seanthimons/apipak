@@ -227,6 +227,11 @@ apply_files <- function(
     }
   }
   manifest$files <- manifest$files[sort(names(manifest$files))]
+  # JSON arrays read back as lists; keep one canonical shape across scoped runs.
+  manifest$files <- lapply(manifest$files, function(entry) {
+    entry$operations <- unlist(entry$operations, use.names = FALSE)
+    entry
+  })
   manifest$toolkit_version <- as.character(utils::packageVersion('apipak'))
   if (!is.null(attr(desired, 'inputs'))) {
     manifest$inputs <- attr(desired, 'inputs')
