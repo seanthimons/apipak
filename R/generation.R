@@ -667,10 +667,13 @@ generate_client <- function(
     desired[generated_inputs],
     text_hash
   )
-  attr(desired, 'inputs') <- attr(desired, 'inputs')[sort(setdiff(
-    names(attr(desired, 'inputs')),
-    removals
-  ))]
+  attr(desired, 'inputs') <- attr(desired, 'inputs')[sort(
+    setdiff(
+      names(attr(desired, 'inputs')),
+      removals
+    ),
+    method = 'radix'
+  )]
   attr(desired, 'callbacks') <- callbacks_before
   unused_hooks <- list()
   if (any(vapply(services, function(x) length(x$hooks) > 0L, logical(1)))) {

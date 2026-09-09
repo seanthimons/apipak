@@ -226,7 +226,10 @@ apply_files <- function(
       )
     }
   }
-  manifest$files <- manifest$files[sort(names(manifest$files))]
+  manifest$files <- manifest$files[sort(
+    as.character(names(manifest$files)),
+    method = 'radix'
+  )]
   # JSON arrays read back as lists; keep one canonical shape across scoped runs.
   manifest$files <- lapply(manifest$files, function(entry) {
     entry$operations <- unlist(entry$operations, use.names = FALSE)

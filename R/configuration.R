@@ -258,7 +258,7 @@ load_project <- function(
         ]
       }
     }
-    schema_files <- sort(unique(schema_files))
+    schema_files <- sort(unique(schema_files), method = 'radix')
     if (!length(schema_files)) {
       stop(id, ': no schemas selected')
     }

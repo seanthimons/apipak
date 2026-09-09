@@ -1,4 +1,25 @@
 reconciliation_acceptance <- function() {
+  locale_root <- tempfile('locale-manifest-')
+  dir.create(locale_root)
+  desired_locale <- list(Z.R = 'Z <- 1', a.R = 'a <- 2')
+  withr::with_locale(
+    c(LC_COLLATE = 'C'),
+    apipak::apply_files(locale_root, desired_locale, mode = 'apply')
+  )
+  locale <- if (.Platform$OS.type == 'windows') {
+    'English_United States.utf8'
+  } else {
+    'en_US.UTF-8'
+  }
+  locale_plan <- withr::with_locale(
+    c(LC_COLLATE = locale),
+    apipak::apply_files(locale_root, desired_locale, mode = 'check')
+  )
+  stopifnot(all(vapply(
+    locale_plan,
+    function(x) x$action == 'unchanged',
+    logical(1)
+  )))
   fails <- function(expr, pattern = NULL) {
     error <- tryCatch(
       {
