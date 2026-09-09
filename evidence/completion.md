@@ -1,5 +1,7 @@
 # Completion gate record
 
+Status: all controlling HANDOFF.md completion gates verified on 2026-09-09.
+
 Baseline: ComptoxR `4fd720b97fb2f7f2abf131925e9270b0c11b057a`; toolkit implementation
 `aae88f9`, controlling handoff branch `4722e0e`. Both active implementation worktrees
 preserve unrelated original checkouts and the user's `endpoint-audit.md`.
@@ -8,11 +10,20 @@ preserve unrelated original checkouts and the user's `endpoint-audit.md`.
 
 - 343 selected operations: CTX 140, Chemi 191, EPI 12. Native schema support 292;
   44 explicit mappings and 7 retained unsupported implementations remain visible.
+- The reviewed output owns 782 files (201 R, 237 Rd, 343 fixed-contract test
+  files and NAMESPACE) and retains 90 source files. Implementation coverage is
+  distinct from native schema support; retained unsupported wrappers are reported.
 - `final-client-parity.R`: all 603 frozen function signatures unchanged; all 451
   baseline help files retained with rendered parity except five reviewed literal
   `{}` corrections. Only new export is the publicly confirmed resolver POST.
+- The independently diagnosed EPI batch generation defect now uses the EPI
+  service, no CTX authentication and the required outer JSON array. Existing
+  public formals and successful return behavior are preserved. Explicit
+  `missing_as_null` WebTEST mappings preserve typed missing-input hook errors.
 - `verify-client-maintenance.R`: 922 assertions, zero failures/warnings/skips.
   `verify-manual-contracts.R`: 24 assertions, zero failures/warnings/skips.
+  The final 922-assertion run uses the independently downloaded 0.1.2 pin and
+  completes in 93.2 seconds; the full pinned Linux lane also passes below.
   The maintenance process has two dependency-build startup warnings (testthat
   built under R 4.5.3, vcr under R 4.5.2); no test warnings. Ten manual assertions
   overlap the maintenance lane, so these counts are not additive.
@@ -33,7 +44,8 @@ preserve unrelated original checkouts and the user's `endpoint-audit.md`.
   scoped owner-array serialization, three write failures, a killed writer and
   recovery, protected renames, docs/namespace pairing and client isolation.
 - Toolkit benchmark: 2,000 operations in 14.96 seconds versus 16.75-second baseline.
-- Client archive R CMD check (tests/examples run separately) reports Status OK.
+- Client archive R CMD check (tests run separately; examples not executed) reports
+  Status OK. Example content is covered by rendered documentation parity.
   rcmdcheck's external Quarto version probe warns about Windows TMPDIR syntax;
   it is outside the package check results. No runtime repair was made for it.
 
@@ -54,8 +66,27 @@ manifest ordering, and raw CRLF/LF hashes for `air.toml` and `inst/WORDLIST`.
 Version 0.1.2 source `8da0f990e650eb918a98f1851ed63926c88df46d` fixes both with
 regressions; all generated runtime, documentation and test files are unchanged.
 Windows R CMD check reports Status OK, and Windows/Ubuntu CI 34365336691 passes
-all 17 installed acceptance scripts. Candidate client CI and final immutable
-0.1.2 pin adoption are still pending.
+all 17 installed acceptance scripts. Candidate client CI 34365968347 passes
+generation, hooks, fixed-test smoke checks and full CRAN readiness: 2,279 plus
+66 assertions, zero failures/warnings, and 48 explicit skips. Skips cover absent
+local databases and disabled external download/build/connectivity paths, not
+migration contracts. Skips are not passes.
+
+Version 0.1.2 is published immutable from `8da0f99` at
+https://github.com/seanthimons/apipak/releases/tag/v0.1.2.
+Asset SHA-256: `926fdd996241735f6105b8c2fd2dad1051f509daa4fdebc87bdc641f94ed38c6`.
+The downloaded checksum, isolated installation and outside-root bootstrap pass.
+ComptoxR `9146cd77db3ec8b932f590486af4078309806fff` pins that artifact. Its normal
+pinned [CI run 34366742712](https://github.com/seanthimons/ComptoxR/actions/runs/34366742712)
+passes with the same 2,279 plus 66 assertions, zero failures/warnings and 48
+database/external-service skips. Final Windows regeneration with the downloaded
+pin passes apply/check/unchanged second apply, all four outside-root commands,
+and unchanged file hashes. The isolated package path is
+`evidence/release-library/apipak`, version 0.1.2.
+
+Rollback is a coherent checkout of baseline `4fd720b` with its unchanged legacy
+pin and matching generated output, documented in the client maintenance guide.
+Changing only the pin is not a valid rollback. No ComptoxR release was made.
 
 ## Natural Products schema-only evidence
 
@@ -76,6 +107,14 @@ repository, publication, live endpoint execution or chemistry validation.
 
 ## Runnable evidence
 
+Changed implementation areas are toolkit `R/` generation, configuration,
+ownership and maintenance modules; `tests/` installed acceptance; `inst/catalogue/`
+and `inst/schema-stress/`; and README/package documentation. Client changes are
+`apipak.yml`, `apis/*.yml`, generated `R/`, `man/` and fixed-contract tests,
+`.apipak/manifest.json`, thin `dev/` commands/policies, workflow callers and
+`dev/toolkit-lock.json`. The final disposition ledger identifies each retired
+maintenance definition and its replacement.
+
 Commands run from the toolkit implementation checkout on Windows 11, R 4.5.1,
 Air 0.9.0, with `LC_ALL=C`. Candidate tests use `evidence/candidate-library`;
 published-pin checks use `evidence/release-library`. Each driver exposes a function
@@ -92,7 +131,7 @@ under ignored `evidence/baseline` and `evidence/baseline-maintenance`.
 | `Rscript evidence/verify-manual-contracts.R CLIENT` | 24 assertions pass |
 | `Rscript evidence/verify-client-runtime.R CLIENT` | 343 installed fixed-contract files pass without either toolkit |
 | `Rscript evidence/final-client-generation.R CLIENT` | Apply/check/second apply and four outside-root CLI checks pass without changes |
-| `Rscript evidence/check-client-package.R CLIENT` | Zero errors, warnings or notes; examples/tests validated separately |
+| `Rscript evidence/check-client-package.R CLIENT` | Zero errors, warnings or notes; tests separate, example content parity checked |
 | `Rscript evidence/verify-local-initializer.R CLIENT` | Explicit metadata, boundary protection and temporary new-client generation pass |
 | `Rscript evidence/mutation-contracts.R` | Six deliberately broken contracts fail as expected |
 | `Rscript evidence/maintenance-disposition.R CLIENT` | 244 dispositions; no active calls to retired modules |

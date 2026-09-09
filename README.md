@@ -1,6 +1,6 @@
 # apipak
 
-Development-only API wrapper maintenance tools, version 0.1.0.
+Development-only API wrapper maintenance tools, version 0.1.2.
 Install this package for generation and checks. Generated clients retain their
 own HTTP helper, credentials, base URL, hook callback and response parser.
 They do not import this package. Installation and loading do not generate files,
@@ -295,8 +295,10 @@ and JSON placement. The helper does not send that request. Generated helper-call
 tests alone do not prove HTTP transport or upstream response conformance.
 
 The extracted compatibility code originates from ComptoxR commit `8f055b8`
-under its MIT license (Sean Thimons). Full ComptoxR migration and release/pin
-adoption are still in progress; see the development handoff for completion gates.
+under its MIT license (Sean Thimons). ComptoxR maintenance migration and immutable
+release/pin adoption are verified in [the completion report](evidence/completion.md).
+Natural Products remains limited to schema stress testing with unsupported
+operations reported explicitly.
 
 References: [OpenAPI 3.0.3](https://spec.openapis.org/oas/v3.0.3.html),
 [testthat namespace mocks](https://testthat.r-lib.org/reference/local_mocked_bindings.html),

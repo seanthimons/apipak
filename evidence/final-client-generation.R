@@ -1,6 +1,9 @@
 # Reconcile already-adopted output, then verify all production commands read-only.
 final_client_generation <- function(root) {
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
+  pin <- jsonlite::read_json(file.path(root, 'dev/toolkit-lock.json'))
+  stopifnot(pin$package == 'apipak', as.character(packageVersion('apipak')) == pin$version)
+  cat('Verified installed pin:', pin$version, find.package('apipak'), '\n')
   callbacks <- new.env(parent = baseenv())
   sys.source(file.path(root, 'dev/apipak_callbacks.R'), callbacks)
   apipak::generate_client(root, config = 'apipak.yml', callbacks = callbacks, mode = 'apply')

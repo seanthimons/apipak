@@ -2,11 +2,11 @@
 
 **Generated**: 2026-09-08 14:26 -04:00
 **Hardened**: 2026-09-08, with source-level audit and implementation rules below.
-**Final readiness review**: 2026-09-08; conversation/scope cross-check, local
-source/setup review, PR merge recheck, and six offline probes rerun. Production
-baseline and implementation acceptance have not been rerun or established here.
-**Branch**: `docs/apipak-generalization-handoff`
-**Status**: Implementation in progress on `feat/apipak-generalization`.
+**Implementation verification**: 2026-09-09; production baseline, installed
+acceptance, Windows/Linux checks, client parity, immutable release and pinned CI
+verified. See the compact completion report for commands and limitations.
+**Branch**: `feat/apipak-generalization`
+**Status**: Complete through all implementation and verification gates.
 **Authority**: User-approved plan, cross-checked against the planning conversation.
 
 This is the controlling handoff. The original ComptoxR handoff is historical
@@ -37,17 +37,21 @@ has since authorized implementation through every completion gate in this plan.
 
 Toolkit source `8da0f990e650eb918a98f1851ed63926c88df46d` (0.1.2) passes all
 17 installed acceptance scripts, Windows R CMD check (Status OK), and Windows/
-Ubuntu CI run 34365336691. ComptoxR migration `5e9b509` and portable manifest
-`e57163e` are committed and pushed on `feat/apipak-maintenance`. All 343 selected
+Ubuntu CI run 34365336691. ComptoxR migration and verified 0.1.2 pin are committed
+and pushed at `9146cd77` on `feat/apipak-maintenance`. All 343 selected
 operations have independent successful contracts; 603 signatures and 451 rendered
 help files retain parity, except five reviewed literal-brace corrections and the
 publicly confirmed new resolver POST export.
 
 The 244-record definition/caller ledger accounts for maintenance replacement.
 All six audit cases, ownership/recovery, catalogue/new-client and NP schema-only
-stress gates pass. Immutable 0.1.0 and 0.1.1 assets are preserved. Candidate client
-CI and immutable 0.1.2 publication/pin verification remain pending. The compact
-current evidence is [evidence/completion.md](evidence/completion.md); the older
+stress gates pass. Immutable 0.1.2 is published, independently downloaded,
+checksum-verified and installed; older immutable assets are preserved. Normal
+pinned client CI 34366742712 and Windows apply/check/unchanged second apply plus
+all four outside-root commands pass. A fresh local run using the published pin
+passes 922 assertions with zero failures/test warnings/skips (two recorded
+dependency-build startup warnings). The compact current evidence is
+[evidence/completion.md](evidence/completion.md); the older
 progress entries below are historical. Do not rerun one-time adoption/retirement
 drivers against the already-adopted client.
 
@@ -203,17 +207,17 @@ prefix means the reference worktree above, not an arbitrary installed package.
 
 ## Code Context and Intended Interface
 
-Current callable API:
+Preserved R-list API (now under the apipak name):
 
 ```r
 spec <- list(files = '/absolute/path/openapi.json',
              helper = 'request_helper', policy_version = 'reviewed-1')
-wrapmaint::generate_client('/existing/client/root', spec, 'plan')
+apipak::generate_client('/existing/client/root', spec, 'plan')
 ```
 
-Preserve existing function names and positional R-list calls under `apipak::`.
-Add a named `config` input and explicit callback environment without creating a
-second engine. The intended convenience call is not callable today:
+Existing function names and positional R-list calls remain under `apipak::`.
+The named `config` input and explicit callback environment use the same engine.
+The implemented YAML call is:
 
 ```r
 apipak::generate_client(root = '.', config = 'apipak.yml', mode = 'plan')
@@ -248,19 +252,19 @@ configuration; avoid two editable sources of truth for the same hook setting.
 
 ### Step 0: Baseline and rename
 
-- [ ] Read current instructions, contribution docs, original handoff, and extraction
+- [x] Read current instructions, contribution docs, original handoff, and extraction
   plan. Recheck Git state and PR 309; create isolated implementation worktrees.
-- [ ] Before renaming, freeze schema/policy hashes, selected operation identities,
+- [x] Before renaming, freeze schema/policy hashes, selected operation identities,
   generated/protected files, signatures, exports, docs, hooks, and current results.
   Use current production output, not the historical pre-policy file counts.
-- [ ] When using the Natural Products schema for tests, snapshot it with origin
+- [x] When using the Natural Products schema for tests, snapshot it with origin
   and checksum for reproducibility. Its availability does not block step 0.
-- [ ] Rename metadata, namespace lookups, installer checks, docs, and tests to
+- [x] Rename metadata, namespace lookups, installer checks, docs, and tests to
   apipak. Preserve legacy ownership headers and interrupted-apply recovery.
   Do not rewrite historical evidence or immutable artifact references.
-- [ ] Retain compatibility entry points until migrated callers no longer need
+- [x] Retain compatibility entry points until migrated callers no longer need
   them. Establish the toolkit's source remote and normal release workflow.
-- [ ] Gate: renamed installed-package acceptance passes with equivalent output
+- [x] Gate: renamed installed-package acceptance passes with equivalent output
   contracts and ownership. Exclude this handoff from built package artifacts when
   updating package build configuration.
 
@@ -272,87 +276,87 @@ extracting the entire legacy renderer.
 
 ### Phase 1: YAML and one operation inventory
 
-- [ ] Implement one versioned YAML loader/validator feeding the existing R model.
+- [x] Implement one versioned YAML loader/validator feeding the existing R model.
   Reject unknown fields, invalid types/methods/regexes, duplicate IDs, unsafe
   paths, unresolved callbacks, and name/output collisions before writing.
-- [ ] Migrate the full existing filter lists, preserving service scope and
+- [x] Migrate the full existing filter lists, preserving service scope and
   case-sensitive stringr regex behavior. A list means exclude if any pattern
   matches, not vectorized pairwise matching of paths and patterns.
-- [ ] Match original schema paths; translate filters currently applied after
+- [x] Match original schema paths; translate filters currently applied after
   stripping prefixes/path parameters. Prove equivalence on frozen schemas.
-- [ ] Use stable service ID + method + original path as operation identity.
+- [x] Use stable service ID + method + original path as operation identity.
   Do not use an absolute checkout path as the durable identity. Reject conflicting
   duplicate operations within a service; preserve cross-service distinctions.
-- [ ] Resolve inventory once for generation, comparison, tests, hook checks, and
+- [x] Resolve inventory once for generation, comparison, tests, hook checks, and
   coverage. Track selected, excluded, unsupported, generated, and manual status
   explicitly, retaining diagnostic reasons and source provenance.
-- [ ] Gate: identical selected ComptoxR operation identities, including GET/POST
+- [x] Gate: identical selected ComptoxR operation identities, including GET/POST
   pairs and service-specific exclusions. No EPA policy is an engine default.
 
 ### Phase 2: Full ComptoxR maintenance replacement
 
-- [ ] Audit each local definition/caller into reusable engine, declarative data,
+- [x] Audit each local definition/caller into reusable engine, declarative data,
   necessary callback, or replaced shim; include the large renderer and parameter
   modules, schema diffing, test generation, coverage, hook checks, and CI outputs.
-- [ ] Move common implementation into apipak. Preserve public names, formals,
+- [x] Move common implementation into apipak. Preserve public names, formals,
   defaults/order, helper-call shapes, request placement, batching/pagination, hook
   ordering/state/skip/result behavior, and multi-function file layouts.
-- [ ] Keep chemistry resolution, credentials, transport, and runtime hooks local.
+- [x] Keep chemistry resolution, credentials, transport, and runtime hooks local.
   Do not leave the old large renderer behind under a callback label or move
   chemistry branches wholesale into a supposedly generic engine.
-- [ ] Provide new-package initialization and existing-project adoption. Existing
+- [x] Provide new-package initialization and existing-project adoption. Existing
   projects are not recreated; existing dev commands become thin apipak calls.
-- [ ] Return structured inventory, diagnostics, coverage, file actions, and
+- [x] Return structured inventory, diagnostics, coverage, file actions, and
   manifest information. Thin scripts retain CLI exit codes and CI reporting.
-- [ ] Delete only replaced implementation after updating every caller, workflow,
+- [x] Delete only replaced implementation after updating every caller, workflow,
   documentation reference, and test. Preserve R-list API compatibility where
   feasible; intentional changes require documented migration evidence.
-- [ ] Gate: ComptoxR's entire maintenance workflow uses apipak, not just filters.
+- [x] Gate: ComptoxR's entire maintenance workflow uses apipak, not just filters.
 
 ### Phase 3: Documentation and reconciliation
 
-- [ ] Preserve parameter/return docs, examples, exports, custom tags and rendered
+- [x] Preserve parameter/return docs, examples, exports, custom tags and rendered
   help. Match documentation to actual formals. `@apiStage` remains client-specific;
   retaining it does not impose ComptoxR's public/staging vocabulary on other APIs.
-- [ ] Retain schema tags as metadata and support explicit documentation grouping
+- [x] Retain schema tags as metadata and support explicit documentation grouping
   overrides. Tags do not become implicit endpoint filters.
-- [ ] Move chemistry-specific example values into ComptoxR YAML. Use reviewed
+- [x] Move chemistry-specific example values into ComptoxR YAML. Use reviewed
   overrides, schema examples/defaults/enums, then valid type fixtures. Distinguish
   missing from explicit null/false/zero; preserve scalar and one-element-array
   shapes. Invalid candidates require reviewed input rather than executable text.
-- [ ] Preserve existing calls/values with explicit overrides where generic
+- [x] Preserve existing calls/values with explicit overrides where generic
   selection differs. Keep deterministic selection; keep documentation examples
   separate from independently authored request expectations. Live documentation
   examples remain non-executing in routine checks (current renderer uses dontrun).
-- [ ] Support service lifecycle defaults and operation overrides. Capture current
+- [x] Support service lifecycle defaults and operation overrides. Capture current
   effective badges first: today's renderer forces deprecated for upstream
   deprecation. New upstream deprecation becomes a review diagnostic, not an
   automatic wrapper lifecycle change. Preserve existing deprecated badges.
-- [ ] Preserve lifecycle protection: stable, maturing, superseded, deprecated,
+- [x] Preserve lifecycle protection: stable, maturing, superseded, deprecated,
   defunct, mixed, and unrecognized/untagged files must not become writable merely
   because headers or policy changed. Do not demote badges to permit regeneration.
-- [ ] Plan all writes/protected conflicts/eligible removals. Explicit filters may
+- [x] Plan all writes/protected conflicts/eligible removals. Explicit filters may
   remove only verified owned, unprotected output during apply. Unsupported or
   malformed inputs never authorize removals. Mixed files retain protected content.
-- [ ] Render and validate all desired output before mutation. Preserve backups,
+- [x] Render and validate all desired output before mutation. Preserve backups,
   rollback and interrupted-apply recovery; do not claim a cross-file transaction.
-- [ ] Check fails on stale required output, blocking diagnostics, or protected
+- [x] Check fails on stale required output, blocking diagnostics, or protected
   conflicts preventing the requested result. It must not report success merely
   because an unsupported operation produced no desired file.
-- [ ] Gate: read-only plan/check, deterministic regeneration, no-op second apply,
+- [x] Gate: read-only plan/check, deterministic regeneration, no-op second apply,
   documentation parity, and failures that preserve owned/manual output.
 
 ### Phase 4: ComptoxR delivery gate
 
-- [ ] Migrate the non-chemical catalogue through the same public configuration
+- [x] Migrate the non-chemical catalogue through the same public configuration
   interface; no hidden ComptoxR profile or engine edits for that client.
-- [ ] Pass the verification below and document every intentional difference.
-- [ ] Publish a new immutable apipak artifact. Verify the downloaded archive's
+- [x] Pass the verification below and document every intentional difference.
+- [x] Publish a new immutable apipak artifact. Verify the downloaded archive's
   checksum and install in an isolated library before updating ComptoxR's pin.
-- [ ] Preserve rollback as previous toolkit pin plus matching generated output.
+- [x] Preserve rollback as previous toolkit pin plus matching generated output.
   Do not add an apipak runtime dependency to ComptoxR or automatically release
   ComptoxR for development-only changes. Follow its version/release workflow.
-- [ ] Provide installation, full config reference, migration/rollback guidance,
+- [x] Provide installation, full config reference, migration/rollback guidance,
   callback examples, schema support matrix, diagnostics, ownership, and a complete
   new-client walkthrough. Explain helper-call checks versus actual HTTP proof.
 
@@ -365,25 +369,25 @@ requirements in this conversation and any source handoff. Keep generic new-clien
 initialization/helper generation in scope, verified with temporary test packages
 and the catalogue rather than requiring another maintained product.
 
-- [ ] Snapshot the [supplied schema](https://api.naturalproducts.net/latest/openapi.json)
+- [x] Snapshot the [supplied schema](https://api.naturalproducts.net/latest/openapi.json)
   with retrieval source/date and checksum. It was inspected but not saved during
   planning; `/latest` may change before implementation. Later refreshes are
   separate changes, not moving acceptance criteria.
-- [ ] Inventory the schema and choose cases that exercise distinct features,
+- [x] Inventory the schema and choose cases that exercise distinct features,
   avoiding redundant operation-by-operation tests. The inspected schema uses
   OpenAPI 3.1, relative server `/latest`, scalar/nullable/alternative inputs, JSON
   and text/plain bodies, multipart uploads, and JSON/SVG responses. Handle observed
   schema quirks through documented configuration or generic support, not hidden
   chemistry-specific branches. Resolve the server against the recorded origin.
-- [ ] Cover supported representative cases with independent request expectations
+- [x] Cover supported representative cases with independent request expectations
   and successful return assertions. Use deterministic local HTTP tests for the
   supported query/path encoding, null/array handling, body media, and response
   decoding. Uploads or other unsupported features require diagnostic tests,
   not mandatory implementation solely because NP contains them.
-- [ ] Report unsupported features and test that they produce actionable
+- [x] Report unsupported features and test that they produce actionable
   diagnostics without silent omission or unsafe generation. Extending support
   for every NP feature is not required to finish this migration.
-- [ ] Gate: representative supported cases pass offline; unsupported cases are
+- [x] Gate: representative supported cases pass offline; unsupported cases are
   visible and diagnosed. Preserve ComptoxR and catalogue gates. No NP live API
   calls, standalone repository, or publication are needed for acceptance.
 
