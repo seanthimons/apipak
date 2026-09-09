@@ -7,3 +7,6 @@
 ^\.worktrees$
 ^\.git$
 ^\.github$
+^_pkgdown\.yml$
+^docs$
+^\.docs-lib$

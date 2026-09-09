@@ -1,0 +1,251 @@
+---
+title: "Configure schemas, wrappers, and documentation"
+description: "A field-by-field guide to project and service YAML, mappings, and callbacks."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Configure schemas, wrappers, and documentation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Use one project file to select service files. A service combines local schemas
+with generation policy. An operation is identified by service ID, HTTP method,
+and **original schema path**. Names such as `GET /items/{item_id}` below must
+match that path exactly, including trailing slashes.
+
+All project/config/schema paths resolve against the explicit client `root`, not
+the current working directory or the service YAML's directory. Use relative
+paths inside YAML. Parent traversal, absolute paths, and symlinks are rejected.
+
+## Project file: apipak.yml
+
+```yaml
+config_version: 1
+package: catalogueclient
+services: [apis/catalogue.yml]
+```
+
+| Field | Meaning |
+|---|---|
+| `config_version` | Required integer `1` |
+| `services` | Required nonempty sequence of distinct service YAML paths |
+| `package` | R package name; read from `DESCRIPTION` when omitted |
+| `formatter` | Optional `{name: air, version: '0.9.0'}`; the exact installed version is required |
+| `callback_files` | Optional sequence of development callback source paths to fingerprint, without sourcing them |
+
+Use `apipak::load_project(root)` to validate and inspect the resolved service
+configuration before generating. Callback names require an explicit environment
+even for a read-only plan.
+
+## Service files
+
+```yaml
+id: catalogue
+schemas:
+  files: [schema/catalogue.json]
+helper: api_request
+selection:
+  methods: [GET, POST]
+  exclude: ['^/internal/']
+documentation: true
+policy_version: reviewed-1
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | Required stable service identity, unique in the project |
+| `schemas.files` | Sequence of literal local JSON paths |
+| `schemas.patterns` | Sequence of root-relative file globs; each must match files |
+| `schemas.exclude` | Sequence of case-sensitive regexes matched against schema basenames |
+| `helper` | Required client runtime function name, defined in `R/` |
+| `selection.methods` | Uppercase methods to include; omitted means all standard HTTP methods |
+| `selection.exclude` | Case-sensitive stringr regexes; exclude an original path if any matches |
+| `names` | Map from `METHOD /path` to public wrapper name |
+| `documentation` | Boolean; `true` generates roxygen, help pages, and exports; initialization sets it to true |
+| `policy_version` | Your review/version label, recorded in generation metadata |
+| `defaults` | Operation settings shared across the service |
+| `operations` | Settings keyed by `METHOD /original/path` |
+| `hooks` | Map from public wrapper name to ordered pre/post hook sequences |
+| `hook_config` | Existing runtime hook YAML path; use this or `hooks`, never both |
+| `hook_callback` | Client hook executor name; default `run_hook` |
+| `prepare` | Development callback name; receives and returns an operation, preserving identity |
+| `contracts` | Inline fixed request expectations; see [Testing](testing.html) |
+| `contracts_file` | RDS fixed call sequences under `tests/testthat/`, preserving R classes |
+| `response_fixture` | Default mock response for inline single-call contracts |
+
+`files` and `patterns` can be combined; paths are deduplicated and sorted.
+Missing files, unmatched globs, or an empty final schema selection fail.
+Unknown fields, duplicate explicit keys, invalid types/regexes, executable YAML
+tags, and name collisions are errors. YAML aliases are supported; explicit keys
+override merged keys. YAML contains data, never R source strings.
+
+## Name and document a wrapper
+
+Add this to the service that selects the catalogue schema:
+
+```yaml
+operations:
+  GET /items/{item_id}:
+    name: fetch_item
+    parameters:
+      path item_id: {name: identifier, description: Catalogue item ID.}
+      query language: {default: en}
+    docs:
+      title: Fetch one catalogue item
+      description: Retrieve one item in the requested language.
+      parameters:
+        identifier: The catalogue identifier, for example item-1.
+        language: Response language; en or fr.
+      return: An R list containing the decoded item response.
+      examples:
+        - {identifier: item-1}
+        - {identifier: item-1, language: fr}
+      tags:
+        family: catalogue endpoints
+```
+
+Parameter overrides use **original location plus name**, such as `path item_id`.
+Documentation and example inputs use the resulting **public R names**, such as
+`identifier`. Examples are input maps rendered as calls inside `dontrun`, so a
+documentation build does not send their requests.
+
+`docs` supports `title`, `description`, `parameters`, `return`, `examples`, `tags`,
+and `lifecycle`. Without overrides, titles/parameter text come from schema
+metadata and the return text describes the helper response. Improve these for
+your users: document units, valid IDs, result classes, and service-specific errors.
+
+`lifecycle` accepts `experimental`, `stable`, `maturing`, `superseded`,
+`deprecated`, `defunct`, `questioning`, or `soft-deprecated`. Install `lifecycle`
+in the documentation environment when using badges. Lifecycle is explicit policy;
+upstream deprecation is not automatic permission to change a wrapper's lifecycle.
+Protected lifecycle badges can prevent later regeneration.
+
+`tags` supports metadata such as `family`, `keywords`, `seealso`, `aliases`, and
+client custom tags with existing roxygen handlers. ComptoxR's `apiStage` handler
+remains client code. Executable and structural built-in tags are rejected.
+Schema descriptions are treated as prose, not executable configuration.
+
+## Operation settings
+
+| Field | Meaning |
+|---|---|
+| `name` | Override public R function name; must agree with `names` if both specify it |
+| `helper` | Override the service helper for this operation |
+| `file` | Output path directly under `R/`, for example `R/catalogue.R` |
+| `implementation` | `generated` (default) or `existing`, which retains a declared implementation |
+| `parameters` | Schema parameter overrides: `name`, `default`, `required`, `exclude`, `description` |
+| `extra_parameters` | Additional public inputs: `default`, `required`, `type`, `description` |
+| `inputs` | Complete public input map, replacing schema-derived inputs; same fields plus `missing_as_null` |
+| `parameter_order` | Sequence of public names to place first; remaining parameters follow |
+| `request.arguments` | Named helper arguments built from typed bindings |
+| `post_on_skip` | Boolean, default false; run post-hook after a pre-hook skips the request |
+| `post_state` | `parameters` (default) or `hook_state` for the full pre-hook state |
+| `docs` | The documentation policy described above |
+
+Per-operation settings merge into defaults. Named maps merge recursively;
+sequences, a complete `inputs` map, individual request bindings, and `default`
+values replace their corresponding defaults. Keep defaults small enough that
+you can see the effective behavior of each operation.
+
+A complete `inputs` map needs `request.arguments`. Required inputs have no R
+default and preserve ordinary R argument semantics, including explicitly supplied
+`NULL`; the existing helper/hooks own value validation. `missing_as_null: true`
+is available only for explicitly required inputs when an existing hook must see
+omission as `NULL`. Do not use it merely to silence missing-input errors.
+
+## Map public inputs to your existing helper
+
+The default helper contract is:
+
+```r
+api_request(method, path, path_params, query, body)
+```
+
+To preserve a different helper interface, explicitly replace its argument map:
+
+```yaml
+operations:
+  GET /items/{item_id}:
+    name: fetch_item
+    inputs:
+      identifier: {required: true, type: character}
+      verbose: {default: false, type: logical}
+    request:
+      arguments:
+        endpoint: {value: items}
+        identifier: {from: [params, identifier]}
+        options:
+          compact_object:
+            verbose: {from: [params, verbose]}
+```
+
+Here the helper must accept `endpoint`, `identifier`, and `options`. Extra inputs
+are sent only when explicitly bound. Each binding has exactly one form:
+
+| Binding | Result |
+|---|---|
+| `{value: items}` | Literal R data |
+| `{from: [params, identifier]}` | Read a public input |
+| `{from: [hook_state, query]}` | Read pre-hook state; requires a pre-hook |
+| `object: {key: <binding>}` | Named R list, retaining NULL entries |
+| `compact_object: {key: <binding>}` | Named list omitting NULL entries; empty result is `list()` |
+| `array: [<binding>]` | Unnamed list, preserving positions including NULL |
+| `vector: {key: <binding>}` | Named `c()` values |
+| `{callback: batch_limit}` | Development callback result: literal data or an R language object |
+
+For JSON, use named lists for objects and unnamed lists for arrays, including
+one-element arrays. `NULL`, `false`, zero, and one-element lists are distinct.
+Do not turn arrays into scalar values for convenience. The helper owns the final
+serialization and full runtime value validation.
+
+## Development callbacks versus runtime hooks
+
+A development binding callback receives one operation while generating source:
+
+```{r callback, eval=FALSE}
+callbacks <- new.env(parent = baseenv())
+callbacks$batch_limit <- function(operation) {
+  quote(as.numeric(Sys.getenv('batch_limit', '1000')))
+}
+apipak::generate_client(
+  root, config = 'apipak.yml', callbacks = callbacks, mode = 'plan'
+)
+```
+
+Use `{callback: batch_limit}` as a request argument binding. A language object
+such as `quote(...)` becomes client runtime code; a string remains a quoted
+literal. A `prepare` callback instead transforms an operation record and must
+preserve its identity. These functions run during planning too: keep them
+deterministic and free of filesystem/network side effects.
+
+Runtime hooks execute when a user calls the generated wrapper:
+
+```yaml
+hook_callback: run_hook
+hooks:
+  fetch_item:
+    pre_request: [validate_identifier]
+    post_response: [tidy_item]
+```
+
+The wrapper invokes the client's executor as
+`run_hook('fetch_item', 'pre_request', list(params = params))`. The executor runs
+the named chain in order and returns state. Returned public parameters replace
+only those provided by the pre-hook. State can contain `skip_request` and `result`.
+By default, a skipped request returns immediately. Post-hook input normally
+contains `result` and `params`, and the post-hook returns the final wrapper result.
+
+Set `post_on_skip: true` to run post-processing on a skipped result, or
+`post_state: hook_state` to pass the complete pre-hook state with its result
+replaced. Both require a pre-hook. Hook functions/executor must exist in client
+runtime source. Unused runtime declarations appear separately in `unused_hooks`.
+
+## Validate the result
+
+After any configuration change, run `load_project()`, then
+`generate_client(..., mode = 'plan')`. Inspect `files`, `drift`, `diagnostics`,
+`mapping_diagnostics`, and `retained_diagnostics`. A `client-mapped` operation
+uses your explicit serializer mapping and keeps its original parser limitations
+visible; it does not acquire native schema support.
+
+Apply only reviewed changes, then run `check` and [the client's tests](testing.html).

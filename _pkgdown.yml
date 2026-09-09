@@ -1,0 +1,46 @@
+url: https://seanthimons.github.io/apipak/
+template:
+  bootstrap: 5
+home:
+  title: Generate and maintain R API clients
+search:
+  exclude: [HANDOFF.html]
+articles:
+- title: Start here
+  navbar: Start here
+  contents:
+  - apipak
+  - existing-clients
+- title: Maintain a client
+  navbar: Maintain a client
+  contents:
+  - configuration
+  - testing
+  - maintenance
+  - troubleshooting
+reference:
+- title: Set up and generate
+  contents:
+  - initialize_client
+  - load_project
+  - generate_client
+- title: Inspect and verify
+  contents:
+  - inspect_client
+  - read_operations
+  - operation_fixtures
+  - check_requests
+  - validate_hooks
+- title: Maintenance commands
+  contents:
+  - generation_command
+  - coverage_report
+  - schema_diff
+  - check_public_boundary
+  - credential_status
+- title: File safety and advanced integration
+  contents:
+  - apply_files
+  - render_operation
+  - bind_tools
+  - apipak

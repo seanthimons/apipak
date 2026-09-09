@@ -4,3 +4,5 @@ evidence/
 .Rhistory
 *.jar
 .worktrees/
+docs/
+.docs-lib/
