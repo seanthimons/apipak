@@ -8,6 +8,12 @@
 \alias{inspect_client}
 \alias{check_public_boundary}
 \alias{check_client_hooks}
+\alias{generation_command}
+\alias{coverage_report}
+\alias{test_gap_report}
+\alias{schema_diff}
+\alias{format_diff_markdown}
+\alias{count_diff_changes}
 \alias{script_root}
 \alias{initialize_client}
 \alias{render_operation}
@@ -25,11 +31,22 @@ read_operations(files, policy = list())
 compare_operations(old, new)
 recover_client(root, mode = c("plan", "apply"))
 generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
-  config = NULL, callbacks = new.env(parent = emptyenv()), adopt = list())
+  config = NULL, callbacks = new.env(parent = emptyenv()), adopt = list(),
+  artifacts = c("wrappers", "tests", "documentation"))
 load_project(root, config = "apipak.yml", callbacks = new.env(parent = emptyenv()))
 inspect_client(root, config = "apipak.yml", callbacks = new.env(parent = emptyenv()))
 check_public_boundary(root, policy, schema_names = NULL)
 check_client_hooks(root, config, hooks, callback = "run_hook")
+generation_command(root, args = character(), kind = c("stubs", "tests"),
+  config = "apipak.yml", callbacks = new.env(parent = emptyenv()))
+coverage_report(root, policy, callbacks = new.env(parent = emptyenv()),
+  config = "apipak.yml", mode = c("plan", "apply"))
+test_gap_report(root, policy, callbacks = new.env(parent = emptyenv()),
+  config = "apipak.yml", mode = c("plan", "apply"))
+schema_diff(old_dir, new_dir, pattern = "\\\\.json$", stage_priority = NULL,
+  exclude_pattern = NULL, policies = list())
+format_diff_markdown(diff_results)
+count_diff_changes(diff_results)
 script_root(script)
 initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
   license = NULL, base_url = NULL)
@@ -45,11 +62,15 @@ bind_tools(group, envir)
 }
 \arguments{
 \item{files}{Local JSON schema paths.}
-\item{policy}{Reviewed operation name overrides in a named \code{names} list, or public-boundary policy data/YAML path for \code{check_public_boundary}.}
+\item{policy}{Reviewed operation name overrides in a named \code{names} list, or public-boundary/coverage policy data or YAML path for the respective report command.}
 \item{schema_names}{Selected public operation names; NULL skips membership checks for built artifacts.}
 \item{old, new}{Results from \code{read_operations}.}
 \item{root}{Explicit existing client root directory.}
 \item{script}{Maintenance script basename, located from source frames or the Rscript command line.}
+\item{args, kind}{Maintenance command flags and the wrapper or test command kind. These compatibility commands default to apply; the core generator defaults to check.}
+\item{old_dir, new_dir, pattern, stage_priority, exclude_pattern}{Schema report directories and explicit filename selection.}
+\item{policies}{Operation selection policies keyed by schema basename.}
+\item{diff_results}{Versioned-schema report records. Changed contracts require review and are conservatively counted in the breaking-change lane; parsing errors stop comparison.}
 \item{spec}{Client specification with files, helper, optional hooks and renderer.}
 \item{mode}{Check or plan without writes; apply validated output.}
 \item{operation, operations}{Supported operation record or named list of records.}
@@ -61,6 +82,7 @@ bind_tools(group, envir)
 \item{config}{Project YAML path relative to root, or client hook configuration for hook validation.}
 \item{callbacks}{Explicit environment containing named development callbacks.}
 \item{adopt}{Reviewed legacy files as a named list of relative paths and SHA-256 hashes of UTF-8/LF text without a final newline. Changed hashes fail; lifecycle and mixed-file protection still apply.}
+\item{artifacts}{Output kinds to reconcile. Defaults to all; thin wrapper/test commands can select their own artifacts while retaining one generation contract.}
 \item{schema}{Local JSON schema for initialization.}
 \item{package, title, author, license}{Explicit new package metadata; author has given, family and email fields. Existing DESCRIPTION metadata is retained.}
 \item{base_url}{Absolute HTTP base URL for a new client-owned transport.}

@@ -220,6 +220,24 @@ policy, including untracked source files. `check_client_hooks()` parses runtime
 definitions once and checks the supplied client hook registry without loading
 the client package.
 
+`generation_command()` preserves wrapper/test command modes and GitHub output
+names. Its default applies changes; `generate_client()` remains check-by-default.
+The `artifacts` argument limits reconciliation to wrappers, tests or documentation.
+`--force` never bypasses verified ownership. Missing fixed contracts block test
+generation and report an explicit gap count.
+
+`schema_diff()` uses method/path identities and explicit file/operation selection.
+It compares canonical operation data and reachable local references, including
+recursive response shapes. Changed contracts require review and enter the
+breaking-change report lane conservatively; malformed input stops comparison.
+These reports do not claim runtime or upstream compatibility.
+
+`coverage_report()` and `test_gap_report()` take client YAML report policy and
+default to read-only plans. Apply writes the existing badge/baseline or gap-report
+fields and GitHub outputs. Coverage groups must partition configured services.
+Manual request wrappers retain their tests outside the schema denominator; fixed
+contract declarations and files are checked separately from test execution.
+
 The `readiness` compatibility group keeps the existing versioned audit report
 and sourced helper names. Bind it into an explicit environment with
 `asNamespace('apipak')` as its parent, then supply `audit_policy` using its

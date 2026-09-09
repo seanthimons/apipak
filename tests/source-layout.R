@@ -73,6 +73,28 @@ source_layout_acceptance <- function() {
     logical(1)
   )))
   original <- readLines(path)
+  writeLines(
+    paste0('export(', names(result$operations), ')'),
+    file.path(root, 'NAMESPACE')
+  )
+  stopifnot(apipak::inspect_client(root)$coverage$catalogue$implemented == 4L)
+  expressions <- as.list(parse(path))
+  expressions <- Filter(
+    function(x) !identical(x[[2L]], as.name('create_item')),
+    expressions
+  )
+  writeLines(
+    vapply(
+      expressions,
+      function(x) paste(deparse(x), collapse = '\n'),
+      character(1)
+    ),
+    path
+  )
+  coverage <- apipak::inspect_client(root)$coverage$catalogue
+  stopifnot(coverage$total == 4L, coverage$implemented == 3L)
+  writeLines(original, path)
+  unlink(file.path(root, 'NAMESPACE'))
   # Exact reviewed hashes adopt legacy output without weakening mixed-file checks.
   unlink(file.path(root, '.apipak'), recursive = TRUE)
   hashes <- list(

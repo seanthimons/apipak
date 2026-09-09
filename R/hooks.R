@@ -52,11 +52,43 @@ validate_hooks <- function(config, wrappers, hooks, callback = 'run_hook') {
     ))
   }
 
+  normalize_argument <- function(expr, states) {
+    if (is.symbol(expr) && as.character(expr) %in% states) {
+      return(as.name('.hook_state'))
+    }
+    if (!is.call(expr)) {
+      return(expr)
+    }
+    if (identical(expr[[1L]], as.name('$'))) {
+      expr <- as.call(list(as.name('[['), expr[[2L]], as.character(expr[[3L]])))
+    }
+    as.call(lapply(as.list(expr), normalize_argument, states = states))
+  }
+  request_state <- function(expr) {
+    fields <- character()
+    while (
+      is.call(expr) &&
+        is.symbol(expr[[1L]]) &&
+        as.character(expr[[1L]]) %in% c('$', '[[') &&
+        length(expr) == 3L
+    ) {
+      fields <- c(as.character(expr[[3L]]), fields)
+      expr <- expr[[2L]]
+    }
+    if (is.symbol(expr) && length(fields) && fields[[1L]] == 'request') {
+      as.character(expr)
+    } else {
+      character()
+    }
+  }
+
   # Validate each function entry
   for (fn_name in names(hook_config)) {
     fn_config <- hook_config[[fn_name]]
     wrapper <- find_generated_wrapper(fn_name)
-    if (!isTRUE(wrapper$found)) errors <- c(errors, paste('Missing selected wrapper:', fn_name))
+    if (!isTRUE(wrapper$found)) {
+      errors <- c(errors, paste('Missing selected wrapper:', fn_name))
+    }
 
     # Validate hook function references
     if (!is.null(fn_config$transform)) {
@@ -193,6 +225,20 @@ validate_hooks <- function(config, wrappers, hooks, callback = 'run_hook') {
         function(call) identical(call_name(call), helper),
         logical(1)
       ))
+      state_assignments <- Filter(
+        function(call) {
+          identical(call_name(call), '<-') &&
+            is.symbol(call[[2L]]) &&
+            length(find_hook_call(list(call[[3L]]), fn_name, 'pre_request')) >
+              0L
+        },
+        wrapper$calls
+      )
+      states <- vapply(
+        state_assignments,
+        function(call) as.character(call[[2L]]),
+        character(1)
+      )
       pre_positions <- find_hook_call(wrapper$calls, fn_name, "pre_request")
       post_positions <- find_hook_call(wrapper$calls, fn_name, "post_response")
       if (length(helper_positions) == 0) {
@@ -267,7 +313,10 @@ validate_hooks <- function(config, wrappers, hooks, callback = 'run_hook') {
           } else if (
             is.null(names(helper_args)) ||
               !argument_name %in% names(helper_args) ||
-              !identical(helper_args[[argument_name]], parsed[[1]])
+              !identical(
+                normalize_argument(helper_args[[argument_name]], states),
+                normalize_argument(parsed[[1L]], request_state(parsed[[1L]]))
+              )
           ) {
             errors <- c(
               errors,

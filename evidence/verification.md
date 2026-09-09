@@ -26,6 +26,50 @@
 
 ## Implementation status
 
+### Generation and report commands checkpoint
+
+Toolkit `e3e477a` and client `03720dd` contain readiness/public/hook extraction.
+Windows and Ubuntu pass in CI run 34304129987. `maintenance-cli.R` verifies both
+client check commands from outside the root without changing files and passes
+191 existing hook assertions (zero failures, warnings or skips).
+
+The next installed candidate supports scoped wrapper/documentation/test output,
+preserves command modes and GitHub output fields, and rejects edited output even
+with `--force`. Fixed-contract gaps prevent test writes. Sourceable command
+acceptance covers read-only plans, separate output scopes, CI fields, no-op second
+apply and protected output. Parameter/default/order drift is reported from parsed
+old and generated formals. An initial CI-output test caught spaces inserted by
+`cat()` between records; output now writes exact `name=value` lines.
+
+`schema_diff()` reuses selected method/path inventory and canonical operation/
+reachable-reference data. It reports all changed contracts for conservative
+review rather than claiming compatibility. A recursive Section response in the
+public snapshots exposed exponential/cyclic expansion; each referenced node is
+now collected once per operation, retaining graph edges. Malformed JSON, missing
+references and unsupported external references stop comparison. Unknown facade
+overrides cannot hide new/removed operations. `comptox-diff.R` verifies unchanged
+public schemas and all six existing report/count/new-domain assertions.
+
+Coverage and gap reports now use YAML policy and the same selected inventory.
+`comptox-reports.R` matches the frozen baseline's 140/140, 190/191 and 12/12
+coverage, then verifies staged 343/343 coverage and zero selected/manual wrapper
+test gaps. Report plans make no source changes. The workflow now blocks failed
+downloads, hashes and schema comparisons before generation; sourced reporting
+commands are invoked explicitly instead of writing at source time.
+
+The staged candidate again passes 687 fixed-contract assertions with zero
+failures, warnings or skips. Its hook CLI revealed an overly literal comparison
+between legacy `req_data$request` and generated `state[["request"]]` expressions.
+The validator now normalizes only the assigned pre-request state and field-access
+syntax; an unrelated-variable mutation still fails. Staged validation passes
+31 functions, 104 hooks and 34 parameters. The four-command integration driver is
+being rerun after this correction. Actual client runtime adoption is still pending.
+
+The expanded Windows archive check passes all 16 acceptance scripts with Status
+OK. An initial check identified an undeclared test dependency on withr; it is now
+declared in Suggests. Final platform/artifact/pin, ownership recovery, obsolete
+pipeline/caller retirement and Natural Products schema-only gates remain pending.
+
 ### Maintenance extraction checkpoint
 
 Toolkit `c21bfae` and client `9755226` contain the full policy and fixed-contract

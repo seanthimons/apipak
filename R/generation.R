@@ -244,9 +244,18 @@ generate_client <- function(
   mode = c('check', 'plan', 'apply'),
   config = NULL,
   callbacks = new.env(parent = emptyenv()),
-  adopt = list()
+  adopt = list(),
+  artifacts = c('wrappers', 'tests', 'documentation')
 ) {
   mode <- match.arg(mode)
+  if (
+    !is.character(artifacts) ||
+      !length(artifacts) ||
+      anyNA(artifacts) ||
+      length(setdiff(artifacts, c('wrappers', 'tests', 'documentation')))
+  ) {
+    stop('Unknown or empty generation artifacts')
+  }
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
   config_fields(adopt, names(adopt), 'adoption hashes')
   for (name in names(adopt)) {
@@ -326,6 +335,7 @@ generate_client <- function(
     )
   }
   callbacks_before <- callback_hash()
+  drift <- list()
   parsed <- lapply(services, read_service_operations)
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
@@ -393,6 +403,38 @@ generate_client <- function(
         )
       }
       code <- renderer(op, operation_spec)
+      if (!is.null(definition)) {
+        original_formals <- as.list(formals(eval(definition$expr, baseenv())))
+        candidate_formals <- as.list(formals(eval(
+          parse(text = code)[[1L]][[3L]],
+          baseenv()
+        )))
+        for (parameter in union(
+          names(original_formals),
+          names(candidate_formals)
+        )) {
+          if (
+            !identical(
+              original_formals[parameter],
+              candidate_formals[parameter]
+            )
+          ) {
+            drift[[length(drift) + 1L]] <- list(
+              endpoint = op$id,
+              parameter = parameter
+            )
+          }
+        }
+        if (
+          setequal(names(original_formals), names(candidate_formals)) &&
+            !identical(names(original_formals), names(candidate_formals))
+        ) {
+          drift[[length(drift) + 1L]] <- list(
+            endpoint = op$id,
+            parameter = '<order>'
+          )
+        }
+      }
       if (identical(operation_spec$implementation, 'existing')) {
         if (is.null(definition)) {
           stop('Missing existing implementation: ', op$name)
@@ -510,6 +552,21 @@ generate_client <- function(
   if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) {
     desired <- document_output(root, desired, removals)
   }
+  selected_artifact <- function(paths) {
+    kind <- ifelse(
+      startsWith(paths, 'R/'),
+      'wrappers',
+      ifelse(startsWith(paths, 'tests/'), 'tests', 'documentation')
+    )
+    kind %in% artifacts
+  }
+  metadata <- attributes(desired)
+  desired <- desired[selected_artifact(names(desired))]
+  for (name in setdiff(names(metadata), 'names')) {
+    attr(desired, name) <- metadata[[name]]
+  }
+  attr(desired, 'operations') <- attr(desired, 'operations')[names(desired)]
+  removals <- removals[selected_artifact(removals)]
   # Record hashes of the resulting source inputs so a second apply is a no-op.
   generated_inputs <- names(desired)[grepl(
     '^(R/|man/|NAMESPACE$)',
@@ -627,6 +684,7 @@ generate_client <- function(
   list(
     files = result,
     operations = configured_operations,
+    drift = drift,
     diagnostics = diagnostics,
     mapping_diagnostics = do.call(
       c,

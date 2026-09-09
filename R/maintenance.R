@@ -226,6 +226,7 @@ inspect_client <- function(
       lapply(manual, function(name) {
         list(
           name = name,
+          calls = definitions[[name]]$call_names,
           file = substring(definitions[[name]]$file_path, nchar(root) + 2L)
         )
       }),

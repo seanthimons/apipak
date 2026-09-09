@@ -28,6 +28,33 @@ maintenance_acceptance <- function() {
   config <- list(api_item = list(post_response = 'tidy'))
   result <- apipak::check_client_hooks(root, config, hooks)
   stopifnot(result$valid, result$hooks == 1L)
+  templated <- list(
+    api_item = list(
+      pre_request = 'tidy',
+      post_response = 'tidy',
+      request_template = list(
+        helper = 'request',
+        args = list(body = 'req_data$request$body')
+      )
+    )
+  )
+  writeLines(
+    c(
+      'api_item <- function(x) {',
+      'state <- run_hook("api_item", "pre_request", list(params = list(x = x)))',
+      'result <- request(body = state[["request"]][["body"]])',
+      'run_hook("api_item", "post_response", result)',
+      '}'
+    ),
+    file.path(root, 'R/item.R')
+  )
+  stopifnot(apipak::check_client_hooks(root, templated, hooks)$valid)
+  lines <- readLines(file.path(root, 'R/item.R'))
+  writeLines(
+    sub('state\\[\\["request"', 'unrelated[["request"', lines),
+    file.path(root, 'R/item.R')
+  )
+  fails(apipak::check_client_hooks(root, templated, hooks), 'does not match')
   writeLines('api_item <- function(x) x', file.path(root, 'R/item.R'))
   fails(
     apipak::check_client_hooks(root, config, hooks),
