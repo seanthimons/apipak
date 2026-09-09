@@ -160,8 +160,14 @@ apply_files <- function(
     function(path) project_path(root, path),
     character(1)
   )
-  if (anyDuplicated(tolower(as.character(fs::path_norm(paths))))) {
-    stop('Output paths collide (including case) or overlap removals')
+  normalized <- tolower(as.character(fs::path_norm(paths)))
+  if (anyDuplicated(normalized)) {
+    collisions <- duplicated(normalized) |
+      duplicated(normalized, fromLast = TRUE)
+    stop(
+      'Output paths collide (including case) or overlap removals: ',
+      paste(relatives[collisions], collapse = ', ')
+    )
   }
   manifest_path <- project_path(root, '.apipak/manifest.json')
   if (any(tolower(relatives) == '.apipak/manifest.json')) {

@@ -122,12 +122,25 @@ new_client_acceptance <- function() {
       full.names = TRUE
     ))
   }
+  dir.create(file.path(root, 'inst'))
+  writeBin(charToRaw('word\nlist\n'), file.path(root, 'inst/WORDLIST'))
+  writeBin(
+    charToRaw('[format]\nline-width = 80\n'),
+    file.path(root, 'air.toml')
+  )
   original <- hashes()
   fails(apipak::initialize_client(root, schema, base_url = base_url))
   stopifnot(identical(original, hashes()))
   apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
   stopifnot(identical(original, hashes()))
   apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  # Text inputs keep the same fingerprint after a Git line-ending conversion.
+  writeBin(charToRaw('word\r\nlist\r\n'), file.path(root, 'inst/WORDLIST'))
+  writeBin(
+    charToRaw('[format]\r\nline-width = 80\r\n'),
+    file.path(root, 'air.toml')
+  )
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
   applied <- hashes()
   apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
   stopifnot(

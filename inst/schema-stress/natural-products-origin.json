@@ -1,0 +1,12 @@
+{
+  "source": "https://api.naturalproducts.net/latest/openapi.json",
+  "retrieved_utc": "2026-09-09 14:22:13 UTC",
+  "sha256": "2236235bb06b93503e474364b9cc2548eda062586cab36783df2f8bf714b285e",
+  "openapi": "3.1.0",
+  "servers": [
+    {
+      "url": "/latest"
+    }
+  ],
+  "scope": "Schema stress testing only; no operation requests"
+}

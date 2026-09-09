@@ -116,6 +116,22 @@ generation_command <- function(
   updated <- length(changed) - created
   actions <- vapply(records, `[[`, character(1), 'action')
   print(table(actions))
+  if (mode == 'plan') {
+    pending <- Filter(
+      function(x) !x$action %in% c('unchanged', 'retained'),
+      result$files
+    )
+    if (length(pending)) {
+      print(
+        data.frame(
+          file = vapply(pending, `[[`, character(1), 'file'),
+          action = vapply(pending, `[[`, character(1), 'action')
+        ),
+        row.names = FALSE
+      )
+    }
+    if (length(result$diagnostics)) print(result$diagnostics)
+  }
   if (kind == 'stubs' && mode == 'apply') {
     write_github_outputs(c(
       stubs_generated = length(changed),

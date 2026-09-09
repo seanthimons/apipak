@@ -325,8 +325,8 @@ generate_client <- function(
   inputs <- unique(c(inputs, runtime_paths))
   input_hash <- function(path) {
     if (
-      grepl('\\.(R|Rd|yml|yaml|json|svg)$', path) ||
-        basename(path) %in% c('DESCRIPTION', 'NAMESPACE', 'LICENSE')
+      grepl('\\.(R|Rd|yml|yaml|json|svg|toml)$', path) ||
+        basename(path) %in% c('DESCRIPTION', 'NAMESPACE', 'LICENSE', 'WORDLIST')
     ) {
       output_hash(path)
     } else {
@@ -581,6 +581,7 @@ generate_client <- function(
       },
       previous
     ))
+    relocated <- grep('^(R/|tests/)', relocated, value = TRUE)
     renamed <- setdiff(relocated, c(names(desired), removals))
     # A replacement of the same artifact kind must exist for every old owner.
     renamed <- Filter(
@@ -773,7 +774,17 @@ generate_client <- function(
         logical(1)
       ))
   ) {
-    stop('Generated output is stale or protected; inspect plan')
+    changes <- Filter(
+      function(x) !x$action %in% c('unchanged', 'retained'),
+      result
+    )
+    stop(
+      'Generated output is stale or protected; inspect plan: ',
+      paste(
+        vapply(utils::head(changes, 8L), `[[`, character(1), 'file'),
+        collapse = ', '
+      )
+    )
   }
   list(
     files = result,
