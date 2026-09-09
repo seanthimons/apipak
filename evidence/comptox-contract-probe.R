@@ -16,6 +16,10 @@ comptox_contract_probe <- function(
     fixtures
   )
   sys.source(file.path(root, 'dev/test_generation/03_test_values.R'), fixtures)
+  sys.source(
+    file.path(root, 'tests/testthat/helper-descriptor-contracts.R'),
+    fixtures
+  )
   callbacks <- new.env(parent = emptyenv())
   callbacks$batch_limit_1000 <- function(operation) {
     quote(as.numeric(Sys.getenv('batch_limit', '1000')))
@@ -53,6 +57,23 @@ comptox_contract_probe <- function(
         identical(arguments$endpoint, 'search')
     ) {
       return(list(list(name = 'Water', smiles = 'O', cas = '7732-18-5')))
+    }
+    if (
+      arguments$endpoint %in%
+        c('descriptors', 'padel', 'mordred', 'rdkit', 'webtest')
+    ) {
+      return(fixtures$descriptor_contract_response(
+        records = list(fixtures$descriptor_contract_record()),
+        headers = c('a', 'b')
+      ))
+    }
+    if (identical(arguments$endpoint, 'webtest/predict')) {
+      return(list(
+        chemicals = list(fixtures$webtest_contract_prediction(
+          chemical_id = 'CCO',
+          smiles = 'CCO'
+        ))
+      ))
     }
     fixtures$generated_contract_response(...)
   }
@@ -118,6 +139,26 @@ comptox_contract_probe <- function(
           c('resolve', 'cache')
         )) {
           inputs[[name]] <- FALSE
+        }
+        if (
+          operation$name %in% c('chemi_descriptors', 'chemi_descriptors_bulk')
+        ) {
+          inputs$type <- 'padel'
+        }
+        if (operation$name == 'chemi_webtest_predict') {
+          inputs$endpoint <- 'LC50'
+        }
+        if (operation$name == 'chemi_webtest_predict_bulk') {
+          inputs$endpoints <- 'LC50'
+        }
+        if (
+          operation$name %in%
+            c('chemi_opera_bulk', 'chemi_predictor_models_predict_bulk')
+        ) {
+          inputs$smiles <- list('CCO')
+        }
+        if (operation$name == 'chemi_search') {
+          inputs$query <- 'CCO'
         }
         invoke <- function(fn) {
           captured <<- list()

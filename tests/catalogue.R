@@ -43,6 +43,7 @@ catalogue_acceptance <- function() {
     ),
     refresh = list(
       inputs = list(),
+      response_fixture = list(data = 'refresh'),
       request = list(
         method = 'POST',
         path = '/refresh',
@@ -50,7 +51,7 @@ catalogue_acceptance <- function() {
         query = list(),
         body = NULL
       ),
-      result = list(data = 'ok')
+      result = list(data = 'refresh')
     ),
     list_items = list(
       inputs = list(page = 2L),

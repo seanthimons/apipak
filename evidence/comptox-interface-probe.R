@@ -243,6 +243,10 @@ comptox_interface_probe <- function(
           helper = as.character(calls[[1L]][[1L]]),
           request = list(arguments = lapply(args, binding))
         )
+        if (identical(aliases$post_data, as.name('req_data'))) {
+          settings$post_state <- 'hook_state'
+          settings$post_on_skip <- TRUE
+        }
         list(
           status = 'mapped request shape',
           name = op$name,

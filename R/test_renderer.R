@@ -1,7 +1,7 @@
 render_contract <- function(operation, spec, contract) {
   if (
     !all(c('inputs', 'request', 'result') %in% names(contract)) ||
-      !'response_fixture' %in% names(spec)
+      !'response_fixture' %in% union(names(spec), names(contract))
   ) {
     stop('Supply fixed contract inputs, request, result and response_fixture')
   }
@@ -35,7 +35,13 @@ render_contract <- function(operation, spec, contract) {
       '  calls <- 0L',
       paste0(
         '  mock <- function(...) { calls <<- calls + 1L; captured <<- list(...); ',
-        r_literal(spec$response_fixture),
+        r_literal(
+          if ('response_fixture' %in% names(contract)) {
+            contract$response_fixture
+          } else {
+            spec$response_fixture
+          }
+        ),
         ' }'
       ),
       paste0(

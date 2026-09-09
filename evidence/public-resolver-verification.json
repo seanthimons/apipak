@@ -1,0 +1,9 @@
+{
+  "url": "https://hcd.rtpnc.epa.gov/api/resolver/api-docs",
+  "checked_at": "2026-09-09 00:51:58 UTC",
+  "status": 200,
+  "sha256": "1497f7db23636ae8dba40ed309895329e1091a9317bbec0bc2fef2cd738f519e",
+  "path": "/api/resolver/ghs-list-count",
+  "methods": ["get", "post"],
+  "post_matches_frozen": true
+}

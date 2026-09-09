@@ -893,12 +893,14 @@ behavior. Client runtime files and exports remain unchanged. Chemi mapping and
 parity, full maintenance replacement, final adoption/release and NP schema stress
 gates remain unfinished; do not call this migration complete.
 
-A public-contract decision is required under section 9's pause rule: the frozen
-selection includes POST `/api/resolver/ghs-list-count`, named
-`chemi_resolver_ghs_list_count_bulk`, but that public wrapper is absent from frozen
-definitions and current exports. Only the GET wrapper exists. The sourceable
-`evidence/missing-selected-operation.R` verifies the discrepancy. No new public
-wrapper has been added pending clarification.
+The user resolved the public-contract decision: operations absent from the public
+schema must not be added. A read-only GET of the public resolver schema on
+2026-09-09 at 00:51:58 UTC returned HTTP 200 and confirms both GET and POST for
+`/api/resolver/ghs-list-count`. Its POST contract matches the frozen snapshot
+after canonicalizing object-key order. The sourceable
+`evidence/missing-selected-operation.R --verify-public` records the source and
+SHA-256. Its missing POST wrapper therefore remains in scope. The declaration
+and independent offline HTTP contract are prepared; runtime adoption is pending.
 
 ### Original deferred-work notes
 

@@ -57,6 +57,33 @@ These were diagnosed test/transport issues; no ComptoxR runtime was changed.
 
 ## Investigation notes
 
+User clarification: an operation absent from the public schema must not exist.
+The prior public-API pause is resolved. On 2026-09-09 at 00:51:58 UTC, a bounded
+GET of the [public resolver schema](https://hcd.rtpnc.epa.gov/api/resolver/api-docs)
+returned HTTP 200 and included both GET and POST `/api/resolver/ghs-list-count`.
+The raw SHA-256 is `1497f7db23636ae8dba40ed309895329e1091a9317bbec0bc2fef2cd738f519e`,
+matching the recorded production acquisition. POST metadata matches the local
+snapshot after canonicalizing object-key order. Initial direct R list comparison
+reported an ordering difference, not schema drift. Source/time/hash are recorded
+by `missing-selected-operation.R --verify-public`.
+
+The POST declaration now lives in `apis/chemi-resolver.yml`, with an explicit
+empty JSON-object default and independent count-response contract.
+`resolver-count-contract.R` exercises the rendered candidate through unchanged
+`generic_chemi_request` and intercepted httr2 requests: correct URL, POST, no
+CTX authentication, default/nested JSON bodies, successful H-code/count values,
+and NULL rejection before transport all pass. No live endpoint POST is performed.
+No runtime wrapper or export has been adopted yet.
+
+The final `edff590` metadata candidate passes Windows and Ubuntu checks in
+[CI run 34288644917](https://github.com/seanthimons/apipak/actions/runs/34288644917).
+Chemi's improved differential fixture uses existing descriptor/WebTEST test
+builders and valid engine/endpoint inputs; all baseline fixture errors are now
+resolved. Preserving full hook state and post-processing on skipped requests
+raises parity to 183/186. Remaining candidate differences are predictor request
+validation, manual resolver option construction and stable safety response
+processing. These remain blocking; no denominator is reduced.
+
 The array-binding milestone `9f8f7df` passes Windows and Ubuntu checks in
 [CI run 34287192970](https://github.com/seanthimons/apipak/actions/runs/34287192970).
 Client interface policy is committed/pushed at `e93292e`; no client runtime,
