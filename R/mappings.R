@@ -96,7 +96,13 @@ validate_settings <- function(
         if (field == 'parameters') {
           c('name', 'default', 'required', 'exclude', 'description')
         } else {
-          c('default', 'required', 'description', 'type')
+          c(
+            'default',
+            'required',
+            'description',
+            'type',
+            if (field == 'inputs') 'missing_as_null'
+          )
         },
         'parameter'
       )
@@ -106,7 +112,10 @@ validate_settings <- function(
       )) {
         config_string(parameter[[name]], paste('parameter', name))
       }
-      for (flag in intersect(c('required', 'exclude'), names(parameter))) {
+      for (flag in intersect(
+        c('required', 'exclude', 'missing_as_null'),
+        names(parameter)
+      )) {
         if (
           !is.logical(parameter[[flag]]) ||
             length(parameter[[flag]]) != 1L ||
@@ -114,6 +123,9 @@ validate_settings <- function(
         ) {
           stop(flag, ' must be true or false')
         }
+      }
+      if (isTRUE(parameter$missing_as_null) && !isTRUE(parameter$required)) {
+        stop('missing_as_null requires an explicitly required public input')
       }
     }
   }
@@ -222,6 +234,7 @@ configure_operation <- function(operation, service) {
       public_required = extra$required %or%
         ('inputs' %in% names(settings) && !'default' %in% names(extra)),
       public_default = default,
+      missing_as_null = isTRUE(extra$missing_as_null),
       required = FALSE,
       schema = list(
         type = switch(

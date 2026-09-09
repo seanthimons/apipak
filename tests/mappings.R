@@ -278,6 +278,33 @@ mappings_acceptance <- function() {
     env$get_item(NULL)$body,
     list(search = NULL, nullable = NULL)
   ))
+  missing_policy <- sub(
+    'query: {type: character, required: true}',
+    'query: {type: character, required: true, missing_as_null: true}',
+    mapped,
+    fixed = TRUE
+  )
+  stopifnot(!identical(missing_policy, mapped))
+  put(missing_policy)
+  missing_service <- apipak::load_project(
+    root,
+    callbacks = callbacks
+  )$services[[1L]]
+  missing_configured <- getFromNamespace('configure_operation', 'apipak')(
+    operation,
+    missing_service
+  )
+  eval(
+    parse(
+      text = apipak::render_operation(
+        missing_configured$operation,
+        missing_configured$spec
+      )
+    ),
+    env
+  )
+  stopifnot(identical(env$get_item()$body, env$get_item(NULL)$body))
+  put(mapped)
   configured$spec$documentation <- TRUE
   configured$spec$docs <- list(
     examples = list(list(query = list('first', 'second')))

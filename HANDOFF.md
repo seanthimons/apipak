@@ -30,8 +30,34 @@ no maintained NP package, repository, publication, live-service verification, or
 support for every NP operation is required. Its extra requirements must not
 delay ComptoxR delivery; report unsupported schema features explicitly.
 
-The current task is handoff preparation and offline audit only. No package implementation, remote
-creation, schema freezing, installation, or release has been performed here.
+The original preparation stage performed only offline planning/audit. The user
+has since authorized implementation through every completion gate in this plan.
+
+### Latest implementation checkpoint
+
+Toolkit `59f21db` passes 16 installed acceptance scripts and Windows archive
+check; Windows and Ubuntu CI run 34305997020 both pass. Readiness, public/hook
+checks, generation, schema diff, coverage and gap-report implementations are now
+in apipak. Client thin commands/report YAML are being adopted on the isolated
+implementation branch; its development pin is still the legacy artifact.
+
+The 343-operation candidate passes 687 fixed-contract assertions. Formals,
+exports and rendered docs retain parity except the approved public resolver POST
+and five literal-brace documentation corrections. All four staged CLI checks,
+separate no-op wrapper/test apply, outside-root execution and CI fields pass.
+`evidence/adopt-comptox.R` has now adopted reviewed runtime, docs and test output
+into the actual client worktree and verified check/unchanged second apply.
+Do not rerun that one-time adoption against the now-generated sources.
+
+Broader adoption tests exposed a missing-argument regression in two WebTEST
+wrappers and two brittle local-variable-name assertions. Explicit
+`missing_as_null` mappings restore the original typed hook conditions without
+changing formals; behavioral state/order assertions replace the brittle tests.
+All 96 targeted WebTEST assertions now pass. This correction and client adoption
+are not yet committed. Remaining work includes old pipeline/caller retirement,
+the final disposition ledger, broader client checks, remaining ownership/recovery
+and audit gates, immutable artifact/pin adoption, and NP schema-only stress tests.
+See `evidence/verification.md` for exact evidence and prior checkpoints.
 
 ## Implementation progress (2026-09-08)
 

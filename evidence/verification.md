@@ -26,6 +26,33 @@
 
 ## Implementation status
 
+### Actual client adoption and compatibility correction
+
+Toolkit `59f21db` passes Windows and Ubuntu CI run 34305997020. The staged command
+driver now passes all four required commands, outside-root execution, exact CI
+fields and unchanged wrapper/test reapplication. `adopt-comptox.R` then verifies
+the actual client's legacy hashes against the frozen baseline, applies the
+reviewed candidate, compares every generated output with the stage, and verifies
+check plus unchanged second apply. The actual runtime/docs/tests are adopted;
+the one-time baseline-hash adoption driver must not be rerun on those files.
+
+The broadened client suite found six failures among 884 assertions: two asserted
+the old local variable spelling, and four exposed a real missing-argument error
+class regression. The baseline WebTEST prediction wrappers convert omitted
+endpoint(s) to NULL before their validation hook. Explicit `missing_as_null`
+public input policy now preserves this behavior while keeping required formals.
+The source spelling assertions became behavioral full-state/order/result checks,
+and bulk omission now has its own condition assertions. `verify-webtest.R`
+passes 96 assertions with zero failures, warnings or skips (two previously noted
+dependency-build startup warnings). Broader client validation and pipeline
+retirement remain pending.
+
+The disposition inventory now includes the previously missed
+`endpoint_eval_utils.R` entrypoint and module-level readers. An archive of the
+exact baseline revision supplies 128 local definitions, 78 compatibility bindings
+and 34 module entrypoints. The original client checkout has advanced separately;
+it remains untouched, including its untracked `endpoint-audit.md`.
+
 ### Generation and report commands checkpoint
 
 Toolkit `e3e477a` and client `03720dd` contain readiness/public/hook extraction.

@@ -91,6 +91,18 @@ render_operation <- function(operation, spec) {
   parameter_capture <- tail(lines, 1L)
   lines <- head(lines, -1L)
   for (i in seq_along(params)) {
+    if (isTRUE(params[[i]]$missing_as_null)) {
+      lines <- c(
+        lines,
+        paste0(
+          '  if (missing(',
+          formal_names[[i]],
+          ')) ',
+          formal_names[[i]],
+          ' <- NULL'
+        )
+      )
+    }
     if (
       isTRUE(params[[i]]$public_required %or% params[[i]]$required) &&
         !isTRUE(operation$explicit_inputs)

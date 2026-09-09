@@ -143,7 +143,9 @@ schema parameter overrides. Input records contain `required`, `default`, `type`
 and `description`; required inputs have no R default. This preserves ordinary R
 argument semantics, including explicitly supplied NULL, while the client's
 existing helper/hooks validate values. A complete input map requires an explicit
-request mapping. Original schema parameters/body remain in the operation's
+request mapping. A required input can explicitly set `missing_as_null: true`
+when an existing hook owns the missing-input condition; the R formal remains
+required and omission reaches that hook as NULL. Original schema parameters/body remain in the operation's
 `schema_parameters` and `schema_body` metadata.
 
 Grouped request bindings use `object` (named list), `compact_object` (named list

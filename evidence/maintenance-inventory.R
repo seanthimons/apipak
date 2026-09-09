@@ -10,7 +10,7 @@ maintenance_inventory <- function(
     full.names = TRUE
   )
   files <- files[grepl(
-    '/(endpoint_eval|test_generation)/|/(stub_specs|toolkit_adapter|generate_stubs|generate_tests|calculate_coverage|detect_test_gaps|check_hook_config|check_public_api|diff_schemas|remove_experimental|unit_test_readiness_audit|ct_endpoint_eval|chemi_endpoint_eval|epi_endpoint_eval|cc_endpoint_eval)\\.R$',
+    '/(endpoint_eval|test_generation)/|/(stub_specs|toolkit_adapter|generate_stubs|generate_tests|calculate_coverage|detect_test_gaps|check_hook_config|check_public_api|diff_schemas|remove_experimental|unit_test_readiness_audit|endpoint_eval_utils|check-coverage|ct_endpoint_eval|chemi_endpoint_eval|epi_endpoint_eval|cc_endpoint_eval)\\.R$',
     files
   )]
   readers <- unlist(lapply(c('R', 'dev', 'tests', '.github'), function(path) {
@@ -27,7 +27,7 @@ maintenance_inventory <- function(
   groups <- getFromNamespace('tool_groups', 'apipak')
   records <- list()
   for (file in files) {
-    parse(file)
+    expressions <- as.list(parse(file))
     functions <- defs(file)
     for (name in names(functions)) {
       mentions <- vapply(
@@ -44,13 +44,14 @@ maintenance_inventory <- function(
         readers = relative(readers[mentions])
       )
     }
-    lines <- readLines(file, warn = FALSE)
-    for (group in names(groups)) {
-      if (
-        !any(grepl(paste0('bind_tools("', group, '"'), lines, fixed = TRUE))
-      ) {
-        next
-      }
+    records[[length(records) + 1L]] <- list(file = relative(file), name = '<module>',
+      kind = 'module entrypoint', disposition = 'pending module review',
+      readers = relative(readers[vapply(texts, function(lines) any(grepl(basename(file), lines, fixed = TRUE)), logical(1))]))
+    bindings <- apipak:::tg_find_calls(expressions, 'bind_tools')
+    bound_groups <- unique(vapply(bindings, function(call) {
+      if (length(call) >= 2L && is.character(call[[2L]]) && length(call[[2L]]) == 1L) call[[2L]] else ''
+    }, character(1)))
+    for (group in intersect(bound_groups, names(groups))) {
       for (name in groups[[group]]) {
         mentions <- vapply(
           texts,
