@@ -29,7 +29,9 @@ utils::globalVariables(c(
 ))
 bind_tools <- function(group, envir) {
   stopifnot(is.environment(envir), group %in% names(tool_groups))
-  for (package in c('dplyr', 'purrr', 'stringr', 'tibble', 'tidyr', 'cli')) {
+  for (package in if (group != 'readiness') {
+    c('dplyr', 'purrr', 'stringr', 'tibble', 'tidyr', 'cli')
+  }) {
     for (name in getNamespaceExports(package)) {
       if (!exists(name, envir = envir, inherits = FALSE)) {
         assign(name, getExportedValue(package, name), envir = envir)
@@ -41,7 +43,9 @@ bind_tools <- function(group, envir) {
   }
   for (name in tool_groups[[group]]) {
     fn <- get(name, envir = asNamespace('apipak'))
-    environment(fn) <- envir
+    if (is.function(fn)) {
+      environment(fn) <- envir
+    }
     assign(name, fn, envir = envir)
   }
   invisible(envir)

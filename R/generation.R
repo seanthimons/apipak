@@ -341,15 +341,7 @@ generate_client <- function(
   if (any(operation_names %in% reserved)) {
     stop('Wrapper name collides with a helper or callback')
   }
-  runtime_definitions <- list()
-  for (file in list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)) {
-    parse(file)
-    definitions <- tg_find_function_defs_in_file(file)
-    runtime_definitions <- c(runtime_definitions, definitions)
-  }
-  if (anyDuplicated(names(runtime_definitions))) {
-    stop('Duplicate client runtime definitions')
-  }
+  runtime_definitions <- client_definitions(root)
   if (
     !is.null(config) &&
       any(!reserved %in% c(names(runtime_definitions), 'run_hook'))

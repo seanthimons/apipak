@@ -26,6 +26,38 @@
 
 ## Implementation status
 
+### Maintenance extraction checkpoint
+
+Toolkit `c21bfae` and client `9755226` contain the full policy and fixed-contract
+candidate. Windows and Ubuntu pass in CI run 34301820803. Subsequent sourceable
+readiness extraction preserves the frozen v1 report (ignoring only its generation
+timestamp) and passes the client's 56 existing assertions with zero failures,
+skips or test warnings. Dependency startup still reports the previously observed
+testthat/vcr build-version warnings. Installed acceptance and Windows archive
+check pass all 13 scripts before the public-boundary/hook-command addition.
+
+`inspect_client()` reports the current 342/343 selected implementations and the
+staged 343/343 implementations with 343 fixed contract files. Manual exports are
+listed separately. The initial maintenance inventory omitted the canonical
+readiness filename; corrected baseline scope is 127 local definitions plus 73
+compatibility bindings, whose final dispositions remain pending.
+
+Readiness policy, production-boundary rules and approved convenience exports
+remain client YAML. The client commands source explicit local callbacks and use
+installed toolkit implementations. The public scan now includes untracked files.
+`retire-unused-hooks.R` verifies six registry entries have no selected operation,
+runtime definition or caller before removing them; all remaining parsed policy
+is identical. Hook validation passes 31 functions, 104 hooks and 34 parameters.
+No absent wrapper was created. This is the user's public-schema rule applied to
+stale declarations, with selected runtime behavior unchanged.
+
+A direct-directory R CMD check rejected missing derived Author/Maintainer fields;
+building the source archive first supplies them and passes. New maintenance
+acceptance checks public membership, prohibited artifacts, missing hook stages
+and duplicate definitions. The expanded Windows archive check passes all 14
+acceptance scripts with Status OK. Final platform checks and client migration
+remain outstanding.
+
 ### Full client candidate, 2026-09-08
 
 The complete policy represents 343 selected operations: 292 native, 44 explicitly

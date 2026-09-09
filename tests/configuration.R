@@ -67,6 +67,28 @@ configuration_acceptance <- function() {
   apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
   apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
   stopifnot(identical(applied, hashes()))
+  inspected <- apipak::inspect_client(root)
+  stopifnot(
+    inspected$coverage$catalogue$total == 3L,
+    inspected$coverage$catalogue$implemented == 3L,
+    inspected$coverage$catalogue$contracts == 0L,
+    !length(inspected$diagnostics),
+    identical(applied, hashes())
+  )
+  writeLines(
+    c("#' @export", 'manual_extra <- function() 1'),
+    file.path(root, 'R/manual_extra.R')
+  )
+  cat(
+    '\nexport(manual_extra)\n',
+    file = file.path(root, 'NAMESPACE'),
+    append = TRUE
+  )
+  inspected <- apipak::inspect_client(root)
+  stopifnot(
+    'manual_extra' %in% names(inspected$manual_exports),
+    inspected$coverage$catalogue$total == 3L
+  )
   fixture_path <- file.path(root, 'tests/testthat/fixtures/fixed.rds')
   dir.create(dirname(fixture_path), recursive = TRUE, showWarnings = FALSE)
   fixed <- list(

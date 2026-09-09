@@ -5,6 +5,10 @@
 \alias{compare_operations}
 \alias{generate_client}
 \alias{load_project}
+\alias{inspect_client}
+\alias{check_public_boundary}
+\alias{check_client_hooks}
+\alias{script_root}
 \alias{initialize_client}
 \alias{render_operation}
 \alias{apply_files}
@@ -23,6 +27,10 @@ recover_client(root, mode = c("plan", "apply"))
 generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
   config = NULL, callbacks = new.env(parent = emptyenv()), adopt = list())
 load_project(root, config = "apipak.yml", callbacks = new.env(parent = emptyenv()))
+inspect_client(root, config = "apipak.yml", callbacks = new.env(parent = emptyenv()))
+check_public_boundary(root, policy, schema_names = NULL)
+check_client_hooks(root, config, hooks, callback = "run_hook")
+script_root(script)
 initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
   license = NULL, base_url = NULL)
 render_operation(operation, spec)
@@ -37,9 +45,11 @@ bind_tools(group, envir)
 }
 \arguments{
 \item{files}{Local JSON schema paths.}
-\item{policy}{Reviewed operation name overrides in a named \code{names} list.}
+\item{policy}{Reviewed operation name overrides in a named \code{names} list, or public-boundary policy data/YAML path for \code{check_public_boundary}.}
+\item{schema_names}{Selected public operation names; NULL skips membership checks for built artifacts.}
 \item{old, new}{Results from \code{read_operations}.}
 \item{root}{Explicit existing client root directory.}
+\item{script}{Maintenance script basename, located from source frames or the Rscript command line.}
 \item{spec}{Client specification with files, helper, optional hooks and renderer.}
 \item{mode}{Check or plan without writes; apply validated output.}
 \item{operation, operations}{Supported operation record or named list of records.}

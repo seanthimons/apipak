@@ -1,5 +1,18 @@
 # Export and wrapper inventory.
 
+client_definitions <- function(root) {
+  files <- list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)
+  definitions <- do.call(
+    c,
+    unname(lapply(files, tg_find_function_defs_in_file))
+  ) %or%
+    list()
+  if (anyDuplicated(names(definitions))) {
+    stop('Duplicate client runtime definitions')
+  }
+  definitions
+}
+
 tg_strip_namespace_quotes <- function(x) {
   x <- trimws(x)
   x <- sub('^"(.*)"$', "\\1", x)

@@ -210,6 +210,23 @@ This API preserves the older endpoint-table contract. Its legacy diff counts
 and helper-call tests are regression checks, not general compatibility proof.
 The neutral renderer does not use this specialized policy.
 
+`inspect_client(root)` reports selected operation implementation and fixed-contract
+file coverage from the same YAML inputs. Unsupported selections stay in the
+denominator; manual exports are listed separately. File coverage does not claim
+that tests passed. `script_root()` locates a thin maintenance command when run or
+sourced from another working directory.
+`check_public_boundary()` checks client-supplied public host, artifact and export
+policy, including untracked source files. `check_client_hooks()` parses runtime
+definitions once and checks the supplied client hook registry without loading
+the client package.
+
+The `readiness` compatibility group keeps the existing versioned audit report
+and sourced helper names. Bind it into an explicit environment with
+`asNamespace('apipak')` as its parent, then supply `audit_policy` using its
+`read_audit_policy()` reader. Credential names, issue metadata, badge/document
+paths and test-tier descriptions belong in the client's YAML policy. Auditing
+is read-only unless a report output path is explicitly requested.
+
 `apply_files()` parses all R output before any mutation. It protects files
 without verified ownership, restricts paths to the target root, prepares output
 and backups first, and verifies restoration after an apply error. Ownership
