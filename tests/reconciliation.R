@@ -125,6 +125,21 @@ reconciliation_acceptance <- function() {
     'collide'
   )
   fails(apipak::apply_files(root, list('../escape.R' = original)), 'Unsafe')
+  # Metadata-only drift must be visible without changing any project file.
+  desired <- list(owned.R = changed)
+  attr(desired, 'inputs') <- list('policy.yml' = 'reviewed-input-hash')
+  before <- tools::md5sum(names(hashes))
+  for (mode in c('plan', 'check')) {
+    planned <- apipak::apply_files(root, desired, mode = mode)
+    stopifnot(
+      planned[[1L]]$action == 'unchanged',
+      planned[[2L]]$file == '.apipak/manifest.json',
+      planned[[2L]]$action == 'write',
+      identical(before, tools::md5sum(names(hashes)))
+    )
+  }
+  apipak::apply_files(root, desired, mode = 'apply')
+  stopifnot(length(apipak::apply_files(root, desired, mode = 'check')) == 1L)
   journal <- file.path(root, '.wrapmaint-interrupted')
   dir.create(journal)
   saveRDS(list(), file.path(journal, 'recovery.rds'))
@@ -136,8 +151,8 @@ reconciliation_acceptance <- function() {
   apipak::recover_client(root, 'apply')
   stopifnot(!dir.exists(journal))
 
-  # Fail at the first and second destination write; verify rollback and recovery.
-  for (write in 1:2) {
+  # Fail at both outputs and the manifest; verify rollback and recovery.
+  for (write in 1:3) {
     fault_root <- tempfile('fault-')
     dir.create(fault_root)
     apipak::apply_files(
@@ -174,6 +189,56 @@ reconciliation_acceptance <- function() {
     apipak::recover_client(fault_root, 'apply')
     stopifnot(length(apipak::recover_client(fault_root)) == 0L)
   }
+  # Hard termination cannot run on.exit(). Exercise the documented stale-lock path.
+  worker <- callr::r_bg(
+    function(root, changed) {
+      context <- new.env(parent = asNamespace('apipak'))
+      context$file.copy <- function(from, to, ...) {
+        result <- base::file.copy(from, to, ...)
+        if (grepl('\\.new$', from)) {
+          writeLines('ready', file.path(root, 'interrupted'))
+          Sys.sleep(60)
+        }
+        result
+      }
+      apply <- apipak::apply_files
+      environment(apply) <- context
+      apply(root, list(one.R = changed, two.R = changed), mode = 'apply')
+    },
+    args = list(fault_root, changed),
+    libpath = .libPaths()
+  )
+  on.exit(if (worker$is_alive()) worker$kill(), add = TRUE)
+  deadline <- Sys.time() + 20
+  while (
+    !file.exists(file.path(fault_root, 'interrupted')) &&
+      worker$is_alive() &&
+      Sys.time() < deadline
+  ) {
+    Sys.sleep(0.05)
+  }
+  stopifnot(file.exists(file.path(fault_root, 'interrupted')))
+  worker$kill()
+  worker$wait(5000)
+  stopifnot(
+    !worker$is_alive(),
+    length(apipak::recover_client(fault_root)) == 1L
+  )
+  fails(apipak::recover_client(fault_root, 'apply'), 'lock exists')
+  lock <- file.path(
+    normalizePath(fault_root, winslash = '/', mustWork = TRUE),
+    '.apipak-lock'
+  )
+  stopifnot(
+    !fs::is_link(lock),
+    length(list.files(lock, all.files = TRUE, no.. = TRUE)) == 0L
+  )
+  unlink(lock, recursive = TRUE)
+  apipak::recover_client(fault_root, 'apply')
+  stopifnot(identical(
+    unname(originals),
+    unname(tools::md5sum(names(originals)))
+  ))
   cat(
     'Reconciliation: six audit contracts, conservative ownership, stale edits, containment, rollback and legacy recovery passed.\n'
   )

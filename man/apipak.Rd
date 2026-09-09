@@ -15,6 +15,8 @@
 \alias{format_diff_markdown}
 \alias{count_diff_changes}
 \alias{script_root}
+\alias{credential_status}
+\alias{credential_preflight}
 \alias{initialize_client}
 \alias{render_operation}
 \alias{apply_files}
@@ -48,6 +50,8 @@ schema_diff(old_dir, new_dir, pattern = "\\\\.json$", stage_priority = NULL,
 format_diff_markdown(diff_results)
 count_diff_changes(diff_results)
 script_root(script)
+credential_status(value, name = "credential")
+credential_preflight(value, name = "credential", abort = TRUE, guidance = character())
 initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
   license = NULL, base_url = NULL)
 render_operation(operation, spec)
@@ -67,6 +71,7 @@ bind_tools(group, envir)
 \item{old, new}{Results from \code{read_operations}.}
 \item{root}{Explicit existing client root directory.}
 \item{script}{Maintenance script basename, located from source frames or the Rscript command line.}
+\item{value, name, abort, guidance}{Credential value, display name, whether invalid input should stop, and client-owned setup guidance. Values are never logged.}
 \item{args, kind}{Maintenance command flags and the wrapper or test command kind. These compatibility commands default to apply; the core generator defaults to check.}
 \item{old_dir, new_dir, pattern, stage_priority, exclude_pattern}{Schema report directories and explicit filename selection.}
 \item{policies}{Operation selection policies keyed by schema basename.}

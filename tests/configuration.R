@@ -67,6 +67,27 @@ configuration_acceptance <- function() {
   apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
   apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
   stopifnot(identical(applied, hashes()))
+  # Explicit renaming is a paired replacement; an edited original blocks it.
+  put(c(service, 'names:', '  GET /items: renamed_items'))
+  old_path <- file.path(root, 'R/list_items.R')
+  old_text <- readLines(old_path)
+  writeLines(c(old_text, '# local edit'), old_path)
+  fails(
+    apipak::generate_client(root, config = 'apipak.yml', mode = 'apply'),
+    'Protected original'
+  )
+  stopifnot(!file.exists(file.path(root, 'R/renamed_items.R')))
+  writeLines(old_text, old_path)
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  stopifnot(
+    !file.exists(old_path),
+    file.exists(file.path(root, 'R/renamed_items.R'))
+  )
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+  put(c(service, 'names:', '  GET /items: list_items'))
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  put(service)
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
   inspected <- apipak::inspect_client(root)
   stopifnot(
     inspected$coverage$catalogue$total == 3L,

@@ -1,4 +1,16 @@
 maintenance_acceptance <- function() {
+  for (value in c('', 'dummy_ctx_key', '<<<API_KEY>>>', 'xxxxxxxx')) {
+    stopifnot(!apipak::credential_status(value)$valid)
+  }
+  stopifnot(apipak::credential_status('realistic-token-value-123')$valid)
+  error <- tryCatch(
+    apipak::credential_preflight('dummy-do-not-log'),
+    error = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    !grepl('dummy-do-not-log', conditionMessage(error), fixed = TRUE)
+  )
   root <- tempfile('maintenance-client-')
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE), add = TRUE)

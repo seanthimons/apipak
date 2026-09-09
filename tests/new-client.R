@@ -135,6 +135,19 @@ new_client_acceptance <- function() {
     file.exists(file.path(root, 'man/get_item.Rd')),
     !file.exists(marker)
   )
+  policy_path <- file.path(root, 'apis/default.yml')
+  policy <- readLines(policy_path)
+  writeLines(c(policy, 'names:', '  GET /items: renamed_items'), policy_path)
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  stopifnot(
+    !file.exists(file.path(root, 'R/list_items.R')),
+    !file.exists(file.path(root, 'man/list_items.Rd')),
+    file.exists(file.path(root, 'man/renamed_items.Rd')),
+    'export(renamed_items)' %in% readLines(file.path(root, 'NAMESPACE'))
+  )
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+  writeLines(c(policy, 'names:', '  GET /items: list_items'), policy_path)
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
   library <- tempfile('standalone-client-library-')
   dir.create(library)
   install_log <- tempfile('client-install-')

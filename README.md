@@ -269,6 +269,23 @@ is validated before restoration. Failed recovery retains its journal. There is
 no cross-file filesystem transaction. Client generation renders in isolation
 before this short apply step. Unsupported operations do not remove files.
 
+An abruptly terminated process can leave the exclusive `.apipak-lock` directory.
+First confirm that the interrupted R process has exited and stop other writers.
+Review the recovery plan, then remove only the empty lock directory and run
+recovery apply:
+
+```r
+lock <- file.path(normalizePath(root, winslash = '/', mustWork = TRUE), '.apipak-lock')
+stopifnot(!fs::is_link(lock), length(list.files(lock, all.files = TRUE, no.. = TRUE)) == 0L)
+unlink(lock, recursive = TRUE)
+apipak::recover_client(root, 'apply')
+```
+
+Never remove a journal or its backups
+to bypass recovery. The lock is deliberately not stolen automatically: a slow
+live writer is indistinguishable from a dead writer using directory age alone.
+Plan/check also report changes to manifest metadata, without writing it.
+
 Run `Rscript tests/catalogue.R`, `Rscript tests/boundaries.R`,
 `Rscript tests/schema-versions.R` and `Rscript tests/loading.R` after installation.
 The catalogue has independently written request expectations and generated

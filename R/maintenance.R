@@ -1,3 +1,39 @@
+credential_status <- function(value, name = 'credential') {
+  value <- trimws(value %or% '')
+  if (length(value) != 1L || is.na(value) || !nzchar(value)) {
+    return(list(valid = FALSE, reason = paste(name, 'is not set')))
+  }
+  placeholders <- '^$|dummy|placeholder|your_?key|token here|api[_ -]?key|redacted|masked|^x+$|^\\*+$|^<+.*>+$|<<<.*>>>|test_api_key|logic_test_key'
+  if (grepl(placeholders, tolower(value), perl = TRUE)) {
+    return(list(
+      valid = FALSE,
+      reason = paste(name, 'looks like a placeholder or redacted value')
+    ))
+  }
+  list(valid = TRUE, reason = 'ok')
+}
+
+credential_preflight <- function(
+  value,
+  name = 'credential',
+  abort = TRUE,
+  guidance = character()
+) {
+  status <- credential_status(value, name)
+  if (status$valid) {
+    cli::cli_alert_success('{name} preflight passed')
+    return(invisible(TRUE))
+  }
+  if (abort) {
+    cli::cli_abort(c('x' = status$reason, guidance))
+  }
+  cli::cli_alert_warning(paste(
+    c(status$reason, unname(guidance)),
+    collapse = '\n'
+  ))
+  invisible(FALSE)
+}
+
 script_root <- function(script) {
   candidates <- c(
     sub('^--file=', '', grep('^--file=', commandArgs(FALSE), value = TRUE)),
