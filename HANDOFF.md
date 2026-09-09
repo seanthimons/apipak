@@ -79,6 +79,13 @@ creation, schema freezing, installation, or release has been performed here.
 
 ## Completed
 
+Latest candidate: all 343 operations have fixed successful contracts and the
+isolated, formatted client passes 687 assertions with no failures/warnings/skips,
+plus apply/check/unchanged second apply. Existing runtime files remain unchanged.
+The complete YAML, retention, documentation and fixture checkpoint is recorded
+in `evidence/verification.md`. Full maintenance replacement, publication/pin
+adoption and NP schema stress testing remain required.
+
 - [x] Read the original generalization handoff and inspected both generation paths.
 - [x] Inspected boosterpak's TOML configuration and reusable pack organization.
 - [x] Inspected apipkgen's source, YAML examples, helper templates, and license.

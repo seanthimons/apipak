@@ -9,6 +9,7 @@ comptox_contract_probe <- function(
   Sys.setenv(COMPTOXR_CRAN_SAFE_TESTS = 'true', NOT_CRAN = 'false')
   Sys.unsetenv(c('ctx_api_key', 'GITHUB_OUTPUT'))
   pkgload::load_all(root, quiet = TRUE)
+  withr::local_envvar(c(batch_limit = '200'))
   namespace <- asNamespace('ComptoxR')
   fixtures <- new.env(parent = baseenv())
   sys.source(
@@ -20,7 +21,8 @@ comptox_contract_probe <- function(
     file.path(root, 'tests/testthat/helper-descriptor-contracts.R'),
     fixtures
   )
-  callbacks <- new.env(parent = emptyenv())
+  callbacks <- new.env(parent = baseenv())
+  sys.source(file.path(root, 'dev/apipak_callbacks.R'), callbacks)
   callbacks$batch_limit_1000 <- function(operation) {
     quote(as.numeric(Sys.getenv('batch_limit', '1000')))
   }
@@ -34,12 +36,9 @@ comptox_contract_probe <- function(
   }
   project <- apipak::load_project(root, callbacks = callbacks)
   schemas <- readRDS(support)
-  operations <- do.call(
-    c,
-    unname(lapply(schemas, function(x) {
-      c(x$operations, x$unsupported_operations)
-    }))
-  )
+  probe <- new.env(parent = baseenv())
+  sys.source('evidence/comptox-interface-probe.R', probe)
+  operations <- probe$comptox_probe_operations(schemas)
   mappings <- readRDS(mappings)
   frozen <- readRDS('evidence/baseline/public-contracts.rds')
   original_definitions <- list()
@@ -49,9 +48,24 @@ comptox_contract_probe <- function(
     }
   }
   captured <- list()
-  mock <- function(...) {
+  traffic <- list()
+  similarity_fixture <- getFromNamespace(
+    'tg_find_function_defs_in_file',
+    'apipak'
+  )(
+    file.path(
+      root,
+      'tests/testthat/test-chemi_resolver_getsimilaritymap_sort.R'
+    )
+  )$resolver_similarity_map_payload
+  response <- function(...) {
     arguments <- list(...)
-    captured[[length(captured) + 1L]] <<- arguments
+    if (identical(arguments$endpoint, 'resolver/getsimilaritymap')) {
+      return(eval(similarity_fixture$expr, baseenv())())
+    }
+    if (identical(arguments$endpoint, 'safety/rqcodes')) {
+      return(list(list(rqCode = list(rq = '1000 (454)', code = 'A'))))
+    }
     if (
       identical(arguments$server, 'epi_burl') &&
         identical(arguments$endpoint, 'search')
@@ -77,11 +91,35 @@ comptox_contract_probe <- function(
     }
     fixtures$generated_contract_response(...)
   }
+  mock_for <- function(name, fn, primary = FALSE) {
+    force(name)
+    force(fn)
+    force(primary)
+    function(...) {
+      arguments <- list(...)
+      value <- fn(...)
+      if (primary) {
+        captured[[length(captured) + 1L]] <<- arguments
+      }
+      traffic[[length(traffic) + 1L]] <<- list(
+        helper = name,
+        arguments = arguments,
+        response = value
+      )
+      value
+    }
+  }
   testthat::local_mocked_bindings(
-    generic_request = mock,
-    generic_chemi_request = mock,
-    chemi_resolver_lookup = fixtures$generated_contract_resolver_lookup,
-    chemi_resolver_lookup_bulk = fixtures$generated_contract_resolver_lookup_bulk,
+    generic_request = mock_for('generic_request', response, TRUE),
+    generic_chemi_request = mock_for('generic_chemi_request', response, TRUE),
+    chemi_resolver_lookup = mock_for(
+      'chemi_resolver_lookup',
+      fixtures$generated_contract_resolver_lookup
+    ),
+    chemi_resolver_lookup_bulk = mock_for(
+      'chemi_resolver_lookup_bulk',
+      fixtures$generated_contract_resolver_lookup_bulk
+    ),
     .package = 'ComptoxR'
   )
   results <- list()
@@ -116,6 +154,24 @@ comptox_contract_probe <- function(
           context
         )
         candidate <- context[[operation$name]]
+        retained <- identical(mapping$settings$implementation, 'existing')
+        if (retained) {
+          definition <- getFromNamespace(
+            'tg_find_function_defs_in_file',
+            'apipak'
+          )(
+            file.path(root, 'R', mapping$file)
+          )[[operation$name]]
+          # Frozen records use paths relative to R/.
+          if (is.null(definition)) {
+            stop('Retained definition is absent')
+          }
+          current <- eval(definition$expr, namespace)
+          if (!identical(formals(candidate), formals(current))) {
+            stop('Retained public contract differs')
+          }
+          candidate <- current
+        }
         original <- eval(
           parse(text = original_definitions[[operation$name]])[[1L]],
           namespace
@@ -162,11 +218,12 @@ comptox_contract_probe <- function(
         }
         invoke <- function(fn) {
           captured <<- list()
+          traffic <<- list()
           value <- tryCatch(
             suppressMessages(suppressWarnings(do.call(fn, inputs))),
             error = identity
           )
-          list(value = value, calls = captured)
+          list(value = value, calls = captured, traffic = traffic)
         }
         before <- invoke(original)
         if (!inherits(before$value, 'error')) {
@@ -220,11 +277,38 @@ comptox_contract_probe <- function(
             }
           }
           inputs <- normal_inputs
+          if (
+            operation$name %in%
+              c('chemi_opera_bulk', 'chemi_predictor_models_predict_bulk')
+          ) {
+            for (choices in list(
+              list(smiles = NULL, chemicals = NULL),
+              list(smiles = list('CCO'), chemicals = list(list(smiles = 'CCO')))
+            )) {
+              inputs <- normal_inputs
+              inputs[names(choices)] <- choices
+              invalid_before <- invoke(original)
+              invalid_after <- invoke(candidate)
+              stopifnot(
+                inherits(invalid_before$value, 'error'),
+                identical(
+                  class(invalid_before$value),
+                  class(invalid_after$value)
+                ),
+                !length(invalid_before$calls),
+                !length(invalid_after$calls)
+              )
+            }
+            inputs <- normal_inputs
+          }
           return_value <- list(
             status = 'successful parity',
+            implementation = if (retained) 'existing' else 'generated',
             name = operation$name,
             inputs = inputs,
             request = before$calls,
+            traffic = before$traffic,
+            environment = list(batch_limit = '200'),
             result = before$value,
             null_inputs = negatives
           )
@@ -262,7 +346,7 @@ if (sys.nframe() == 0L) {
       args[[1L]],
       mappings = 'evidence/chemi-interface-probe.rds',
       output = 'evidence/chemi-contract-probe.rds',
-      expected_count = 186L
+      expected_count = 190L
     )
   } else {
     comptox_contract_probe(args[[1L]])

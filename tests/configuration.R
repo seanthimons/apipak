@@ -67,6 +67,37 @@ configuration_acceptance <- function() {
   apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
   apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
   stopifnot(identical(applied, hashes()))
+  fixture_path <- file.path(root, 'tests/testthat/fixtures/fixed.rds')
+  dir.create(dirname(fixture_path), recursive = TRUE, showWarnings = FALSE)
+  fixed <- list(
+    list_items = list(
+      inputs = list(page = 2L),
+      calls = list(list(
+        helper = 'catalogue_request',
+        arguments = list(
+          method = 'GET',
+          path = '/items',
+          path_params = list(),
+          query = list(page = 2L),
+          body = NULL
+        ),
+        response = tibble::tibble(count = 0L)
+      )),
+      result = tibble::tibble(count = 0L)
+    )
+  )
+  saveRDS(fixed, fixture_path)
+  put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.rds'))
+  loaded <- apipak::load_project(root)
+  stopifnot(
+    identical(loaded$services$catalogue$contracts, fixed),
+    normalizePath(fixture_path, winslash = '/') %in% loaded$inputs
+  )
+  apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+  fixed$list_items$result <- function() NULL
+  saveRDS(fixed, fixture_path)
+  fails(apipak::load_project(root), 'only R data')
+  put(service)
   fails(
     apipak::generate_client(root, list(), config = 'apipak.yml'),
     'exactly one'
@@ -128,6 +159,26 @@ configuration_acceptance <- function() {
   ))
   loaded <- apipak::load_project(root)
   stopifnot(identical(loaded$services$catalogue$policy$methods, 'GET'))
+  put(service)
+  callbacks <- new.env(parent = baseenv())
+  callbacks$mutate <- function(operation) {
+    writeLines(
+      'added_during_generation <- function() NULL',
+      file.path(root, 'R/added.R')
+    )
+    operation
+  }
+  put(c(service, 'prepare: mutate'))
+  fails(
+    apipak::generate_client(
+      root,
+      config = 'apipak.yml',
+      callbacks = callbacks,
+      mode = 'apply'
+    ),
+    'generation input files changed'
+  )
+  unlink(file.path(root, 'R/added.R'))
   put(service)
   cat(
     'Configuration: YAML selection, original paths, aliases, strict validation, outside-root generation, read-only plans and second apply passed.\n'

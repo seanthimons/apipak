@@ -243,10 +243,21 @@ generate_client <- function(
   spec = NULL,
   mode = c('check', 'plan', 'apply'),
   config = NULL,
-  callbacks = new.env(parent = emptyenv())
+  callbacks = new.env(parent = emptyenv()),
+  adopt = list()
 ) {
   mode <- match.arg(mode)
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
+  config_fields(adopt, names(adopt), 'adoption hashes')
+  for (name in names(adopt)) {
+    config_string(adopt[[name]], 'adoption hash')
+    if (
+      !grepl('^[0-9a-f]{64}$', adopt[[name]]) ||
+        !identical(output_hash(project_path(root, name)), adopt[[name]])
+    ) {
+      stop('Reviewed adoption hash differs: ', name)
+    }
+  }
   if (is.null(spec) == is.null(config)) {
     stop('Supply exactly one of spec or config')
   }
@@ -254,18 +265,67 @@ generate_client <- function(
     project <- load_project(root, config, callbacks)
     services <- project$services
     inputs <- project$inputs
+    formatter <- project$formatter
   } else {
     if (!is.list(spec)) {
       stop('spec must be a list')
     }
     services <- list(spec)
     inputs <- spec$files
+    formatter <- spec$formatter
+  }
+  # Runtime definitions and documentation are generation inputs too.
+  input_directories <- c(
+    'R',
+    if (
+      any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))
+    ) {
+      c('man', 'data', 'inst')
+    }
+  )
+  runtime_inputs <- function() {
+    c(
+      unlist(
+        lapply(input_directories, function(name) {
+          list.files(file.path(root, name), recursive = TRUE, full.names = TRUE)
+        }),
+        use.names = FALSE
+      ),
+      file.path(
+        root,
+        intersect(
+          c('DESCRIPTION', 'NAMESPACE', 'LICENSE', 'air.toml', '.air.toml'),
+          list.files(root, all.files = TRUE)
+        )
+      )
+    )
+  }
+  runtime_paths <- runtime_inputs()
+  inputs <- unique(c(inputs, runtime_paths))
+  input_hash <- function(path) {
+    if (
+      grepl('\\.(R|Rd|yml|yaml|json|svg)$', path) ||
+        basename(path) %in% c('DESCRIPTION', 'NAMESPACE', 'LICENSE')
+    ) {
+      output_hash(path)
+    } else {
+      digest::digest(file = path, algo = 'sha256')
+    }
   }
   input_hashes <- vapply(
     inputs,
-    function(x) digest::digest(file = x, algo = 'sha256'),
+    input_hash,
     character(1)
   )
+  callback_hash <- function() {
+    digest::digest(
+      lapply(as.list(callbacks), function(x) {
+        if (is.function(x)) list(deparse(formals(x)), deparse(body(x))) else x
+      }),
+      algo = 'sha256'
+    )
+  }
+  callbacks_before <- callback_hash()
   parsed <- lapply(services, read_service_operations)
   operations <- do.call(c, unname(lapply(parsed, `[[`, 'operations')))
   diagnostics <- do.call(c, unname(lapply(parsed, `[[`, 'diagnostics')))
@@ -286,10 +346,9 @@ generate_client <- function(
     parse(file)
     definitions <- tg_find_function_defs_in_file(file)
     runtime_definitions <- c(runtime_definitions, definitions)
-    collisions <- intersect(operation_names, names(definitions))
-    if (length(collisions) && any(basename(file) != paste0(collisions, '.R'))) {
-      stop('Wrapper collides with an existing definition in ', file)
-    }
+  }
+  if (anyDuplicated(names(runtime_definitions))) {
+    stop('Duplicate client runtime definitions')
   }
   if (
     !is.null(config) &&
@@ -305,6 +364,8 @@ generate_client <- function(
   desired <- list()
   owners <- list()
   configured_operations <- list()
+  retained_sources <- character()
+  source_names <- list()
   for (i in seq_along(services)) {
     service <- services[[i]]
     renderer <- service$renderer %or% render_operation
@@ -327,7 +388,34 @@ generate_client <- function(
         op <- prepared
       }
       configured_operations[[op$name]] <- op
-      desired[[paste0('R/', op$name, '.R')]] <- renderer(op, operation_spec)
+      file <- operation_spec[['file']] %or% paste0('R/', op$name, '.R')
+      path <- project_path(root, file)
+      if (!grepl('^R/[^/]+\\.R$', file)) {
+        stop('Wrapper file must be directly inside R/')
+      }
+      definition <- runtime_definitions[[op$name]]
+      if (!is.null(definition) && !identical(definition$file_path, path)) {
+        stop(
+          'Wrapper collides with an existing definition in ',
+          definition$file_path
+        )
+      }
+      code <- renderer(op, operation_spec)
+      if (identical(operation_spec$implementation, 'existing')) {
+        if (is.null(definition)) {
+          stop('Missing existing implementation: ', op$name)
+        }
+        candidate <- eval(parse(text = code)[[1L]][[3L]], baseenv())
+        original <- eval(definition$expr, baseenv())
+        if (!identical(formals(candidate), formals(original))) {
+          stop('Existing implementation public contract differs: ', op$name)
+        }
+        retained_sources <- union(retained_sources, file)
+      } else {
+        desired[[file]] <- paste(c(desired[[file]], code), collapse = '\n\n')
+        owners[[file]] <- c(owners[[file]], op$id)
+        source_names[[file]] <- c(source_names[[file]], op$name)
+      }
       if (!is.null(config)) {
         helper_definition <- runtime_definitions[[operation_spec$helper]]
         if (is.null(helper_definition)) {
@@ -359,18 +447,50 @@ generate_client <- function(
           stop('Unknown helper arguments for ', op$id)
         }
       }
-      owners[[paste0('R/', op$name, '.R')]] <- op$id
       if (op$name %in% names(service$contracts)) {
-        desired[[paste0(
+        contract <- service$contracts[[op$name]]
+        if (
+          !is.null(config) &&
+            'calls' %in% names(contract) &&
+            length(setdiff(
+              vapply(contract$calls, `[[`, character(1), 'helper'),
+              names(runtime_definitions)
+            ))
+        ) {
+          stop('Contract references a missing client helper: ', op$name)
+        }
+        test_file <- paste0(
           'tests/testthat/test-',
+          if ('calls' %in% names(contract)) 'contract-',
           op$name,
           '.R'
-        )]] <- render_contract(op, operation_spec, service$contracts[[op$name]])
-        owners[[paste0('tests/testthat/test-', op$name, '.R')]] <- op$id
+        )
+        desired[[test_file]] <- render_contract(op, operation_spec, contract)
+        owners[[test_file]] <- op$id
       }
     }
   }
+  if (length(intersect(retained_sources, names(source_names)))) {
+    stop('Cannot replace a file containing a retained implementation')
+  }
+  for (file in names(source_names)) {
+    path <- project_path(root, file)
+    if (!file.exists(path)) {
+      next
+    }
+    definitions <- tg_find_function_defs_in_file(path)
+    expressions <- as.list(parse(path))
+    if (
+      length(setdiff(names(definitions), source_names[[file]])) ||
+        length(expressions) != length(definitions)
+    ) {
+      stop('Mixed file contains undeclared definitions or other code: ', file)
+    }
+  }
   attr(desired, 'operations') <- owners
+  if (!is.null(formatter)) {
+    desired <- format_output(root, desired, formatter)
+  }
   labels <- ifelse(
     startsWith(inputs, paste0(root, '/')),
     substring(inputs, nchar(root) + 2L),
@@ -398,6 +518,20 @@ generate_client <- function(
   if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) {
     desired <- document_output(root, desired, removals)
   }
+  # Record hashes of the resulting source inputs so a second apply is a no-op.
+  generated_inputs <- names(desired)[grepl(
+    '^(R/|man/|NAMESPACE$)',
+    names(desired)
+  )]
+  attr(desired, 'inputs')[generated_inputs] <- lapply(
+    desired[generated_inputs],
+    text_hash
+  )
+  attr(desired, 'inputs') <- attr(desired, 'inputs')[sort(setdiff(
+    names(attr(desired, 'inputs')),
+    removals
+  ))]
+  attr(desired, 'callbacks') <- callbacks_before
   unused_hooks <- list()
   if (any(vapply(services, function(x) length(x$hooks) > 0L, logical(1)))) {
     wrapper_functions <- lapply(runtime_definitions, function(x) {
@@ -451,25 +585,42 @@ generate_client <- function(
       if (!validation$valid) stop(paste(validation$errors, collapse = '\n'))
     }
   }
-  if (
-    !identical(
-      input_hashes,
-      vapply(
-        inputs,
-        function(x) digest::digest(file = x, algo = 'sha256'),
-        character(1)
+  validate_inputs <- function() {
+    if (
+      !identical(runtime_paths, runtime_inputs()) ||
+        (!is.null(config) &&
+          !identical(
+            project$inputs,
+            load_project(root, config, callbacks)$inputs
+          ))
+    ) {
+      stop('Stale input plan; generation input files changed')
+    }
+    input_hashes_after <- vapply(inputs, input_hash, character(1))
+    if (!identical(input_hashes, input_hashes_after)) {
+      stop(
+        'Stale input plan; inputs changed during generation: ',
+        paste(labels[input_hashes != input_hashes_after], collapse = ', ')
       )
-    )
-  ) {
-    stop('Stale input plan; schema or configuration changed during generation')
+    }
+    if (!identical(callbacks_before, callback_hash())) {
+      stop('Stale input plan; callback definitions changed during generation')
+    }
   }
+  validate_inputs()
   # Unsupported operations never remove previous output or manual files.
   result <- apply_files(
     root,
     desired,
     remove = removals,
     mode = mode,
-    headers = '# Generated by wrapmaint; do not edit by hand.'
+    headers = '# Generated by wrapmaint; do not edit by hand.',
+    owned = function(path) {
+      relative <- substring(path, nchar(root) + 2L)
+      !is.null(adopt[[relative]]) &&
+        identical(output_hash(path), adopt[[relative]])
+    },
+    validate = validate_inputs
   )
   if (
     mode == 'check' &&
@@ -489,8 +640,13 @@ generate_client <- function(
       c,
       unname(lapply(parsed, `[[`, 'mapping_diagnostics'))
     ),
+    retained_diagnostics = do.call(
+      c,
+      unname(lapply(parsed, `[[`, 'retained_diagnostics'))
+    ),
     unused_hooks = unused_hooks,
     inventory = inventory,
+    retained_sources = retained_sources,
     manifest = list(
       toolkit_version = as.character(utils::packageVersion('apipak')),
       inputs = input_hashes,

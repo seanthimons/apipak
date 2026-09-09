@@ -124,7 +124,12 @@ input metadata outside the default serializer's subset. A complete client
 `inputs` and `request` mapping can use that metadata. Generation reports these
 operations as `client-mapped`, retaining the original reasons in the inventory
 and `mapping_diagnostics`; it does not claim native serialization support.
-Malformed metadata and broken references remain blocking even with mappings.
+Malformed metadata and broken references block automatic generation even with mappings.
+An explicit `implementation: existing` retains a named implementation, checks
+its declared public inputs against the actual formals, and reports any schema
+limitations in `retained_diagnostics`. This does not regenerate that source.
+`file: R/name.R` preserves grouped layouts; generation rejects a group containing
+a retained implementation, undeclared function, or other top-level code.
 
 The default helper contract is `method`, `path`, `path_params`, `query`, `body`.
 The helper owns transport and serialization. A parameter named `page` causes
@@ -161,6 +166,22 @@ Use `{callback: batch_limit}` for the corresponding helper argument. YAML
 generation validates required and unknown helper arguments against the client's
 parsed function definitions before application.
 
+For fixed expectations with R classes, a service can name
+`contracts_file: tests/testthat/fixtures/contracts.rds`. This is a named list of
+operation names, each with `inputs`, `calls` and `result`. Each call records
+`helper`, `arguments` and `response`. Generated tests assert the complete ordered
+call sequence and successful result; the fixture remains independent of generated
+wrapper parsing. Ordinary YAML contracts remain supported. RDS fixtures preserve
+tibbles, integer vectors, matrices and other data without executable YAML tags.
+Optional contract `environment` values are scoped with `withr::local_envvar()`;
+clients using that field need withr in their test dependencies. Fixed sequence
+tests use `test-contract-<operation>.R`, keeping existing manual suites separate.
+
+At project level, `formatter: {name: air, version: '0.9.0'}` requires that exact
+installed version and formats the staged output in one subprocess. Optional
+`callback_files: [dev/callbacks.R]` records source dependencies without executing
+them; callers still supply the explicit callback environment.
+
 The neutral parser supports OpenAPI 3.0/3.1 and Swagger 2.0 local documents,
 scalar path/query parameters, local references, JSON scalar payloads, nested
 objects with declared properties, and nested arrays. Both clients use the extracted
@@ -196,6 +217,13 @@ hashes live in `.apipak/manifest.json`; a header alone cannot authorize replacin
 an existing file. Edited files and protected lifecycles prevent conflicting
 writes. Explicit exclusions can remove verified owned output; protected removals
 are reported as retained. Unsupported input never authorizes removal.
+
+After reviewing a legacy file, pass `adopt = list('R/example.R' = '<sha256>')`
+to `generate_client()`. Hash UTF-8 text with LF line endings and no final newline.
+Every supplied hash must still match; adoption cannot override lifecycle or
+mixed-file protection. The manifest records source, configuration and fixture
+hashes plus callback definitions. Unchanged reviewed files can be adopted without
+rewriting them. Documentation ownership follows its source files.
 
 A recovery journal blocks subsequent application. Review with
 `apipak::recover_client(root)` and restore with `apipak::recover_client(root, 'apply')`.

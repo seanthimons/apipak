@@ -76,6 +76,53 @@ tg_format_generated_text <- function(text) {
   paste(formatted, collapse = "\n")
 }
 
+# Format one staged tree in one subprocess, preserving the original file map.
+format_output <- function(root, desired, formatter) {
+  if (!identical(formatter$name, 'air')) {
+    stop('Supported formatter is air')
+  }
+  command <- Sys.which('air')
+  if (!nzchar(command)) {
+    stop('Configured Air formatter is not installed')
+  }
+  version <- system2(command, '--version', stdout = TRUE)
+  if (!identical(version, paste('air', formatter$version))) {
+    stop('Configured Air version differs from installed formatter')
+  }
+  stage <- tempfile('apipak-format-')
+  dir.create(stage)
+  on.exit(unlink(stage, recursive = TRUE), add = TRUE)
+  settings <- intersect(
+    c('air.toml', '.air.toml'),
+    list.files(root, all.files = TRUE)
+  )
+  if (length(settings) && !all(file.copy(file.path(root, settings), stage))) {
+    stop('Cannot stage formatter settings')
+  }
+  sources <- names(desired)[endsWith(names(desired), '.R')]
+  for (name in sources) {
+    path <- project_path(stage, name)
+    dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+    writeLines(enc2utf8(desired[[name]]), path, useBytes = TRUE)
+  }
+  log <- tempfile()
+  on.exit(unlink(log), add = TRUE)
+  status <- system2(
+    command,
+    c('format', shQuote(stage)),
+    stdout = log,
+    stderr = log
+  )
+  if (status != 0L) {
+    stop('Air formatting failed: ', file_text(log))
+  }
+  for (name in sources) {
+    desired[[name]] <- file_text(project_path(stage, name))
+  }
+  attr(desired, 'formatter') <- formatter
+  desired
+}
+
 tg_write_generated_tests <- function(
   desired,
   root = ".",

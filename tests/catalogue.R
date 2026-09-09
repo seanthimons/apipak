@@ -114,6 +114,77 @@ catalogue_acceptance <- function() {
     reporter = 'summary',
     stop_on_failure = TRUE
   )
+  # Native R fixtures preserve typed results without executable YAML expressions.
+  fixed <- list(
+    refresh = list(
+      inputs = list(),
+      calls = list(list(
+        helper = 'catalogue_request',
+        arguments = spec$contracts$refresh$request,
+        response = tibble::tibble(
+          count = 0L,
+          active = FALSE,
+          detail = list(NULL)
+        )
+      )),
+      result = tibble::tibble(count = 0L, active = FALSE, detail = list(NULL))
+    )
+  )
+  fixed$get_item <- list(
+    inputs = list(item_id = ' a/b ', language = 'fr'),
+    calls = list(
+      list(
+        helper = 'run_hook',
+        arguments = list(
+          'get_item',
+          'pre_request',
+          list(params = list(item_id = ' a/b ', language = 'fr'))
+        ),
+        response = list(params = list(item_id = 'a/b', language = 'fr'))
+      ),
+      list(
+        helper = 'catalogue_request',
+        arguments = spec$contracts$get_item$request,
+        response = list(data = 'ok')
+      ),
+      list(
+        helper = 'run_hook',
+        arguments = list(
+          'get_item',
+          'post_response',
+          list(
+            result = list(data = 'ok'),
+            params = list(item_id = 'a/b', language = 'fr')
+          )
+        ),
+        response = 'ok'
+      )
+    ),
+    result = 'ok'
+  )
+  dir.create(file.path(root, 'tests/testthat/fixtures'))
+  saveRDS(fixed, file.path(root, 'tests/testthat/fixtures/contracts.rds'))
+  sequence_spec <- spec
+  sequence_spec$contracts_file <- 'tests/testthat/fixtures/contracts.rds'
+  sequence_spec$contracts[names(fixed)] <- fixed
+  apipak::generate_client(root, sequence_spec, 'apply')
+  testthat::test_file(
+    file.path(root, 'tests/testthat/test-contract-refresh.R'),
+    stop_on_failure = TRUE
+  )
+  testthat::test_file(
+    file.path(root, 'tests/testthat/test-contract-get_item.R'),
+    stop_on_failure = TRUE
+  )
+  bad_fixed <- fixed$refresh
+  bad_fixed$result <- function() stop('not data')
+  stopifnot(inherits(
+    tryCatch(
+      getFromNamespace('validate_fixed_contract', 'apipak')(bad_fixed),
+      error = identity
+    ),
+    'error'
+  ))
   other <- tempfile('other-catalogue-client-')
   dir.create(other)
   file.copy(

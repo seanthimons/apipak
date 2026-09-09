@@ -85,9 +85,14 @@ operation_documentation <- function(op, policy = list()) {
   prose <- function(text) {
     text <- roxygen_prose(text)
     if (!is.null(policy$lifecycle)) {
-      for (character in c('`', '[', ']')) {
+      for (character in c('[', ']')) {
         text <- gsub(character, paste0('\\', character), text, fixed = TRUE)
       }
+      # Convert code spans to inert Rd before Markdown can evaluate inline R.
+      text <- stringr::str_replace_all(text, '`+[^`]+`+', function(span) {
+        paste0('\\code{', sub('`+$', '', sub('^`+', '', span)), '}')
+      })
+      text <- gsub('`', '\\verb{`}', text, fixed = TRUE)
     }
     text
   }
@@ -120,6 +125,7 @@ operation_documentation <- function(op, policy = list()) {
     if (!is.null(policy$lifecycle)) {
       paste0('`r lifecycle::badge(', r_literal(policy$lifecycle), ')`')
     },
+    if (!is.null(policy$lifecycle) && !is.null(policy$description)) '',
     if (!is.null(policy$description)) prose(policy$description),
     docs,
     paste0(
@@ -157,10 +163,29 @@ operation_documentation <- function(op, policy = list()) {
                 vapply(
                   names(inputs),
                   function(name) {
+                    value <- config_data(inputs[[name]])
+                    index <- match(name, parameters)
+                    if (
+                      !is.na(index) &&
+                        is.list(value) &&
+                        op$parameters[[index]]$public_type %or%
+                          '' %in%
+                          c('character', 'logical', 'integer', 'numeric')
+                    ) {
+                      if (
+                        !is.null(names(value)) ||
+                          any(vapply(value, is.list, logical(1)))
+                      ) {
+                        stop(
+                          'Primitive vector example must be a sequence of scalar values'
+                        )
+                      }
+                      value <- unlist(value, use.names = FALSE)
+                    }
                     paste0(
                       name,
                       ' = ',
-                      r_literal(config_data(inputs[[name]]))
+                      r_literal(value)
                     )
                   },
                   character(1)
@@ -177,7 +202,10 @@ operation_documentation <- function(op, policy = list()) {
     }
   )
   paste(
-    paste0("#' ", unlist(strsplit(text, '\n', fixed = TRUE))),
+    paste0(
+      "#' ",
+      strsplit(paste(text, collapse = '\n'), '\n', fixed = TRUE)[[1L]]
+    ),
     collapse = '\n'
   )
 }
@@ -235,11 +263,35 @@ document_output <- function(root, desired, remove = character()) {
     )
   )
   files <- files[file.exists(file.path(stage, files))]
+  owners <- attr(desired, 'operations') %or% list()
   for (name in files) {
     if (endsWith(name, '.Rd')) {
       tools::parse_Rd(file.path(stage, name), encoding = 'UTF-8')
+      sources <- unique(unlist(stringr::str_extract_all(
+        head(readLines(file.path(stage, name), warn = FALSE), 3L),
+        'R/[^ ,\\r\\n]+\\.R'
+      )))
+      selected_sources <- intersect(sources, names(owners))
+      if (!length(selected_sources)) {
+        next
+      }
+      if (length(setdiff(sources, selected_sources))) {
+        stop('Mixed documentation includes an unowned source: ', name)
+      }
+      owners[[name]] <- unique(unlist(
+        owners[selected_sources],
+        use.names = FALSE
+      ))
+    } else if (identical(name, 'NAMESPACE')) {
+      owners[[name]] <- unique(unlist(owners, use.names = FALSE))
+    } else if (file.exists(file.path(root, name))) {
+      # Existing shared figures are client assets, not newly adopted output.
+      next
+    } else {
+      owners[[name]] <- unique(unlist(owners, use.names = FALSE))
     }
     desired[[name]] <- file_text(file.path(stage, name))
   }
+  attr(desired, 'operations') <- owners
   desired
 }

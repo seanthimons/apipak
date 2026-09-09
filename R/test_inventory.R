@@ -44,11 +44,17 @@ tg_all_call_names <- function(expr) {
   )
 }
 
-tg_find_function_defs_in_file <- function(file) {
-  exprs <- parse(file = file, keep.source = FALSE)
+tg_find_function_defs_in_file <- function(file, documentation = FALSE) {
+  exprs <- parse(file = file, keep.source = documentation)
+  lines <- if (documentation) {
+    readLines(file, warn = FALSE, encoding = 'UTF-8')
+  } else {
+    character()
+  }
   defs <- list()
 
-  for (expr in as.list(exprs)) {
+  for (i in seq_along(exprs)) {
+    expr <- exprs[[i]]
     if (
       !is.call(expr) ||
         !is.symbol(expr[[1]]) ||
@@ -74,6 +80,21 @@ tg_find_function_defs_in_file <- function(file) {
       expr = rhs,
       call_names = tg_all_call_names(rhs)
     )
+    if (documentation) {
+      end <- attr(exprs, 'srcref')[[i]][[1L]] - 1L
+      while (end > 0L && !nzchar(trimws(lines[[end]]))) {
+        end <- end - 1L
+      }
+      start <- end
+      while (start > 0L && grepl("^\\s*#'", lines[[start]])) {
+        start <- start - 1L
+      }
+      defs[[function_name]]$documentation <- if (end > start) {
+        lines[seq.int(start + 1L, end)]
+      } else {
+        character()
+      }
+    }
   }
 
   defs

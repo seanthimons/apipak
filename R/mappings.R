@@ -37,6 +37,8 @@ validate_settings <- function(
     c(
       'name',
       'helper',
+      'file',
+      'implementation',
       'parameters',
       'inputs',
       'extra_parameters',
@@ -48,8 +50,24 @@ validate_settings <- function(
     ),
     label
   )
-  for (name in intersect(c('name', 'helper', 'post_state'), names(settings))) {
+  for (name in intersect(
+    c('name', 'helper', 'file', 'implementation', 'post_state'),
+    names(settings)
+  )) {
     config_string(settings[[name]], paste(label, name))
+  }
+  if (
+    'implementation' %in%
+      names(settings) &&
+      !settings$implementation %in% c('generated', 'existing')
+  ) {
+    stop('implementation must be generated or existing')
+  }
+  if (
+    identical(settings$implementation, 'existing') &&
+      !'inputs' %in% names(settings)
+  ) {
+    stop('Existing implementations require an explicit public input contract')
   }
   if (
     'post_state' %in%
@@ -200,6 +218,7 @@ configure_operation <- function(operation, service) {
       name = name,
       location = 'client',
       public_name = name,
+      public_type = extra$type,
       public_required = extra$required %or%
         ('inputs' %in% names(settings) && !'default' %in% names(extra)),
       public_default = default,

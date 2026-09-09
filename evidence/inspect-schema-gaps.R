@@ -2,6 +2,7 @@ inspect_schema_gaps <- function() {
   frozen <- readRDS('evidence/baseline/public-contracts.rds')
   print(table(vapply(frozen, function(x) x$ownership$status, character(1))))
   print(head(lapply(frozen, `[[`, 'ownership'), 3L))
+  print(lapply(frozen[c('chemi_resolver_lookup.R', 'chemi_safety_rqcodes.R', 'ct_chemical_list_all.R')], `[[`, 'ownership'))
   if (file.exists('evidence/chemi-interface-probe.rds')) {
     mappings <- readRDS('evidence/chemi-interface-probe.rds')
     print(lapply(

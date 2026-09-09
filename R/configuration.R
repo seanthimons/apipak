@@ -59,6 +59,45 @@ config_data <- function(x) if (is.list(x)) lapply(x, config_data) else x
 read_service_operations <- function(service) {
   parsed <- read_operations(service$files, service[['policy']] %or% list())
   mapped <- character()
+  retained <- character()
+  known <- vapply(
+    c(parsed$operations, parsed$unsupported_operations),
+    `[[`,
+    character(1),
+    'id'
+  )
+  for (record in parsed$inventory) {
+    if (record$status != 'unsupported' || record$id %in% known) {
+      next
+    }
+    settings <- merge_settings(
+      service$defaults %or% list(),
+      service$operations[[record$key]] %or% list()
+    )
+    if (!identical(settings$implementation, 'existing')) {
+      next
+    }
+    name <- service[['policy']]$names[[record$key]]
+    if (is.null(name)) {
+      stop(
+        'Retained unsupported operation requires an explicit name: ',
+        record$id
+      )
+    }
+    operation <- c(
+      record,
+      list(
+        name = name,
+        parameters = list(),
+        body = NULL,
+        body_required = FALSE,
+        summary = name
+      )
+    )
+    configure_operation(operation, service)
+    parsed$operations[[name]] <- operation
+    retained <- c(retained, record$id)
+  }
   for (operation in parsed$unsupported_operations) {
     settings <- merge_settings(
       service$defaults %or% list(),
@@ -75,19 +114,30 @@ read_service_operations <- function(service) {
       stop('Explicit mapping requires helper arguments: ', operation$id)
     }
     parsed$operations[[operation$name]] <- operation
-    mapped <- c(mapped, operation$id)
+    if (identical(settings$implementation, 'existing')) {
+      retained <- c(retained, operation$id)
+    } else {
+      mapped <- c(mapped, operation$id)
+    }
   }
   parsed$mapping_diagnostics <- Filter(
     function(x) x$id %in% mapped,
     parsed$diagnostics
   )
   parsed$diagnostics <- Filter(
-    function(x) !x$id %in% mapped,
+    function(x) !x$id %in% c(mapped, retained),
     parsed$diagnostics
+  )
+  parsed$retained_diagnostics <- Filter(
+    function(x) x$id %in% retained,
+    parsed$inventory
   )
   parsed$inventory <- lapply(parsed$inventory, function(x) {
     if (x$id %in% mapped) {
       x$status <- 'client-mapped'
+    }
+    if (x$id %in% retained) {
+      x$status <- 'retained-unsupported'
     }
     x
   })
@@ -105,7 +155,18 @@ load_project <- function(
   }
   project_file <- project_path(root, config_string(config, 'config'))
   project <- read_config_yaml(project_file)
-  config_fields(project, c('config_version', 'services', 'package'), 'project')
+  config_fields(
+    project,
+    c('config_version', 'services', 'package', 'formatter', 'callback_files'),
+    'project'
+  )
+  if (!is.null(project$formatter)) {
+    config_fields(project$formatter, c('name', 'version'), 'formatter')
+    if (!identical(project$formatter$name, 'air')) {
+      stop('Supported formatter is air')
+    }
+    config_string(project$formatter$version, 'formatter version')
+  }
   if (!identical(project$config_version, 1L)) {
     stop('Unsupported config_version; expected 1')
   }
@@ -121,6 +182,18 @@ load_project <- function(
     config_string(package, 'package')
   }
   inputs <- c(project_file)
+  if (!is.null(project$callback_files)) {
+    callback_files <- config_sequence(project$callback_files, 'callback_files')
+    inputs <- c(
+      inputs,
+      vapply(
+        callback_files,
+        function(path) project_path(root, path),
+        character(1)
+      )
+    )
+    if (!all(file.exists(inputs))) stop('Missing callback input file')
+  }
   services <- lapply(service_files, function(file) {
     path <- project_path(root, file)
     service <- read_config_yaml(path)
@@ -137,6 +210,7 @@ load_project <- function(
         'hook_callback',
         'policy_version',
         'contracts',
+        'contracts_file',
         'response_fixture',
         'prepare',
         'documentation',
@@ -283,6 +357,25 @@ load_project <- function(
       }
       prepare <- get(name, envir = callbacks, inherits = FALSE)
     }
+    contracts <- config_data(service[['contracts']]) %or% list()
+    config_fields(contracts, names(contracts), 'contracts')
+    if (!is.null(service$contracts_file)) {
+      relative <- config_string(service$contracts_file, 'contracts_file')
+      fixture_path <- project_path(root, relative)
+      if (!grepl('^tests/testthat/.+\\.rds$', relative)) {
+        stop('contracts_file must be an RDS fixture inside tests/testthat/')
+      }
+      fixed <- readRDS(fixture_path)
+      config_fields(fixed, names(fixed), 'fixed contracts')
+      if (length(intersect(names(fixed), names(contracts)))) {
+        stop('Duplicate fixed contract')
+      }
+      for (name in names(fixed)) {
+        validate_fixed_contract(fixed[[name]])
+      }
+      contracts <- c(contracts, fixed)
+      inputs <<- c(inputs, fixture_path)
+    }
     list(
       id = id,
       files = schema_files,
@@ -304,7 +397,8 @@ load_project <- function(
       documentation = service$documentation,
       defaults = defaults,
       operations = overrides,
-      contracts = config_data(service$contracts),
+      contracts = contracts,
+      contracts_file = service$contracts_file,
       response_fixture = config_data(service$response_fixture)
     )
   })
@@ -316,6 +410,7 @@ load_project <- function(
     services = stats::setNames(services, ids),
     inputs = unique(inputs),
     root = root,
-    package = package
+    package = package,
+    formatter = project$formatter
   )
 }

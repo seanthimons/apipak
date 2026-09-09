@@ -73,6 +73,22 @@ reconciliation_acceptance <- function() {
     'Protected'
   )
   stopifnot(!dir.exists(file.path(root, '.apipak')))
+  fails(
+    apipak::apply_files(
+      root,
+      list(fresh.R = original),
+      mode = 'apply',
+      validate = function() {
+        stopifnot(dir.exists(file.path(root, '.apipak-lock')))
+        stop('Stale input')
+      }
+    ),
+    'Stale input'
+  )
+  stopifnot(
+    !file.exists(file.path(root, 'fresh.R')),
+    !dir.exists(file.path(root, '.apipak-lock'))
+  )
   apipak::apply_files(root, list(owned.R = original), mode = 'apply')
   writeLines(changed, file.path(root, 'owned.R'))
   stopifnot(

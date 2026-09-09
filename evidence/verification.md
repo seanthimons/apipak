@@ -26,6 +26,44 @@
 
 ## Implementation status
 
+### Full client candidate, 2026-09-08
+
+The complete policy represents 343 selected operations: 292 native, 44 explicitly
+mapped and 7 retained with unsupported-schema diagnostics. The 342 existing
+wrappers pass differential formals, calls, successful results and NULL-input
+checks. Four malformed AMOS type labels remain diagnosed; their implementations
+are retained. Source ownership retains 90 files and renders 201 wrapper files,
+including the independently verified public resolver POST.
+
+`comptox-documentation-probe.R` seeds 236 existing documentation policies.
+`comptox-generation-probe.R` verifies formals, existing exports and rendered docs.
+Five AMOS keyset pages intentionally recover literal `{}` defaults that were in
+the source prose but swallowed as empty Rd groups. No other rendered help change
+is accepted; the only added export is the public resolver count POST. Paragraphs,
+inline-code markup and escaped brackets were corrected during this comparison.
+
+`comptox-fixed-contracts.R` freezes baseline helper-call sequences and successful
+typed results as R data fixtures; the separately diagnosed EPI route/auth/body
+correction has its own explicit expectation. Two insufficient fixtures initially
+returned NULL for similarity maps and safety RQ codes; valid response fixtures
+now exercise successful processing. The baseline test environment fixes
+`batch_limit=200`, restored after each generated contract. An initial isolated run
+caught the existing suite's different batch-limit setting instead of weakening
+the request assertions.
+
+`comptox-stage.R` verifies legacy hashes against the frozen baseline, adopts only
+reviewed sources/docs/namespace in an isolated copy, and runs apply/check/second
+apply. The formatted candidate passes **687 assertions, zero failures, warnings
+or skips**, covering all 343 fixed contracts. Original client runtime files are
+still unchanged. The 12-script Windows package check is Status OK. Subsequent
+input revalidation under the apply lock and explicit callback-file dependencies
+are receiving targeted checks before the next commit.
+
+Still pending: production maintenance replacement and definition/caller
+dispositions, remaining ownership/recovery gates, final cross-platform benchmark
+and package/client checks, immutable release and pin adoption, and NP schema-only
+stress evidence. This is a candidate milestone, not migration completion.
+
 Rename candidate installed into `evidence/candidate-library/apipak`.
 All four installed acceptance scripts pass. The first archive check had no
 errors or warnings and one NOTE: its worktree `.git` pointer was included.

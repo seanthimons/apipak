@@ -278,6 +278,20 @@ mappings_acceptance <- function() {
     env$get_item(NULL)$body,
     list(search = NULL, nullable = NULL)
   ))
+  configured$spec$documentation <- TRUE
+  configured$spec$docs <- list(
+    examples = list(list(query = list('first', 'second')))
+  )
+  documented <- apipak::render_operation(configured$operation, configured$spec)
+  example <- sub(
+    "^#' ",
+    '',
+    grep("^#' get_item\\(", strsplit(documented, '\n')[[1L]], value = TRUE)
+  )
+  stopifnot(identical(
+    eval(parse(text = example), env)$body$search,
+    c('first', 'second')
+  ))
   error <- tryCatch(apipak::load_project(root), error = identity)
   stopifnot(
     inherits(error, 'error'),

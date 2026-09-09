@@ -1,3 +1,30 @@
+comptox_probe_operations <- function(schemas) {
+  operations <- do.call(
+    c,
+    unname(lapply(schemas, function(x) {
+      c(x$operations, x$unsupported_operations)
+    }))
+  )
+  known <- vapply(operations, `[[`, character(1), 'id')
+  for (record in schemas) {
+    for (entry in record$inventory) {
+      if (entry$status == 'unsupported' && !entry$id %in% known) {
+        operations[[entry$id]] <- c(
+          entry,
+          list(
+            schema_unreadable = TRUE,
+            parameters = list(),
+            body = NULL,
+            body_required = FALSE,
+            summary = entry$name
+          )
+        )
+      }
+    }
+  }
+  operations
+}
+
 comptox_interface_probe <- function(
   baseline = 'evidence/baseline',
   support = 'evidence/schema-support.rds',
@@ -6,12 +33,7 @@ comptox_interface_probe <- function(
 ) {
   frozen <- readRDS(file.path(baseline, 'public-contracts.rds'))
   schemas <- readRDS(support)
-  operations <- do.call(
-    c,
-    unname(lapply(schemas, function(x) {
-      c(x$operations, x$unsupported_operations)
-    }))
-  )
+  operations <- comptox_probe_operations(schemas)
   definitions <- list()
   for (file in names(frozen)) {
     for (definition in frozen[[file]]$definitions) {
@@ -240,9 +262,22 @@ comptox_interface_probe <- function(
         }
         settings <- list(
           inputs = inputs,
+          file = paste0('R/', definition$file),
           helper = as.character(calls[[1L]][[1L]]),
           request = list(arguments = lapply(args, binding))
         )
+        if (
+          !identical(definition$ownership$status, 'selected') ||
+            isTRUE(op$schema_unreadable)
+        ) {
+          settings$implementation <- 'existing'
+        }
+        if (
+          op$name %in%
+            c('chemi_opera_bulk', 'chemi_predictor_models_predict_bulk')
+        ) {
+          settings$request$arguments$body <- list(callback = 'prediction_body')
+        }
         if (identical(aliases$post_data, as.name('req_data'))) {
           settings$post_state <- 'hook_state'
           settings$post_on_skip <- TRUE
