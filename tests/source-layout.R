@@ -21,7 +21,7 @@ source_layout_acceptance <- function() {
     ),
     metadata
   )
-  definitions <- getFromNamespace('tg_find_function_defs_in_file', 'apipak')(
+  definitions <- getFromNamespace('tg_find_function_defs_in_file', 'specmill')(
     metadata,
     documentation = TRUE
   )
@@ -37,7 +37,7 @@ source_layout_acceptance <- function() {
     )
   )
   file.copy(
-    system.file('catalogue/schema.json', package = 'apipak'),
+    system.file('catalogue/schema.json', package = 'specmill'),
     file.path(root, 'schema.json')
   )
   writeLines(
@@ -46,7 +46,7 @@ source_layout_acceptance <- function() {
   )
   writeLines(
     c('config_version: 1', 'services: [service.yml]'),
-    file.path(root, 'apipak.yml')
+    file.path(root, 'specmill.yml')
   )
   service <- c(
     'id: catalogue',
@@ -56,14 +56,14 @@ source_layout_acceptance <- function() {
   )
   put <- function(lines) writeLines(lines, file.path(root, 'service.yml'))
   run <- function(mode) {
-    apipak::generate_client(root, config = 'apipak.yml', mode = mode)
+    specmill::generate_client(root, config = 'specmill.yml', mode = mode)
   }
   put(service)
   result <- run('apply')
   path <- file.path(root, 'R/generated.R')
   stopifnot(
     length(result$operations) == 4L,
-    length(getFromNamespace('tg_find_function_defs_in_file', 'apipak')(path)) ==
+    length(getFromNamespace('tg_find_function_defs_in_file', 'specmill')(path)) ==
       4L
   )
   run('check')
@@ -77,7 +77,7 @@ source_layout_acceptance <- function() {
     paste0('export(', names(result$operations), ')'),
     file.path(root, 'NAMESPACE')
   )
-  stopifnot(apipak::inspect_client(root)$coverage$catalogue$implemented == 4L)
+  stopifnot(specmill::inspect_client(root)$coverage$catalogue$implemented == 4L)
   expressions <- as.list(parse(path))
   expressions <- Filter(
     function(x) !identical(x[[2L]], as.name('create_item')),
@@ -91,31 +91,31 @@ source_layout_acceptance <- function() {
     ),
     path
   )
-  coverage <- apipak::inspect_client(root)$coverage$catalogue
+  coverage <- specmill::inspect_client(root)$coverage$catalogue
   stopifnot(coverage$total == 4L, coverage$implemented == 3L)
   writeLines(original, path)
   unlink(file.path(root, 'NAMESPACE'))
   # Exact reviewed hashes adopt legacy output without weakening mixed-file checks.
-  unlink(file.path(root, '.apipak'), recursive = TRUE)
+  unlink(file.path(root, '.specmill'), recursive = TRUE)
   hashes <- list(
-    'R/generated.R' = getFromNamespace('output_hash', 'apipak')(path)
+    'R/generated.R' = getFromNamespace('output_hash', 'specmill')(path)
   )
-  apipak::generate_client(
+  specmill::generate_client(
     root,
-    config = 'apipak.yml',
+    config = 'specmill.yml',
     mode = 'apply',
     adopt = hashes
   )
-  manifest <- file.path(root, '.apipak/manifest.json')
+  manifest <- file.path(root, '.specmill/manifest.json')
   stopifnot(file.exists(manifest))
   before_manifest <- tools::md5sum(manifest)
   run('apply')
   stopifnot(identical(before_manifest, tools::md5sum(manifest)))
   writeLines(c(original, '# Changed since review'), path)
   error <- tryCatch(
-    apipak::generate_client(
+    specmill::generate_client(
       root,
-      config = 'apipak.yml',
+      config = 'specmill.yml',
       mode = 'apply',
       adopt = hashes
     ),

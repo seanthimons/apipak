@@ -16,4 +16,4 @@ check_client_hooks(root, config, hooks, callback = "run_hook")
 }
 \value{validate_hooks() returns valid, errors, and counts for functions, hooks, and parameters. check_client_hooks() raises an error for invalid declarations and otherwise returns that result invisibly.}
 \details{config is parsed hook policy data, not a filename. validate_hooks() takes an explicit named list of wrapper functions. check_client_hooks() parses definitions under root once and constructs the wrapper list without loading the client package. The hooks environment supplies the client hook functions. Validation is structural; behavioral hook tests remain necessary.}
-\seealso{\href{https://seanthimons.github.io/apipak/articles/configuration.html}{Step-by-step guide}.}
+\seealso{\href{https://seanthimons.github.io/specmill/articles/configuration.html}{Step-by-step guide}.}

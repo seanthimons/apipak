@@ -10,7 +10,7 @@ vignette: >
 
 ## Supported input and transport
 
-apipak reads local JSON documents in OpenAPI 3.0/3.1 or Swagger 2.0 format.
+specmill reads local JSON documents in OpenAPI 3.0/3.1 or Swagger 2.0 format.
 YAML project configuration does not imply support for YAML schema documents.
 The parser is a supported-subset extractor, not a full OpenAPI validator.
 
@@ -47,7 +47,7 @@ coverage totals. They never authorize deleting old output.
 
 | Symptom | Next step |
 |---|---|
-| Package/function not found | Install the reviewed toolkit, restart R, and inspect `packageVersion('apipak')` and `find.package('apipak')` |
+| Package/function not found | Install the reviewed toolkit, restart R, and inspect `packageVersion('specmill')` and `find.package('specmill')` |
 | Missing schema / pattern matched nothing | Resolve paths against `root`, check case, and use sequences such as `files: [schema.json]` |
 | Unknown YAML field / invalid regex | Compare with [Configuration](configuration.html); use case-sensitive stringr syntax |
 | Unknown operation override | Match the original method/path, including path parameter spelling and trailing slash |
@@ -67,8 +67,8 @@ the toolkit and formatter alongside schema, policy, and fixture versions.
 
 ## Ownership and protected files
 
-`.apipak/manifest.json` records output hashes and generation input metadata.
-Keep it in Git. A header alone cannot grant ownership. apipak protects unowned
+`.specmill/manifest.json` records output hashes and generation input metadata.
+Keep it in Git. A header alone cannot grant ownership. specmill protects unowned
 files, locally edited output, and protected lifecycle states. It rejects groups
 containing undeclared definitions or other top-level code.
 
@@ -87,20 +87,20 @@ file actions rather than assuming all requested deletions happened.
 Application parses R output and stages backups before mutation. It holds one
 exclusive project lock, verifies writes, and restores backups after an error.
 There is no cross-file filesystem transaction. A process termination can leave
-a recovery journal and `.apipak-lock` directory.
+a recovery journal and `.specmill-lock` directory.
 
 First stop other writers and confirm the interrupted R process has exited.
 Inspect the recovery plan without writing:
 
 ```{r recovery-plan, eval=FALSE}
 root <- normalizePath('/path/to/client', winslash = '/', mustWork = TRUE)
-apipak::recover_client(root)
+specmill::recover_client(root)
 ```
 
 When no live writer remains, remove only an empty stale lock, if present:
 
 ```{r stale-lock, eval=FALSE}
-lock <- file.path(root, '.apipak-lock')
+lock <- file.path(root, '.specmill-lock')
 if (dir.exists(lock)) {
   stopifnot(
     !fs::is_link(lock),
@@ -110,16 +110,16 @@ if (dir.exists(lock)) {
 }
 ```
 
-The normalized `root` and literal `.apipak-lock` keep the target explicit. Do
+The normalized `root` and literal `.specmill-lock` keep the target explicit. Do
 not remove a nonempty directory or use a broad wildcard cleanup. Restore the
 reviewed journal, then replan:
 
 ```{r recovery-apply, eval=FALSE}
-apipak::recover_client(root, 'apply')
-apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+specmill::recover_client(root, 'apply')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
 ```
 
-Recovery recognizes current and legacy wrapmaint journals, validates destinations
+Recovery recognizes specmill journals, validates destinations
 and backups, and retains the journal on failure. Never delete journals/backups
 to bypass recovery. The lock is not stolen automatically: directory age does not
 distinguish a dead process from a slow live writer.
@@ -133,7 +133,7 @@ spec <- list(
   files = '/path/to/schema.json', helper = 'request_helper',
   policy_version = 'reviewed-1'
 )
-apipak::generate_client('/path/to/client', spec, 'plan')
+specmill::generate_client('/path/to/client', spec, 'plan')
 ```
 
 Supply exactly one of `spec` and `config`. YAML is the recommended entry point
@@ -149,7 +149,7 @@ reporting policy. Legacy diff counts and helper-call tests are regression
 evidence, not a general compatibility proof.
 
 The `readiness` group retains the versioned audit helpers for clients already
-using that workflow. Bind into an environment with `asNamespace('apipak')` as
+using that workflow. Bind into an environment with `asNamespace('specmill')` as
 parent and set `audit_policy` through its `read_audit_policy()` reader. Credential
 names, issue metadata, badge paths, and test-tier descriptions belong to the
 client's audit policy. Prefer the client's existing thin audit command.
@@ -160,4 +160,4 @@ Include the toolkit version, operating system, generation mode, sanitized error,
 and the smallest local schema/policy that reproduces it. State which checks ran
 and whether any request was sent. Remove keys, tokens, private URLs, and private
 response content. Report at the
-[apipak issue tracker](https://github.com/seanthimons/apipak/issues).
+[specmill issue tracker](https://github.com/seanthimons/specmill/issues).

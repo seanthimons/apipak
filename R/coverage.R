@@ -2,7 +2,7 @@ coverage_report <- function(
   root,
   policy,
   callbacks = new.env(parent = emptyenv()),
-  config = 'apipak.yml',
+  config = 'specmill.yml',
   mode = c('plan', 'apply')
 ) {
   mode <- match.arg(mode)

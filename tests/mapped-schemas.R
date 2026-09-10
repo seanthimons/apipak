@@ -9,7 +9,7 @@ mapped_schema_acceptance <- function() {
   )
   writeLines(
     c('config_version: 1', 'services: [service.yml]'),
-    file.path(root, 'apipak.yml')
+    file.path(root, 'specmill.yml')
   )
   writeLines(
     c(
@@ -55,16 +55,16 @@ mapped_schema_acceptance <- function() {
     list(oneOf = list(list(type = 'string'), list(type = 'number')))
   )) {
     put(schema)
-    native <- apipak::read_operations(file)
+    native <- specmill::read_operations(file)
     stopifnot(
       length(native$operations) == 0L,
       length(native$unsupported_operations) == 1L,
       length(native$diagnostics) == 1L,
       native$inventory[[1L]]$status == 'unsupported'
     )
-    result <- apipak::generate_client(
+    result <- specmill::generate_client(
       root,
-      config = 'apipak.yml',
+      config = 'specmill.yml',
       mode = 'apply'
     )
     stopifnot(
@@ -79,7 +79,7 @@ mapped_schema_acceptance <- function() {
     sys.source(file.path(root, 'R/submit_records.R'), env)
     payload <- list(arbitrary = list(FALSE, 0, NULL))
     stopifnot(identical(env$submit_records(payload), payload))
-    apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+    specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
   }
   for (schema in list(
     list(type = 'dict'),
@@ -89,13 +89,13 @@ mapped_schema_acceptance <- function() {
     list(oneOf = list())
   )) {
     put(schema)
-    parsed <- apipak::read_operations(file)
+    parsed <- specmill::read_operations(file)
     stopifnot(
       !length(parsed$unsupported_operations),
       length(parsed$diagnostics) == 1L
     )
     error <- tryCatch(
-      apipak::generate_client(root, config = 'apipak.yml', mode = 'apply'),
+      specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'),
       error = identity
     )
     stopifnot(
@@ -103,7 +103,7 @@ mapped_schema_acceptance <- function() {
       grepl('Unsupported selected', conditionMessage(error))
     )
   }
-  resolve <- getFromNamespace('local_ref', 'apipak')
+  resolve <- getFromNamespace('local_ref', 'specmill')
   references <- list('~1' = list(type = 'string'), '/' = list(type = 'number'))
   stopifnot(identical(
     resolve(list('$ref' = '#/~01'), references),

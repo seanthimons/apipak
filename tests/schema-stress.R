@@ -2,12 +2,12 @@
 schema_stress_acceptance <- function() {
   schema <- system.file(
     'schema-stress/natural-products.json',
-    package = 'apipak',
+    package = 'specmill',
     mustWork = TRUE
   )
   origin <- jsonlite::read_json(system.file(
     'schema-stress/natural-products-origin.json',
-    package = 'apipak'
+    package = 'specmill'
   ))
   stopifnot(identical(
     digest::digest(file = schema, algo = 'sha256'),
@@ -23,7 +23,7 @@ schema_stress_acceptance <- function() {
     ) ==
       'https://api.naturalproducts.net/latest'
   )
-  parsed <- apipak::read_operations(schema)
+  parsed <- specmill::read_operations(schema)
   status <- vapply(parsed$inventory, `[[`, character(1), 'status')
   stopifnot(
     length(status) == 43L,
@@ -103,7 +103,7 @@ schema_stress_acceptance <- function() {
   }
   stopifnot(file.exists(port_file))
   root <- tempfile('schema-stress-')
-  apipak::initialize_client(
+  specmill::initialize_client(
     root,
     schema,
     package = 'schemastress',
@@ -137,7 +137,7 @@ schema_stress_acceptance <- function() {
       'error'
     ))
   }
-  fails(apipak::generate_client(root, config = 'apipak.yml', mode = 'apply'))
+  fails(specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'))
   stopifnot(identical(before, hashes()))
   service_path <- file.path(root, 'apis/default.yml')
   service <- yaml::read_yaml(service_path)
@@ -160,15 +160,15 @@ schema_stress_acceptance <- function() {
     'POST /ocsr/process' = 'process_image'
   )
   yaml::write_yaml(service, service_path)
-  generated <- apipak::generate_client(
+  generated <- specmill::generate_client(
     root,
-    config = 'apipak.yml',
+    config = 'specmill.yml',
     mode = 'apply'
   )
   stopifnot(length(generated$operations) == 3L, !length(generated$diagnostics))
   before <- hashes()
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   stopifnot(identical(before, hashes()))
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE)) {

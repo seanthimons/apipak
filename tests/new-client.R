@@ -68,7 +68,7 @@ new_client_acceptance <- function() {
   root <- tempfile('initialized-client-')
   schema <- system.file(
     'catalogue/schema.json',
-    package = 'apipak',
+    package = 'specmill',
     mustWork = TRUE
   )
   document <- jsonlite::read_json(schema)
@@ -94,9 +94,9 @@ new_client_acceptance <- function() {
       'error'
     ))
   }
-  fails(apipak::initialize_client(root, schema, base_url = base_url))
+  fails(specmill::initialize_client(root, schema, base_url = base_url))
   stopifnot(!dir.exists(root))
-  apipak::initialize_client(
+  specmill::initialize_client(
     root,
     schema,
     package = 'temporarycatalogue',
@@ -129,20 +129,20 @@ new_client_acceptance <- function() {
     file.path(root, 'air.toml')
   )
   original <- hashes()
-  fails(apipak::initialize_client(root, schema, base_url = base_url))
+  fails(specmill::initialize_client(root, schema, base_url = base_url))
   stopifnot(identical(original, hashes()))
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
   stopifnot(identical(original, hashes()))
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   # Text inputs keep the same fingerprint after a Git line-ending conversion.
   writeBin(charToRaw('word\r\nlist\r\n'), file.path(root, 'inst/WORDLIST'))
   writeBin(
     charToRaw('[format]\r\nline-width = 80\r\n'),
     file.path(root, 'air.toml')
   )
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
   applied <- hashes()
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     identical(applied, hashes()),
     file.exists(file.path(root, 'man/get_item.Rd')),
@@ -151,16 +151,16 @@ new_client_acceptance <- function() {
   policy_path <- file.path(root, 'apis/default.yml')
   policy <- readLines(policy_path)
   writeLines(c(policy, 'names:', '  GET /items: renamed_items'), policy_path)
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     !file.exists(file.path(root, 'R/list_items.R')),
     !file.exists(file.path(root, 'man/list_items.Rd')),
     file.exists(file.path(root, 'man/renamed_items.Rd')),
     'export(renamed_items)' %in% readLines(file.path(root, 'NAMESPACE'))
   )
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
   writeLines(c(policy, 'names:', '  GET /items: list_items'), policy_path)
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   library <- tempfile('standalone-client-library-')
   dir.create(library)
   install_log <- tempfile('client-install-')
@@ -176,10 +176,10 @@ new_client_acceptance <- function() {
   if (status != 0L) {
     stop(paste(readLines(install_log), collapse = '\n'))
   }
-  libraries <- .libPaths()[!file.exists(file.path(.libPaths(), 'apipak'))]
+  libraries <- .libPaths()[!file.exists(file.path(.libPaths(), 'specmill'))]
   callr::r(
     function() {
-      stopifnot(!requireNamespace('apipak', quietly = TRUE))
+      stopifnot(!requireNamespace('specmill', quietly = TRUE))
       requireNamespace('httr2', quietly = TRUE)
       previous <- options()
       requireNamespace('temporarycatalogue', quietly = TRUE)

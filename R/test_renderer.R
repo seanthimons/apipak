@@ -25,7 +25,7 @@ render_contract <- function(operation, spec, contract) {
   )
   paste(
     c(
-      '# Generated with apipak; do not edit by hand.',
+      '# Generated with specmill; do not edit by hand.',
       paste0(
         'testthat::test_that(',
         r_literal(paste(
@@ -159,7 +159,7 @@ render_fixed_contract <- function(operation, spec, contract) {
   }
   paste(
     c(
-      '# Generated with apipak; do not edit by hand.',
+      '# Generated with specmill; do not edit by hand.',
       paste0(
         'testthat::test_that(',
         r_literal(paste(operation$name, 'completes the fixed call sequence')),

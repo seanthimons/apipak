@@ -1,10 +1,10 @@
 maintenance_acceptance <- function() {
   for (value in c('', 'dummy_ctx_key', '<<<API_KEY>>>', 'xxxxxxxx')) {
-    stopifnot(!apipak::credential_status(value)$valid)
+    stopifnot(!specmill::credential_status(value)$valid)
   }
-  stopifnot(apipak::credential_status('realistic-token-value-123')$valid)
+  stopifnot(specmill::credential_status('realistic-token-value-123')$valid)
   error <- tryCatch(
-    apipak::credential_preflight('dummy-do-not-log'),
+    specmill::credential_preflight('dummy-do-not-log'),
     error = identity
   )
   stopifnot(
@@ -21,24 +21,24 @@ maintenance_acceptance <- function() {
     file.path(root, 'R/item.R')
   )
   policy <- list(forbidden_hosts = 'sandbox[.]example', api_exports = '^api_')
-  stopifnot(apipak::check_public_boundary(root, policy, 'api_item'))
+  stopifnot(specmill::check_public_boundary(root, policy, 'api_item'))
   fails <- function(expression, pattern) {
     error <- tryCatch(force(expression), error = identity)
     stopifnot(inherits(error, 'error'), grepl(pattern, conditionMessage(error)))
   }
   fails(
-    apipak::check_public_boundary(root, policy, character()),
+    specmill::check_public_boundary(root, policy, character()),
     'no approved production mapping'
   )
   writeLines('sandbox.example', file.path(root, 'README.md'))
-  fails(apipak::check_public_boundary(root, policy), 'Non-production address')
+  fails(specmill::check_public_boundary(root, policy), 'Non-production address')
   unlink(file.path(root, 'README.md'))
   policy$forbidden_exports <- '^api_item$'
-  fails(apipak::check_public_boundary(root, policy), 'Non-production export')
+  fails(specmill::check_public_boundary(root, policy), 'Non-production export')
   hooks <- new.env(parent = baseenv())
   hooks$tidy <- function(x) x
   config <- list(api_item = list(post_response = 'tidy'))
-  result <- apipak::check_client_hooks(root, config, hooks)
+  result <- specmill::check_client_hooks(root, config, hooks)
   stopifnot(result$valid, result$hooks == 1L)
   templated <- list(
     api_item = list(
@@ -60,20 +60,20 @@ maintenance_acceptance <- function() {
     ),
     file.path(root, 'R/item.R')
   )
-  stopifnot(apipak::check_client_hooks(root, templated, hooks)$valid)
+  stopifnot(specmill::check_client_hooks(root, templated, hooks)$valid)
   lines <- readLines(file.path(root, 'R/item.R'))
   writeLines(
     sub('state\\[\\["request"', 'unrelated[["request"', lines),
     file.path(root, 'R/item.R')
   )
-  fails(apipak::check_client_hooks(root, templated, hooks), 'does not match')
+  fails(specmill::check_client_hooks(root, templated, hooks), 'does not match')
   writeLines('api_item <- function(x) x', file.path(root, 'R/item.R'))
   fails(
-    apipak::check_client_hooks(root, config, hooks),
+    specmill::check_client_hooks(root, config, hooks),
     'does not emit that stage'
   )
   writeLines('api_item <- function(x) x', file.path(root, 'R/duplicate.R'))
-  fails(apipak::check_client_hooks(root, config, hooks), 'Duplicate')
+  fails(specmill::check_client_hooks(root, config, hooks), 'Duplicate')
   cat(
     'Maintenance: public membership, forbidden artifacts, parsed hook checks and duplicates passed.\n'
   )

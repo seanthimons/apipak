@@ -8,7 +8,7 @@ verify_client_runtime <- function(root) {
   packages <- c('testthat', 'httr2', trimws(sub(' *\\(.*', '', strsplit(fields[[1L, 'Imports']], ',')[[1L]])))
   packages <- unique(c(packages, unlist(tools::package_dependencies(packages, installed.packages(),
     which = c('Depends', 'Imports', 'LinkingTo'), recursive = TRUE))))
-  for (package in setdiff(packages, c('R', 'apipak', 'wrapmaint'))) {
+  for (package in setdiff(packages, c('R', 'specmill', 'wrapmaint'))) {
     source <- find.package(package)
     if (!startsWith(normalizePath(source, winslash = '/'), normalizePath(.Library, winslash = '/')) &&
         !dir.exists(file.path(library, package))) stopifnot(file.copy(source, library, recursive = TRUE))
@@ -16,9 +16,9 @@ verify_client_runtime <- function(root) {
   status <- system2(file.path(R.home('bin'), if (.Platform$OS.type == 'windows') 'R.exe' else 'R'),
     c('CMD', 'INSTALL', paste0('--library=', shQuote(library)), shQuote(root)))
   stopifnot(status == 0L)
-  libraries <- .libPaths()[!file.exists(file.path(.libPaths(), 'apipak')) & !file.exists(file.path(.libPaths(), 'wrapmaint'))]
+  libraries <- .libPaths()[!file.exists(file.path(.libPaths(), 'specmill')) & !file.exists(file.path(.libPaths(), 'wrapmaint'))]
   callr::r(function(root) {
-    stopifnot(!requireNamespace('apipak', quietly = TRUE), !requireNamespace('wrapmaint', quietly = TRUE))
+    stopifnot(!requireNamespace('specmill', quietly = TRUE), !requireNamespace('wrapmaint', quietly = TRUE))
     dependencies <- tools::package_dependencies('ComptoxR', installed.packages(), recursive = TRUE)[[1L]]
     for (package in setdiff(dependencies, 'R')) requireNamespace(package, quietly = TRUE)
     requireNamespace('testthat', quietly = TRUE)
@@ -34,7 +34,7 @@ verify_client_runtime <- function(root) {
     env <- new.env(parent = globalenv())
     for (test in tests) testthat::test_file(test, env = env, reporter = 'silent',
       load_helpers = FALSE, stop_on_failure = TRUE)
-    stopifnot(!any(c('apipak', 'wrapmaint') %in% loadedNamespaces()))
+    stopifnot(!any(c('specmill', 'wrapmaint') %in% loadedNamespaces()))
     cat('Installed ComptoxR: 343 fixed contracts; no toolkit, load-time HTTP or option mutation.\n')
   }, args = list(root), libpath = c(library, libraries), show = TRUE)
 }

@@ -12,11 +12,11 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = '#>', message = FALSE)
 ```
 
-Adoption connects an existing R package to apipak without recreating the package
+Adoption connects an existing R package to specmill without recreating the package
 or replacing its HTTP implementation. Work on a dedicated branch, record a clean
 baseline, and begin with one representative operation.
 
-If your project is already configured, skip to [the maintenance loop](maintenance.html).
+If your project is already configured for specmill, skip to [the maintenance loop](maintenance.html).
 ComptoxR maintainers can use the commands at the end of this guide.
 
 ## 1. Record the existing contract
@@ -32,7 +32,7 @@ It adds a new httr2 helper and refuses conflicts with existing scaffold files.
 
 ## 2. Add project and service files
 
-Create `apipak.yml` in the client root:
+Create `specmill.yml` in the client root:
 
 ```yaml
 config_version: 1
@@ -71,15 +71,15 @@ operations:
 
 This preserves `fetch_item(identifier, language = 'en')` while mapping it to
 `request_item(endpoint = 'items', id = identifier, language = language)`.
-The helper must be defined in the client's `R/` source. apipak parses its
+The helper must be defined in the client's `R/` source. specmill parses its
 arguments before applying generated code.
 
 `inputs` declares the complete public interface and requires an explicit request
 mapping. `parameters` is the alternative when only a few schema-derived arguments
 need changing. See [Configuration](configuration.html).
 
-Exclude config, schemas, and `.apipak` from the built client package using
-`.Rbuildignore`, but keep them in Git. Do not add apipak to runtime dependencies.
+Exclude config, schemas, and `.specmill` from the built client package using
+`.Rbuildignore`, but keep them in Git. Do not add specmill to runtime dependencies.
 
 ## 3. Keep executable customizations in R
 
@@ -89,8 +89,8 @@ For development callbacks, use an explicit environment:
 root <- normalizePath('/path/to/existingclient', winslash = '/', mustWork = TRUE)
 callbacks <- new.env(parent = baseenv())
 sys.source(file.path(root, 'dev/callbacks.R'), envir = callbacks)
-plan <- apipak::generate_client(
-  root, config = 'apipak.yml', callbacks = callbacks, mode = 'plan'
+plan <- specmill::generate_client(
+  root, config = 'specmill.yml', callbacks = callbacks, mode = 'plan'
 )
 ```
 
@@ -112,9 +112,9 @@ bundled helper's default contract.
 ```{r adoption-setup}
 root <- tempfile('existing-client-')
 dir.create(root)
-catalogue <- system.file('catalogue', package = 'apipak', mustWork = TRUE)
+catalogue <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
 stopifnot(all(file.copy(list.files(catalogue, full.names = TRUE), root, recursive = TRUE)))
-writeLines(c('config_version: 1', 'services: [catalogue.yml]'), file.path(root, 'apipak.yml'))
+writeLines(c('config_version: 1', 'services: [catalogue.yml]'), file.path(root, 'specmill.yml'))
 writeLines(c(
   'id: catalogue', 'schemas: {files: [schema.json]}',
   'helper: catalogue_request'
@@ -127,7 +127,7 @@ writeLines(c(
   '    path_params = list(item_id = item_id), query = list(language = language), body = NULL)',
   '}'
 ), legacy)
-plan <- apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
 Filter(function(x) x$action == 'protected', plan$files)
 ```
 
@@ -139,13 +139,13 @@ endings, and no terminal newline:
 text <- paste(readLines(legacy, warn = FALSE, encoding = 'UTF-8'), collapse = '\n')
 hash <- digest::digest(enc2utf8(text), algo = 'sha256', serialize = FALSE)
 adopt <- list('R/get_item.R' = hash)
-reviewed <- apipak::generate_client(
-  root, config = 'apipak.yml', mode = 'plan', adopt = adopt
+reviewed <- specmill::generate_client(
+  root, config = 'specmill.yml', mode = 'plan', adopt = adopt
 )
-applied <- apipak::generate_client(
-  root, config = 'apipak.yml', mode = 'apply', adopt = adopt
+applied <- specmill::generate_client(
+  root, config = 'specmill.yml', mode = 'apply', adopt = adopt
 )
-checked <- apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 stopifnot(!any(vapply(checked$files, function(x) x$action == 'protected', logical(1))))
 ```
 
@@ -158,7 +158,7 @@ or shared `NAMESPACE` conflicts separately.
 
 For a schema operation that must keep its handwritten wrapper, add
 `implementation: existing`, along with its explicit `name`, complete `inputs`,
-and `request` mapping. apipak checks the actual formals and retains the source.
+and `request` mapping. specmill checks the actual formals and retains the source.
 It can generate a fixed contract test, but does not rewrite that implementation's
 documentation.
 
@@ -180,9 +180,8 @@ See [Testing](testing.html) and [Troubleshooting](troubleshooting.html).
 
 ## ComptoxR: use the maintained integration
 
-These commands follow the migrated ComptoxR layout at revision `9146cd77`.
-Use the `CONTRIBUTING.md` in your checkout for its current branch/release policy.
-Older checkouts may still use wrapmaint.
+These commands use the specmill integration in ComptoxR. Use the
+`CONTRIBUTING.md` in your checkout for its current branch/release policy.
 
 From the ComptoxR root, install its checksum-pinned toolkit:
 
@@ -191,9 +190,9 @@ source('dev/install_toolkit.R')
 install_toolkit()
 ```
 
-The project declares Air **0.9.0** in `apipak.yml`; install that exact formatter
+The project declares Air **0.9.0** in `specmill.yml`; install that exact formatter
 before generation. The project selects CTX, EPI, and separate Chemi service files.
-`dev/apipak_callbacks.R` supplies development callbacks; `inst/hook_config.yml`
+`dev/specmill_callbacks.R` supplies development callbacks; `inst/hook_config.yml`
 remains the runtime hook policy. Keep these rather than substituting the
 simplified examples above.
 

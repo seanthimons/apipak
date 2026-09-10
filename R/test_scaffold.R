@@ -89,7 +89,7 @@ format_output <- function(root, desired, formatter) {
   if (!identical(version, paste('air', formatter$version))) {
     stop('Configured Air version differs from installed formatter')
   }
-  stage <- tempfile('apipak-format-')
+  stage <- tempfile('specmill-format-')
   dir.create(stage)
   on.exit(unlink(stage, recursive = TRUE), add = TRUE)
   settings <- intersect(
@@ -206,7 +206,7 @@ tg_scaffold_generated_tests <- function(
     character(1),
     root = root
   )
-  apipak::apply_files(
+  specmill::apply_files(
     root,
     output,
     remove = setdiff(removals, names(output)),

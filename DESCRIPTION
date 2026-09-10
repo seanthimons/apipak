@@ -1,6 +1,6 @@
-Package: apipak
+Package: specmill
 Title: Local API Wrapper Maintenance Tools
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: person('Sean', 'Thimons', role = c('aut', 'cre'), email = 'sxthi@outlook.com')
 Description: Development tools for local schema parsing, wrapper generation,
     generated file ownership and hook validation. Generated clients retain
@@ -10,6 +10,6 @@ Encoding: UTF-8
 Imports: cli, digest, dplyr, fs, jsonlite, purrr, readr, roxygen2, stringr, tibble, tidyr, yaml
 Suggests: testthat, httr2, callr, httpuv, withr, knitr, rmarkdown
 VignetteBuilder: knitr
-URL: https://seanthimons.github.io/apipak/, https://github.com/seanthimons/apipak
-BugReports: https://github.com/seanthimons/apipak/issues
+URL: https://seanthimons.github.io/specmill/, https://github.com/seanthimons/specmill
+BugReports: https://github.com/seanthimons/specmill/issues
 Config/Needs/website: pkgdown

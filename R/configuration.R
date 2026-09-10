@@ -1,7 +1,7 @@
 config_fields <- function(x, allowed, label) {
   if (
     !is.list(x) ||
-      inherits(x, 'apipak_sequence') ||
+      inherits(x, 'specmill_sequence') ||
       (length(x) && (is.null(names(x)) || any(!nzchar(names(x)))))
   ) {
     stop(label, ' must be a map')
@@ -21,7 +21,7 @@ config_string <- function(x, label) {
 }
 
 config_sequence <- function(x, label) {
-  if (!inherits(x, 'apipak_sequence')) {
+  if (!inherits(x, 'specmill_sequence')) {
     stop(label, ' must be a sequence')
   }
   vapply(x, config_string, character(1), label = label)
@@ -47,7 +47,7 @@ read_config_yaml <- function(path) {
       merge.precedence = 'override',
       handlers = list(
         expr = function(...) stop('Executable YAML tags are forbidden'),
-        seq = function(x) structure(x, class = 'apipak_sequence')
+        seq = function(x) structure(x, class = 'specmill_sequence')
       )
     ),
     warning = function(w) stop(conditionMessage(w), call. = FALSE)
@@ -146,7 +146,7 @@ read_service_operations <- function(service) {
 
 load_project <- function(
   root,
-  config = 'apipak.yml',
+  config = 'specmill.yml',
   callbacks = new.env(parent = emptyenv())
 ) {
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)

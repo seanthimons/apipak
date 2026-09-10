@@ -1,6 +1,6 @@
 nested_body_acceptance <- function() {
-  fixture <- getFromNamespace('body_fixture', 'apipak')
-  normalize <- getFromNamespace('supported_body', 'apipak')
+  fixture <- getFromNamespace('body_fixture', 'specmill')
+  normalize <- getFromNamespace('supported_body', 'specmill')
   schema <- list(
     type = 'object',
     required = list('records'),
@@ -59,7 +59,7 @@ nested_body_acceptance <- function() {
   file <- tempfile(fileext = '.json')
   read <- function() {
     jsonlite::write_json(document, file, auto_unbox = TRUE, null = 'null')
-    apipak::read_operations(file)
+    specmill::read_operations(file)
   }
   parsed <- read()
   stopifnot(!length(parsed$diagnostics))
@@ -71,7 +71,7 @@ nested_body_acceptance <- function() {
   }
   eval(
     parse(
-      text = apipak::render_operation(
+      text = specmill::render_operation(
         parsed$operations[[1L]],
         list(helper = 'request')
       )
@@ -98,7 +98,7 @@ nested_body_acceptance <- function() {
     stopifnot(!length(parsed$diagnostics))
     eval(
       parse(
-        text = apipak::render_operation(
+        text = specmill::render_operation(
           parsed$operations[[1L]],
           list(helper = 'request')
         )

@@ -23,7 +23,7 @@ loading_acceptance <- function() {
   }
   previous_options <- options()
   previous_search <- search()
-  requireNamespace('apipak', quietly = TRUE)
+  requireNamespace('specmill', quietly = TRUE)
   stopifnot(
     identical(previous_options, options()),
     identical(previous_search, search()),

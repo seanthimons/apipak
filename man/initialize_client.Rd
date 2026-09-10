@@ -16,5 +16,5 @@ initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
 \item{base_url}{Absolute HTTP base URL for a new client-owned transport.}
 }
 \value{A list of applied file records, each containing file, path, and action. Stops before application for invalid metadata or conflicting scaffold paths.}
-\details{This function writes immediately and refuses any existing-file conflict. Supply package, title, author (given, family, email), and license for a new package. Existing DESCRIPTION metadata is retained; it must already declare httr2. The base URL can come from the first schema server, but must be an absolute HTTP URL. Initialization does not generate wrappers or tests: follow with generate_client(). The helper is client runtime code and does not import apipak.}
-\seealso{\href{https://seanthimons.github.io/apipak/articles/apipak.html}{Step-by-step guide}.}
+\details{This function writes immediately and refuses any existing-file conflict. Supply package, title, author (given, family, email), and license for a new package. Existing DESCRIPTION metadata is retained; it must already declare httr2. The base URL can come from the first schema server, but must be an absolute HTTP URL. Initialization does not generate wrappers or tests: follow with generate_client(). The helper is client runtime code and does not import specmill.}
+\seealso{\href{https://seanthimons.github.io/specmill/articles/specmill.html}{Step-by-step guide}.}

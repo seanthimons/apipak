@@ -23,8 +23,8 @@ readiness_acceptance <- function() {
       'test_tiers: {unit: {label: Unit, requirements: [Offline], activation: [Tests]}}'
     )
   )
-  context <- new.env(parent = asNamespace('apipak'))
-  apipak::bind_tools('readiness', context)
+  context <- new.env(parent = asNamespace('specmill'))
+  specmill::bind_tools('readiness', context)
   context$audit_policy <- context$read_audit_policy(file.path(
     root,
     'dev/policy.yml'
@@ -38,8 +38,8 @@ readiness_acceptance <- function() {
     report$comparisons$vcr_classification$valid,
     identical(report$test_tiers$unit$requirements, 'Offline')
   )
-  second <- new.env(parent = asNamespace('apipak'))
-  apipak::bind_tools('readiness', second)
+  second <- new.env(parent = asNamespace('specmill'))
+  specmill::bind_tools('readiness', second)
   stopifnot(!length(second$audit_policy), length(context$audit_policy) > 0L)
   put('NAMESPACE', c('export(alpha)', 'export(beta)'))
   put('R/beta.R', 'beta <- function() 2')
@@ -51,7 +51,7 @@ readiness_acceptance <- function() {
     inherits(error, 'error'),
     grepl('Export test gaps', conditionMessage(error))
   )
-  put('dev/audit.R', "located_root <- apipak::script_root('audit.R')")
+  put('dev/audit.R', "located_root <- specmill::script_root('audit.R')")
   sourced <- new.env(parent = baseenv())
   sys.source(file.path(root, 'dev/audit.R'), sourced)
   stopifnot(identical(

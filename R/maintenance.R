@@ -200,7 +200,7 @@ check_client_hooks <- function(root, config, hooks, callback = 'run_hook') {
 
 inspect_client <- function(
   root,
-  config = 'apipak.yml',
+  config = 'specmill.yml',
   callbacks = new.env(parent = emptyenv())
 ) {
   project <- load_project(root, config, callbacks)

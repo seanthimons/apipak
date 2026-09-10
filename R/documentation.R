@@ -211,7 +211,7 @@ operation_documentation <- function(op, policy = list()) {
 }
 
 document_output <- function(root, desired, remove = character()) {
-  stage <- tempfile('apipak-documentation-')
+  stage <- tempfile('specmill-documentation-')
   dir.create(stage)
   on.exit(unlink(stage, recursive = TRUE), add = TRUE)
   inputs <- intersect(

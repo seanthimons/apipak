@@ -15,7 +15,7 @@ credential_preflight(value, name = "credential", abort = TRUE, guidance = charac
 }
 \value{credential_status() returns valid and reason. credential_preflight() returns TRUE/FALSE invisibly and emits a success message, warning, or error according to status and abort.}
 \details{These checks do not establish service authorization or key validity. guidance contains client-owned setup instructions. With abort = FALSE, preflight warns and returns FALSE instead of raising an error.}
-\seealso{\href{https://seanthimons.github.io/apipak/articles/maintenance.html}{Step-by-step guide}.}
+\seealso{\href{https://seanthimons.github.io/specmill/articles/maintenance.html}{Step-by-step guide}.}
 \examples{
 credential_status('', 'service key')
 credential_status('your_key', 'service key')

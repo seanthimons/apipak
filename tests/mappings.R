@@ -8,13 +8,13 @@ mappings_acceptance <- function() {
     ),
     source
   )
-  definitions <- getFromNamespace('tg_find_function_defs_in_file', 'apipak')
+  definitions <- getFromNamespace('tg_find_function_defs_in_file', 'specmill')
   stopifnot(identical(names(definitions(source)), 'mapped'))
   writeLines('broken <- function(', source)
   stopifnot(inherits(tryCatch(definitions(source), error = identity), 'error'))
   root <- tempfile('mapped-client-')
   dir.create(root)
-  fixture <- system.file('catalogue', package = 'apipak', mustWork = TRUE)
+  fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
   stopifnot(all(file.copy(
     list.files(fixture, full.names = TRUE),
     root,
@@ -22,7 +22,7 @@ mappings_acceptance <- function() {
   )))
   writeLines(
     c('config_version: 1', 'services: [service.yml]'),
-    file.path(root, 'apipak.yml')
+    file.path(root, 'specmill.yml')
   )
   service <- c(
     'id: mapped',
@@ -55,13 +55,13 @@ mappings_acceptance <- function() {
   )
   put <- function(lines) writeLines(lines, file.path(root, 'service.yml'))
   put(service)
-  project <- apipak::load_project(root)
+  project <- specmill::load_project(root)
   selected <- project$services$mapped
-  operation <- apipak::read_operations(
+  operation <- specmill::read_operations(
     selected$files,
     selected$policy
   )$operations[[1L]]
-  configured <- getFromNamespace('configure_operation', 'apipak')(
+  configured <- getFromNamespace('configure_operation', 'specmill')(
     operation,
     selected
   )
@@ -93,7 +93,7 @@ mappings_acceptance <- function() {
   }
   render <- function(spec = configured$spec) {
     eval(
-      parse(text = apipak::render_operation(configured$operation, spec)),
+      parse(text = specmill::render_operation(configured$operation, spec)),
       env
     )
     env$get_item
@@ -158,7 +158,7 @@ mappings_acceptance <- function() {
   fails <- function(lines, pattern) {
     put(lines)
     error <- tryCatch(
-      apipak::generate_client(root, config = 'apipak.yml', mode = 'plan'),
+      specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
       error = identity
     )
     stopifnot(inherits(error, 'error'), grepl(pattern, conditionMessage(error)))
@@ -226,19 +226,19 @@ mappings_acceptance <- function() {
     },
     add = TRUE
   )
-  project <- apipak::load_project(root, callbacks = callbacks)
+  project <- specmill::load_project(root, callbacks = callbacks)
   selected <- project$services$mapped
-  operation <- apipak::read_operations(
+  operation <- specmill::read_operations(
     selected$files,
     selected$policy
   )$operations[[1L]]
-  configured <- getFromNamespace('configure_operation', 'apipak')(
+  configured <- getFromNamespace('configure_operation', 'specmill')(
     operation,
     selected
   )
   eval(
     parse(
-      text = apipak::render_operation(configured$operation, configured$spec)
+      text = specmill::render_operation(configured$operation, configured$spec)
     ),
     env
   )
@@ -266,7 +266,7 @@ mappings_acceptance <- function() {
   stopifnot(inherits(tryCatch(env$get_item(), error = identity), 'error'))
   put(sub('rows: .*', 'rows: {array: {query: {value: 1}}}', mapped))
   error <- tryCatch(
-    apipak::load_project(root, callbacks = callbacks),
+    specmill::load_project(root, callbacks = callbacks),
     error = identity
   )
   stopifnot(
@@ -286,17 +286,17 @@ mappings_acceptance <- function() {
   )
   stopifnot(!identical(missing_policy, mapped))
   put(missing_policy)
-  missing_service <- apipak::load_project(
+  missing_service <- specmill::load_project(
     root,
     callbacks = callbacks
   )$services[[1L]]
-  missing_configured <- getFromNamespace('configure_operation', 'apipak')(
+  missing_configured <- getFromNamespace('configure_operation', 'specmill')(
     operation,
     missing_service
   )
   eval(
     parse(
-      text = apipak::render_operation(
+      text = specmill::render_operation(
         missing_configured$operation,
         missing_configured$spec
       )
@@ -309,7 +309,7 @@ mappings_acceptance <- function() {
   configured$spec$docs <- list(
     examples = list(list(query = list('first', 'second')))
   )
-  documented <- apipak::render_operation(configured$operation, configured$spec)
+  documented <- specmill::render_operation(configured$operation, configured$spec)
   example <- sub(
     "^#' ",
     '',
@@ -319,7 +319,7 @@ mappings_acceptance <- function() {
     eval(parse(text = example), env)$body$search,
     c('first', 'second')
   ))
-  error <- tryCatch(apipak::load_project(root), error = identity)
+  error <- tryCatch(specmill::load_project(root), error = identity)
   stopifnot(
     inherits(error, 'error'),
     grepl('Unresolved callback', conditionMessage(error))

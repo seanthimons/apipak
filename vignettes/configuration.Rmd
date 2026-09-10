@@ -17,7 +17,10 @@ All project/config/schema paths resolve against the explicit client `root`, not
 the current working directory or the service YAML's directory. Use relative
 paths inside YAML. Parent traversal, absolute paths, and symlinks are rejected.
 
-## Project file: apipak.yml
+## Project file: specmill.yml
+
+`load_project()` and maintenance commands use `specmill.yml` by default.
+Pass `config` explicitly to use a different project filename.
 
 ```yaml
 config_version: 1
@@ -33,7 +36,7 @@ services: [apis/catalogue.yml]
 | `formatter` | Optional `{name: air, version: '0.9.0'}`; the exact installed version is required |
 | `callback_files` | Optional sequence of development callback source paths to fingerprint, without sourcing them |
 
-Use `apipak::load_project(root)` to validate and inspect the resolved service
+Use `specmill::load_project(root)` to validate and inspect the resolved service
 configuration before generating. Callback names require an explicit environment
 even for a read-only plan.
 
@@ -207,8 +210,8 @@ callbacks <- new.env(parent = baseenv())
 callbacks$batch_limit <- function(operation) {
   quote(as.numeric(Sys.getenv('batch_limit', '1000')))
 }
-apipak::generate_client(
-  root, config = 'apipak.yml', callbacks = callbacks, mode = 'plan'
+specmill::generate_client(
+  root, config = 'specmill.yml', callbacks = callbacks, mode = 'plan'
 )
 ```
 

@@ -1,7 +1,7 @@
 configuration_acceptance <- function() {
   root <- tempfile('yaml-client-')
   dir.create(root)
-  fixture <- system.file('catalogue', package = 'apipak', mustWork = TRUE)
+  fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
   stopifnot(all(file.copy(
     list.files(fixture, full.names = TRUE),
     root,
@@ -9,7 +9,7 @@ configuration_acceptance <- function() {
   )))
   writeLines(
     c('config_version: 1', 'services: [catalogue.yml]'),
-    file.path(root, 'apipak.yml')
+    file.path(root, 'specmill.yml')
   )
   service <- c(
     'id: catalogue',
@@ -33,7 +33,7 @@ configuration_acceptance <- function() {
     ))
   }
   original <- hashes()
-  plan <- apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+  plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
   stopifnot(
     length(plan$operations) == 3L,
     length(plan$inventory) == 4L,
@@ -61,11 +61,11 @@ configuration_acceptance <- function() {
     stopifnot(inherits(e, 'error'))
     if (!is.null(pattern)) stopifnot(grepl(pattern, conditionMessage(e)))
   }
-  fails(apipak::generate_client(root, config = 'apipak.yml'), 'stale')
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  fails(specmill::generate_client(root, config = 'specmill.yml'), 'stale')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   applied <- hashes()
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   stopifnot(identical(applied, hashes()))
   # Explicit renaming is a paired replacement; an edited original blocks it.
   put(c(service, 'names:', '  GET /items: renamed_items'))
@@ -73,22 +73,22 @@ configuration_acceptance <- function() {
   old_text <- readLines(old_path)
   writeLines(c(old_text, '# local edit'), old_path)
   fails(
-    apipak::generate_client(root, config = 'apipak.yml', mode = 'apply'),
+    specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'),
     'Protected original'
   )
   stopifnot(!file.exists(file.path(root, 'R/renamed_items.R')))
   writeLines(old_text, old_path)
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     !file.exists(old_path),
     file.exists(file.path(root, 'R/renamed_items.R'))
   )
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
   put(c(service, 'names:', '  GET /items: list_items'))
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   put(service)
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
-  inspected <- apipak::inspect_client(root)
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+  inspected <- specmill::inspect_client(root)
   stopifnot(
     inspected$coverage$catalogue$total == 3L,
     inspected$coverage$catalogue$implemented == 3L,
@@ -105,7 +105,7 @@ configuration_acceptance <- function() {
     file = file.path(root, 'NAMESPACE'),
     append = TRUE
   )
-  inspected <- apipak::inspect_client(root)
+  inspected <- specmill::inspect_client(root)
   stopifnot(
     'manual_extra' %in% names(inspected$manual_exports),
     inspected$coverage$catalogue$total == 3L
@@ -131,18 +131,18 @@ configuration_acceptance <- function() {
   )
   saveRDS(fixed, fixture_path)
   put(c(service, 'contracts_file: tests/testthat/fixtures/fixed.rds'))
-  loaded <- apipak::load_project(root)
+  loaded <- specmill::load_project(root)
   stopifnot(
     identical(loaded$services$catalogue$contracts, fixed),
     normalizePath(fixture_path, winslash = '/') %in% loaded$inputs
   )
-  apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+  specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
   fixed$list_items$result <- function() NULL
   saveRDS(fixed, fixture_path)
-  fails(apipak::load_project(root), 'only R data')
+  fails(specmill::load_project(root), 'only R data')
   put(service)
   fails(
-    apipak::generate_client(root, list(), config = 'apipak.yml'),
+    specmill::generate_client(root, list(), config = 'specmill.yml'),
     'exactly one'
   )
   invalid <- list(
@@ -168,7 +168,7 @@ configuration_acceptance <- function() {
   )
   for (lines in invalid) {
     put(lines)
-    fails(apipak::generate_client(root, config = 'apipak.yml', mode = 'plan'))
+    fails(specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'))
   }
   writeLines(
     'strict_request <- function(endpoint) NULL',
@@ -181,7 +181,7 @@ configuration_acceptance <- function() {
     fixed = TRUE
   ))
   fails(
-    apipak::generate_client(root, config = 'apipak.yml', mode = 'plan'),
+    specmill::generate_client(root, config = 'specmill.yml', mode = 'plan'),
     'Missing required helper arguments'
   )
   old <- options(yaml.eval.expr = TRUE)
@@ -191,7 +191,7 @@ configuration_acceptance <- function() {
     service,
     paste0('prepare: !expr writeLines("executed", ', deparse(marker), ')')
   ))
-  fails(apipak::load_project(root))
+  fails(specmill::load_project(root))
   stopifnot(!file.exists(marker))
   # Explicit map keys override a merged default regardless of key order.
   put(c(
@@ -200,7 +200,7 @@ configuration_acceptance <- function() {
     'helper: catalogue_request',
     'selection: {<<: &defaults {methods: [POST]}, methods: [GET]}'
   ))
-  loaded <- apipak::load_project(root)
+  loaded <- specmill::load_project(root)
   stopifnot(identical(loaded$services$catalogue$policy$methods, 'GET'))
   put(service)
   callbacks <- new.env(parent = baseenv())
@@ -213,9 +213,9 @@ configuration_acceptance <- function() {
   }
   put(c(service, 'prepare: mutate'))
   fails(
-    apipak::generate_client(
+    specmill::generate_client(
       root,
-      config = 'apipak.yml',
+      config = 'specmill.yml',
       callbacks = callbacks,
       mode = 'apply'
     ),

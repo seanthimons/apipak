@@ -10,7 +10,7 @@ vignette: >
 
 Use the same loop for new and existing clients: **update inputs -> plan -> review
 -> apply -> check -> test -> commit**. Schemas, service policy, callbacks, fixed
-fixtures, output, and `.apipak/manifest.json` form one reviewed change.
+fixtures, output, and `.specmill/manifest.json` form one reviewed change.
 
 ## 1. Review schema changes
 
@@ -20,12 +20,12 @@ versions. For example, place `catalogue.json` in `schema-before/` and `schema-af
 
 ```{r compare, eval=FALSE}
 selection <- list(methods = c('GET', 'POST'), exclude = '^/internal/')
-diff <- apipak::schema_diff(
+diff <- specmill::schema_diff(
   '/path/to/schema-before', '/path/to/schema-after',
   policies = list('catalogue.json' = selection)
 )
-cat(apipak::format_diff_markdown(diff))
-apipak::count_diff_changes(diff)
+cat(specmill::format_diff_markdown(diff))
+specmill::count_diff_changes(diff)
 ```
 
 `schema_diff()` compares method/path identities and canonical data including
@@ -48,13 +48,13 @@ comes from explicit exclusions or reconciled renames and requires verified owner
 
 ```{r loop, eval=FALSE}
 root <- normalizePath('/path/to/client', winslash = '/', mustWork = TRUE)
-plan <- apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
 plan$files
 plan$drift
 plan$diagnostics
 # After reviewing the change:
-apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
-apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 testthat::test_local(root, filter = 'contract-', stop_on_failure = TRUE)
 ```
 
@@ -68,9 +68,9 @@ before committing; do not hand-edit generated files to fix a policy error.
 Save the following as `dev/generate.R` in a client without an existing command:
 
 ```r
-.client_root <- apipak::script_root('generate.R')
+.client_root <- specmill::script_root('generate.R')
 generate_main <- function(root = .client_root, args = commandArgs(trailingOnly = TRUE)) {
-  apipak::generation_command(root, args = args, kind = 'stubs')
+  specmill::generation_command(root, args = args, kind = 'stubs')
 }
 if (sys.nframe() == 0L) generate_main()
 ```
@@ -106,7 +106,7 @@ manifest checks still apply.
 ## 4. Inspect implementation and test gaps
 
 ```{r inspect, eval=FALSE}
-inspection <- apipak::inspect_client(root)
+inspection <- specmill::inspect_client(root)
 inspection$coverage
 inspection$manual_exports
 inspection$diagnostics
@@ -134,9 +134,9 @@ directory before apply. Report-policy filenames passed as strings are resolved
 by R against the working directory; make them explicit with `file.path(root, ...)`:
 
 ```{r reports, eval=FALSE}
-apipak::coverage_report(root, file.path(root, 'dev/coverage.yml'))
-apipak::coverage_report(root, file.path(root, 'dev/coverage.yml'), mode = 'apply')
-apipak::test_gap_report(root, list(
+specmill::coverage_report(root, file.path(root, 'dev/coverage.yml'))
+specmill::coverage_report(root, file.path(root, 'dev/coverage.yml'), mode = 'apply')
+specmill::test_gap_report(root, list(
   helpers = list('api_request'), report_dir = 'dev/test-gaps',
   readiness_report = 'dev/readiness-report.json'
 ))
@@ -153,7 +153,7 @@ CI should install the project's reviewed toolkit and formatter, then run
 generation checks before tests. For a client with no callbacks, an R CI step can be:
 
 ```r
-checked <- apipak::generate_client('.', config = 'apipak.yml', mode = 'check')
+checked <- specmill::generate_client('.', config = 'specmill.yml', mode = 'check')
 stopifnot(length(checked$diagnostics) == 0L)
 testthat::test_local('.', stop_on_failure = TRUE)
 ```
@@ -199,11 +199,11 @@ Put sequential workflows in vignettes and per-function detail in reference docs.
 Render examples offline; mark real API calls `eval=FALSE` or use fixed examples
 that do not contact services.
 
-For **apipak's own site**, `_pkgdown.yml` defines navigation and
+For **specmill's own site**, `_pkgdown.yml` defines navigation and
 `.github/workflows/pkgdown.yml` builds on pull requests and publishes on the
 configured default-branch pushes or manual dispatch. Local build command:
 
-```{r apipak-site, eval=FALSE}
+```{r specmill-site, eval=FALSE}
 pkgdown::build_site(preview = FALSE)
 ```
 

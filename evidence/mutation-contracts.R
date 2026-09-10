@@ -1,8 +1,8 @@
 # Independent oracles must reject six faults in otherwise executable generated code.
 mutation_contracts <- function() {
-  operations <- apipak::read_operations(system.file('catalogue/schema.json', package = 'apipak'))$operations
+  operations <- specmill::read_operations(system.file('catalogue/schema.json', package = 'specmill'))$operations
   spec <- list(helper = 'capture', hooks = list(get_item = list(pre_request = 'before', post_response = 'after')))
-  compile <- function(op) eval(parse(text = apipak::render_operation(op, spec))[[1L]][[3L]], baseenv())
+  compile <- function(op) eval(parse(text = specmill::render_operation(op, spec))[[1L]][[3L]], baseenv())
   original <- compile(operations$get_item)
   expected <- list(method = 'GET', path = '/items/{item_id}', path_params = list(item_id = 'x'), query = list(language = 'fr'), body = NULL)
   verify <- function(fn, inputs = list(item_id = 'x', language = 'fr'), request = expected,

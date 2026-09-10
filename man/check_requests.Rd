@@ -13,7 +13,7 @@ check_requests(call, expected, capture, result)
 }
 \value{Invisibly TRUE on success; raises an error on a request/result mismatch or a failing call.}
 \details{The call executes first; errors propagate. Both the captured request and final result use identical() semantics, including types and classes. Supply a recorder or mock so an offline check does not contact a service.}
-\seealso{\href{https://seanthimons.github.io/apipak/articles/testing.html}{Step-by-step guide}.}
+\seealso{\href{https://seanthimons.github.io/specmill/articles/testing.html}{Step-by-step guide}.}
 \examples{
 captured <- NULL
 call <- function() {

@@ -1,7 +1,7 @@
 final_client_parity <- function(root) {
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
   baseline <- normalizePath('evidence/baseline-maintenance', winslash = '/', mustWork = TRUE)
-  defs <- getFromNamespace('tg_find_function_defs_in_file', 'apipak')
+  defs <- getFromNamespace('tg_find_function_defs_in_file', 'specmill')
   current <- unlist(lapply(list.files(file.path(root, 'R'), '\\.R$', full.names = TRUE), defs), recursive = FALSE)
   frozen <- readRDS('evidence/baseline/public-contracts.rds')
   count <- 0L
@@ -38,7 +38,7 @@ final_client_parity <- function(root) {
   hashes <- jsonlite::read_json('evidence/baseline/tracked-sha256.json')
   cassettes <- grep('^tests/testthat/fixtures/.*\\.ya?ml$', names(hashes), value = TRUE)
   for (file in cassettes) stopifnot(identical(digest::digest(file = file.path(root, file), algo = 'sha256'), hashes[[file]]))
-  fixtures <- list.files(file.path(root, 'tests/testthat/fixtures/apipak'), '\\.rds$', full.names = TRUE)
+  fixtures <- list.files(file.path(root, 'tests/testthat/fixtures/specmill'), '\\.rds$', full.names = TRUE)
   for (file in fixtures) {
     values <- unlist(readRDS(file), recursive = TRUE, use.names = FALSE)
     text <- values[is.character(values)]

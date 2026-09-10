@@ -68,7 +68,7 @@ render_operation <- function(operation, spec) {
     )
   }
   lines <- c(
-    '# Generated with apipak; do not edit by hand.',
+    '# Generated with specmill; do not edit by hand.',
     paste0(
       operation$name,
       ' <- function(',
@@ -545,7 +545,7 @@ generate_client <- function(
   attr(desired, 'inputs') <- as.list(stats::setNames(input_hashes, labels))
   removals <- character()
   renamed <- character()
-  manifest_path <- project_path(root, '.apipak/manifest.json')
+  manifest_path <- project_path(root, '.specmill/manifest.json')
   if (file.exists(manifest_path)) {
     previous <- jsonlite::read_json(manifest_path)$files
     excluded <- vapply(
@@ -758,7 +758,7 @@ generate_client <- function(
     desired,
     remove = removals,
     mode = mode,
-    headers = '# Generated with apipak; do not edit by hand.',
+    headers = '# Generated with specmill; do not edit by hand.',
     owned = function(path) {
       relative <- substring(path, nchar(root) + 2L)
       !is.null(adopt[[relative]]) &&
@@ -803,7 +803,7 @@ generate_client <- function(
     inventory = inventory,
     retained_sources = retained_sources,
     manifest = list(
-      toolkit_version = as.character(utils::packageVersion('apipak')),
+      toolkit_version = as.character(utils::packageVersion('specmill')),
       inputs = input_hashes,
       policy_version = vapply(
         services,

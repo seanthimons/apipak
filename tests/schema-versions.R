@@ -44,7 +44,7 @@ schema_version_acceptance <- function() {
       }
       schema$paths <- list('/items' = list(post = op))
       jsonlite::write_json(schema, file, auto_unbox = TRUE)
-      parsed <- apipak::read_operations(file)
+      parsed <- specmill::read_operations(file)
       stopifnot(length(parsed$operations) == 1L, !length(parsed$diagnostics))
       operation <- parsed$operations$submit_items
       stopifnot(
@@ -57,7 +57,7 @@ schema_version_acceptance <- function() {
       context$request_helper <- function(...) list(...)
       eval(
         parse(
-          text = apipak::render_operation(
+          text = specmill::render_operation(
             operation,
             list(helper = 'request_helper')
           )
@@ -83,7 +83,7 @@ schema_version_acceptance <- function() {
           'try-error'
         ))
       }
-      fixtures <- apipak::operation_fixtures(parsed$operations)
+      fixtures <- specmill::operation_fixtures(parsed$operations)
       stopifnot(
         is.list(fixtures$submit_items$body),
         length(fixtures$submit_items$body) == 1L
@@ -91,7 +91,7 @@ schema_version_acceptance <- function() {
     }
   }
   unsupported <- jsonlite::fromJSON(
-    system.file('catalogue/schema.json', package = 'apipak'),
+    system.file('catalogue/schema.json', package = 'specmill'),
     simplifyVector = FALSE
   )
   for (location in c('header', 'cookie')) {
@@ -99,7 +99,7 @@ schema_version_acceptance <- function() {
       'in'
     ]] <- location
     jsonlite::write_json(unsupported, file, auto_unbox = TRUE)
-    parsed <- apipak::read_operations(file)
+    parsed <- specmill::read_operations(file)
     stopifnot(
       length(parsed$diagnostics) == 1L,
       parsed$diagnostics[[1L]]$key == 'GET /items/{item_id}',

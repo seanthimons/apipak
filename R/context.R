@@ -42,7 +42,7 @@ bind_tools <- function(group, envir) {
     assign('resolve_stack', new.env(hash = TRUE, parent = emptyenv()), envir)
   }
   for (name in tool_groups[[group]]) {
-    fn <- get(name, envir = asNamespace('apipak'))
+    fn <- get(name, envir = asNamespace('specmill'))
     if (is.function(fn)) {
       environment(fn) <- envir
     }

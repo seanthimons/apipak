@@ -11,9 +11,9 @@ render_operation(operation, spec)
 }
 \value{A single character string containing generated wrapper source and optional roxygen comments.}
 \details{This low-level function returns text only; it does not validate an entire project, run roxygen, write files, or check ownership. Prefer generate_client() for normal maintenance. The default helper takes method, path, path_params, query, and body. JSON array values should remain R lists to preserve one-element arrays.}
-\seealso{\href{https://seanthimons.github.io/apipak/articles/configuration.html}{Step-by-step guide}.}
+\seealso{\href{https://seanthimons.github.io/specmill/articles/configuration.html}{Step-by-step guide}.}
 \examples{
-schema <- system.file('catalogue/schema.json', package = 'apipak')
+schema <- system.file('catalogue/schema.json', package = 'specmill')
 op <- read_operations(schema)$operations$get_item
 cat(render_operation(op, list(helper = 'api_request')))
 }

@@ -21,4 +21,4 @@ count_diff_changes(diff_results)
 }
 \value{schema_diff() returns changed schema records containing schema_file plus added, removed, and modified tables. format_diff_markdown() returns report text. count_diff_changes() returns change counts, including the conservative breaking-change count.}
 \details{Use the same file naming and selection policy for both schema snapshots. Changed canonical contracts require review and are conservatively counted in the breaking-change lane. Malformed input stops comparison. Policy changes should be reviewed separately from schema changes; these reports do not prove upstream runtime compatibility.}
-\seealso{\href{https://seanthimons.github.io/apipak/articles/maintenance.html}{Step-by-step guide}.}
+\seealso{\href{https://seanthimons.github.io/specmill/articles/maintenance.html}{Step-by-step guide}.}

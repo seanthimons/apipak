@@ -71,14 +71,14 @@ initialize_client <- function(
     )
   }
   helper <- readLines(
-    system.file('templates/request.R', package = 'apipak', mustWork = TRUE),
+    system.file('templates/request.R', package = 'specmill', mustWork = TRUE),
     warn = FALSE
   )
   helper <- gsub('BASE_URL', r_literal(base_url), helper, fixed = TRUE)
   output <- list(
     'R/api_request.R' = paste(helper, collapse = '\n'),
     'schema/openapi.json' = file_text(schema),
-    'apipak.yml' = sub(
+    'specmill.yml' = sub(
       '\n$',
       '',
       yaml::as.yaml(list(
@@ -97,7 +97,7 @@ initialize_client <- function(
         documentation = TRUE
       ))
     ),
-    '.Rbuildignore' = '^apipak\\.yml$\n^apis$\n^schema$\n^\\.apipak$'
+    '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
   )
   if (!existing) {
     dcf <- character()

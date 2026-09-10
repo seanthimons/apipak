@@ -1,6 +1,6 @@
 ---
 title: "Start a new API client"
-description: "Install apipak, create a package, review generation, and verify it offline."
+description: "Install specmill, create a package, review generation, and verify it offline."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Start a new API client}
@@ -12,9 +12,9 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = '#>', message = FALSE)
 ```
 
-apipak turns local API schemas and reviewed YAML policy into R wrappers,
+specmill turns local API schemas and reviewed YAML policy into R wrappers,
 documentation, and request contract tests. It is a **development dependency**:
-people installing your generated package do not need apipak. Your package owns
+people installing your generated package do not need specmill. Your package owns
 HTTP requests, authentication, response parsing, and runtime hooks.
 
 This walkthrough creates a temporary catalogue client and checks it without
@@ -28,17 +28,17 @@ Run this once in R. The tagged release makes the tutorial reproducible:
 
 ```{r install, eval=FALSE}
 install.packages('remotes')
-remotes::install_github('seanthimons/apipak@v0.1.2')
+remotes::install_github('seanthimons/specmill@v0.1.3')
 install.packages(c('httr2', 'testthat', 'devtools'))
 ```
 
 If a project supplies an installer and toolkit lock, use those instead: they
-select the version reviewed for that project. In a local apipak source checkout,
+select the version reviewed for that project. In a local specmill source checkout,
 `devtools::install('.')` installs the checked-out version. Start a fresh R session
 after changing an already loaded version.
 
 ```{r version}
-packageVersion('apipak')
+packageVersion('specmill')
 ```
 
 You also need R package build tools appropriate to your operating system when
@@ -50,7 +50,7 @@ Use the bundled OpenAPI example first. It contains four operations: get an item,
 list items, create an item, and refresh the catalogue.
 
 ```{r paths}
-schema <- system.file('catalogue/schema.json', package = 'apipak', mustWork = TRUE)
+schema <- system.file('catalogue/schema.json', package = 'specmill', mustWork = TRUE)
 root <- tempfile('catalogue-client-')
 ```
 
@@ -66,7 +66,7 @@ Supply your own metadata and the service's real base URL. The example URL below
 is a placeholder and is never contacted in this guide.
 
 ```{r initialize}
-created <- apipak::initialize_client(
+created <- specmill::initialize_client(
   root, schema,
   package = 'catalogueclient',
   title = 'Catalogue API Client',
@@ -84,10 +84,10 @@ Initialization writes immediately and refuses existing-file conflicts. It create
 | `DESCRIPTION`, `LICENSE` | Package identity, dependencies, and your license |
 | `R/api_request.R` | Client-owned httr2 transport; adapt authentication here |
 | `schema/openapi.json` | Local copy of the schema |
-| `apipak.yml` | Project version and selected service files |
+| `specmill.yml` | Project version and selected service files |
 | `apis/default.yml` | Schema selection, helper name, and generation policy |
 | `NAMESPACE`, `.Rbuildignore` | Package exports and exclusion of development inputs |
-| `.apipak/manifest.json` | Ownership hashes maintained by apipak |
+| `.specmill/manifest.json` | Ownership hashes maintained by specmill |
 
 It does not create a Git repository, README, test runner, or pkgdown site for
 the client. Those are ordinary package maintenance tasks. Do not rerun
@@ -96,7 +96,7 @@ initialization to update a client; edit policy and regenerate instead.
 ## 4. Inspect the schema and policy
 
 ```{r inspect}
-parsed <- apipak::read_operations(file.path(root, 'schema/openapi.json'))
+parsed <- specmill::read_operations(file.path(root, 'schema/openapi.json'))
 names(parsed$operations)
 parsed$diagnostics
 cat(readLines(file.path(root, 'apis/default.yml')), sep = '\n')
@@ -113,7 +113,7 @@ select methods, exclude paths, name functions, and improve their help and exampl
 ## 5. Preview changes before applying them
 
 ```{r plan}
-plan <- apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
 data.frame(
   file = vapply(plan$files, `[[`, character(1), 'file'),
   action = vapply(plan$files, `[[`, character(1), 'action')
@@ -130,8 +130,8 @@ appears as `remove`. Manifest metadata can also appear in the plan.
 ## 6. Apply, then check reproducibility
 
 ```{r apply}
-applied <- apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
-checked <- apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+applied <- specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 stopifnot(all(vapply(
   checked$files, function(x) x$action %in% c('unchanged', 'retained'), logical(1)
 )))
@@ -150,7 +150,7 @@ wrapper makes its recorded hash differ and protects it from replacement.
 
 For this small demonstration, source the helper and one wrapper into a private
 environment, then replace the helper there with a recorder. The generated client
-source has no runtime dependency on apipak.
+source has no runtime dependency on specmill.
 
 ```{r offline-call}
 runtime <- new.env(parent = baseenv())
@@ -196,7 +196,7 @@ retry decisions, batching, and service-specific validation belong in the client.
 ## 9. Save the project and maintain it
 
 Commit the schema, YAML policy, client helper, generated source/help/tests, and
-`.apipak/manifest.json` together. Keep the manifest tracked: it establishes which
+`.specmill/manifest.json` together. Keep the manifest tracked: it establishes which
 output can be updated safely. Keep credentials outside tracked files. Add a
 package test runner as shown in the testing guide.
 

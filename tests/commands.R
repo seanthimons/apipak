@@ -2,7 +2,7 @@ commands_acceptance <- function() {
   root <- tempfile('command-client-')
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE), add = TRUE)
-  fixture <- system.file('catalogue', package = 'apipak', mustWork = TRUE)
+  fixture <- system.file('catalogue', package = 'specmill', mustWork = TRUE)
   stopifnot(all(file.copy(
     list.files(fixture, full.names = TRUE),
     root,
@@ -10,7 +10,7 @@ commands_acceptance <- function() {
   )))
   writeLines(
     c('config_version: 1', 'services: [catalogue.yml]'),
-    file.path(root, 'apipak.yml')
+    file.path(root, 'specmill.yml')
   )
   service <- c(
     'id: catalogue',
@@ -53,18 +53,18 @@ commands_acceptance <- function() {
     ))
   }
   before <- hashes()
-  apipak::generation_command(root, '--plan')
-  apipak::generation_command(root, '--dry-run', 'tests')
+  specmill::generation_command(root, '--plan')
+  specmill::generation_command(root, '--dry-run', 'tests')
   stopifnot(
     identical(before, hashes()),
     'check_status=dry_run' %in% readLines(output)
   )
-  apipak::generation_command(root)
+  specmill::generation_command(root)
   stopifnot(
     !file.exists(file.path(root, 'tests/testthat/test-contract-refresh.R'))
   )
   runtime <- tools::md5sum(file.path(root, 'R/refresh.R'))
-  apipak::generation_command(root, '--generate', 'tests')
+  specmill::generation_command(root, '--generate', 'tests')
   stopifnot(
     identical(runtime, tools::md5sum(file.path(root, 'R/refresh.R'))),
     'tests_created=1' %in% readLines(output),
@@ -72,8 +72,8 @@ commands_acceptance <- function() {
   )
   before <- hashes()
   for (kind in c('stubs', 'tests')) {
-    apipak::generation_command(root, '--check', kind)
-    apipak::generation_command(root, character(), kind)
+    specmill::generation_command(root, '--check', kind)
+    specmill::generation_command(root, character(), kind)
   }
   stopifnot(identical(before, hashes()))
   fails <- function(expression, pattern) {
@@ -90,24 +90,24 @@ commands_acceptance <- function() {
       )
     )
   )
-  coverage <- apipak::coverage_report(root, policy)
+  coverage <- specmill::coverage_report(root, policy)
   stopifnot(
     identical(before, hashes()),
     coverage$baseline$sample_endpoints == 1L,
     coverage$baseline$sample_functions == 1L,
     coverage$outputs$sample_coverage == '100.0'
   )
-  apipak::coverage_report(root, policy, mode = 'apply')
+  specmill::coverage_report(root, policy, mode = 'apply')
   stopifnot(
     jsonlite::read_json(file.path(root, 'badge.json'))$message == '100.0%',
     'sample_color=brightgreen' %in% readLines(output)
   )
   policy$groups$duplicate <- policy$groups$sample
   before <- hashes()
-  fails(apipak::coverage_report(root, policy, mode = 'apply'), 'overlap')
+  fails(specmill::coverage_report(root, policy, mode = 'apply'), 'overlap')
   stopifnot(identical(before, hashes()))
   fails(
-    apipak::generation_command(root, c('--check', '--dry-run'), 'tests'),
+    specmill::generation_command(root, c('--check', '--dry-run'), 'tests'),
     'one generation mode'
   )
   test_path <- file.path(root, 'tests/testthat/test-contract-refresh.R')
@@ -118,22 +118,22 @@ commands_acceptance <- function() {
   )
   before <- hashes()
   stopifnot(
-    apipak::test_gap_report(root, gap_policy)$gaps_count == 0L,
+    specmill::test_gap_report(root, gap_policy)$gaps_count == 0L,
     identical(before, hashes())
   )
   cat('\n# User edit\n', file = test_path, append = TRUE)
   before <- hashes()
-  fails(apipak::generation_command(root, '--force', 'tests'), 'Protected')
+  fails(specmill::generation_command(root, '--force', 'tests'), 'Protected')
   stopifnot(identical(before, hashes()))
   writeLines('note <- "test_that(fake)"', test_path)
   stopifnot(
-    apipak::test_gap_report(root, gap_policy)$gaps$refresh$reason ==
+    specmill::test_gap_report(root, gap_policy)$gaps$refresh$reason ==
       'empty_test_file'
   )
   writeLines(service[-length(service)], file.path(root, 'catalogue.yml'))
   before <- hashes()
   fails(
-    apipak::generation_command(root, '--generate', 'tests'),
+    specmill::generation_command(root, '--generate', 'tests'),
     'missing fixed contracts'
   )
   stopifnot(

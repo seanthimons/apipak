@@ -23,9 +23,9 @@ offline. Install `httr2` and `testthat` first if they are not available.
 ## 1. Prepare a client with one selected operation
 
 ```{r client}
-schema <- system.file('catalogue/schema.json', package = 'apipak', mustWork = TRUE)
+schema <- system.file('catalogue/schema.json', package = 'specmill', mustWork = TRUE)
 root <- tempfile('tested-client-')
-created <- apipak::initialize_client(
+created <- specmill::initialize_client(
   root, schema, package = 'testedclient', title = 'Tested Catalogue Client',
   author = list(given = 'Example', family = 'Maintainer', email = 'you@example.org'),
   license = 'MIT + file LICENSE', base_url = 'https://api.example.org'
@@ -92,10 +92,10 @@ and manual tests.
 ## 4. Generate and run the test
 
 ```{r generate}
-plan <- apipak::generate_client(root, config = 'apipak.yml', mode = 'plan')
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
 stopifnot(!length(plan$diagnostics), length(plan$operations) == 1L)
-applied <- apipak::generate_client(root, config = 'apipak.yml', mode = 'apply')
-checked <- apipak::generate_client(root, config = 'apipak.yml', mode = 'check')
+applied <- specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+checked <- specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
 stopifnot(file.exists(file.path(root, 'tests/testthat/test-contract-get_item.R')))
 ```
 
@@ -113,7 +113,7 @@ existing bespoke tests for the helpers and hooks you changed.
 ## 5. Inspect test coverage separately from execution
 
 ```{r coverage}
-inspection <- apipak::inspect_client(root)
+inspection <- specmill::inspect_client(root)
 inspection$coverage
 stopifnot(inspection$coverage$testedclient$contracts == 1L)
 ```
@@ -160,8 +160,8 @@ and stops if the chosen candidate fails them; it does not silently try a lower
 priority value. Schema examples are never evaluated as R code.
 
 ```{r candidates}
-operations <- apipak::read_operations(schema)$operations
-candidate_inputs <- apipak::operation_fixtures(operations)
+operations <- specmill::read_operations(schema)$operations
+candidate_inputs <- specmill::operation_fixtures(operations)
 candidate_inputs$get_item
 ```
 

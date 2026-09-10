@@ -4,7 +4,7 @@ verify_local_initializer <- function(root) {
   sys.source(file.path(root, 'dev/generate_local_client.R'), commands)
   input <- tempfile('initializer-input-')
   dir.create(input)
-  file.copy(system.file('catalogue/schema.json', package = 'apipak'), input)
+  file.copy(system.file('catalogue/schema.json', package = 'specmill'), input)
   output <- tempfile('initializer-output-')
   metadata <- list(title = 'Temporary API Client',
     author = list(given = 'Test', family = 'Maintainer', email = 'maintainer@example.org'),
@@ -15,10 +15,10 @@ verify_local_initializer <- function(root) {
   stopifnot(inherits(error, 'error'), !dir.exists(file.path(root, 'forbidden-client')))
   commands$generate_local_client(root, input, 'schema.json', output,
     'https://example.invalid', 'temporaryclient', metadata)
-  apipak::generate_client(output, config = 'apipak.yml', mode = 'check')
+  specmill::generate_client(output, config = 'specmill.yml', mode = 'check')
   fields <- read.dcf(file.path(output, 'DESCRIPTION'))
   stopifnot(grepl('Test', fields[[1L, 'Authors@R']]),
-    !grepl('apipak|ComptoxR', fields[[1L, 'Imports']]))
+    !grepl('specmill|ComptoxR', fields[[1L, 'Imports']]))
   installer <- new.env(parent = baseenv())
   sys.source(file.path(root, 'dev/install_toolkit.R'), installer)
   stopifnot(identical(installer$.toolkit_root, root),

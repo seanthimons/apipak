@@ -1,4 +1,4 @@
-url: https://seanthimons.github.io/apipak/
+url: https://seanthimons.github.io/specmill/
 template:
   bootstrap: 5
 home:
@@ -9,7 +9,7 @@ articles:
 - title: Start here
   navbar: Start here
   contents:
-  - apipak
+  - specmill
   - existing-clients
 - title: Maintain a client
   navbar: Maintain a client
@@ -43,4 +43,4 @@ reference:
   - apply_files
   - render_operation
   - bind_tools
-  - apipak
+  - specmill

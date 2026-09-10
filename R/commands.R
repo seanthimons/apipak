@@ -16,7 +16,7 @@ generation_command <- function(
   root,
   args = character(),
   kind = c('stubs', 'tests'),
-  config = 'apipak.yml',
+  config = 'specmill.yml',
   callbacks = new.env(parent = emptyenv())
 ) {
   kind <- match.arg(kind)

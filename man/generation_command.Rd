@@ -5,7 +5,7 @@
 \description{Adapt the shared generator to existing wrapper/test command flags and locate a client root from a maintenance script.}
 \usage{
 generation_command(root, args = character(), kind = c("stubs", "tests"),
-    config = "apipak.yml", callbacks = new.env(parent = emptyenv()))
+    config = "specmill.yml", callbacks = new.env(parent = emptyenv()))
 script_root(script)
 }
 \arguments{
@@ -18,4 +18,4 @@ script_root(script)
 }
 \value{generation_command() invisibly returns the generation result, or NULL for help, and propagates errors. script_root() returns a normalized absolute package root or errors if it cannot locate the script/package.}
 \details{Unlike generate_client(), generation_command() defaults to apply. For stubs use --plan or --check; for tests use --dry-run, --check, or --generate. --help prints usage. Legacy --rebuild prefixes are accepted but selection remains in YAML. --force never bypasses ownership. Test check/apply requires fixed contracts for every selected operation. Summary values are written to GITHUB_OUTPUT when set. script_root() walks upward from the matching script to DESCRIPTION.}
-\seealso{\href{https://seanthimons.github.io/apipak/articles/maintenance.html}{Step-by-step guide}.}
+\seealso{\href{https://seanthimons.github.io/specmill/articles/maintenance.html}{Step-by-step guide}.}

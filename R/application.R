@@ -44,7 +44,7 @@ output_hash <- function(path) {
 recovery_journals <- function(root) {
   directories <- list.files(
     root,
-    '^\\.(wrapmaint|apipak)-',
+    '^\\.specmill-',
     all.files = TRUE,
     full.names = FALSE
   )
@@ -105,7 +105,7 @@ recover_client <- function(root, mode = c('plan', 'apply')) {
   if (mode == 'plan') {
     return(stats::setNames(plans, journals))
   }
-  lock <- file.path(root, '.apipak-lock')
+  lock <- file.path(root, '.specmill-lock')
   if (!dir.create(lock, showWarnings = FALSE)) {
     stop(
       'Project apply lock exists; inspect the interrupted process before recovery'
@@ -135,7 +135,7 @@ apply_files <- function(
   desired,
   remove = character(),
   mode = c('check', 'plan', 'apply'),
-  headers = '# Generated with apipak; do not edit by hand.',
+  headers = '# Generated with specmill; do not edit by hand.',
   owned = NULL,
   validate = NULL
 ) {
@@ -169,8 +169,8 @@ apply_files <- function(
       paste(relatives[collisions], collapse = ', ')
     )
   }
-  manifest_path <- project_path(root, '.apipak/manifest.json')
-  if (any(tolower(relatives) == '.apipak/manifest.json')) {
+  manifest_path <- project_path(root, '.specmill/manifest.json')
+  if (any(tolower(relatives) == '.specmill/manifest.json')) {
     stop('Manifest is reserved output')
   }
   manifest <- if (file.exists(manifest_path)) {
@@ -241,7 +241,7 @@ apply_files <- function(
     entry$operations <- unlist(entry$operations, use.names = FALSE)
     entry
   })
-  manifest$toolkit_version <- as.character(utils::packageVersion('apipak'))
+  manifest$toolkit_version <- as.character(utils::packageVersion('specmill'))
   if (!is.null(attr(desired, 'inputs'))) {
     manifest$inputs <- attr(desired, 'inputs')
   }
@@ -251,7 +251,7 @@ apply_files <- function(
   if (!is.null(attr(desired, 'formatter'))) {
     manifest$formatter <- attr(desired, 'formatter')
   }
-  desired[['.apipak/manifest.json']] <- as.character(jsonlite::toJSON(
+  desired[['.specmill/manifest.json']] <- as.character(jsonlite::toJSON(
     manifest,
     auto_unbox = TRUE,
     pretty = TRUE,
@@ -259,12 +259,12 @@ apply_files <- function(
   ))
   manifest_changed <- (length(manifest$files) > 0L ||
     !is.null(manifest_before)) &&
-    !identical(manifest_before, text_hash(desired[['.apipak/manifest.json']]))
+    !identical(manifest_before, text_hash(desired[['.specmill/manifest.json']]))
   if (manifest_changed) {
     entries <- c(
       entries,
       list(list(
-        file = '.apipak/manifest.json',
+        file = '.specmill/manifest.json',
         path = manifest_path,
         action = 'write'
       ))
@@ -280,7 +280,7 @@ apply_files <- function(
   if (!length(pending)) {
     return(entries)
   }
-  lock <- file.path(root, '.apipak-lock')
+  lock <- file.path(root, '.specmill-lock')
   if (!dir.create(lock, showWarnings = FALSE)) {
     stop('Another apply holds the project lock')
   }
@@ -297,7 +297,7 @@ apply_files <- function(
   ) {
     stop('Stale output plan; project changed during planning')
   }
-  transaction <- tempfile('.apipak-', tmpdir = root)
+  transaction <- tempfile('.specmill-', tmpdir = root)
   if (!dir.create(transaction)) {
     stop('Cannot stage output')
   }
