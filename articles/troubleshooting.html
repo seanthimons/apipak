@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Supported schemas, file safety, and troubleshooting • apipak</title>
+<title>Supported schemas, file safety, and troubleshooting • specmill</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -20,9 +20,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">apipak</a>
+    <a class="navbar-brand me-2" href="../index.html">specmill</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/apipak.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/specmill.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -52,7 +52,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/apipak/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/specmill/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -69,7 +69,7 @@
       <h1>Supported schemas, file safety, and troubleshooting</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/seanthimons/apipak/blob/HEAD/vignettes/troubleshooting.Rmd" class="external-link"><code>vignettes/troubleshooting.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/HEAD/vignettes/troubleshooting.Rmd" class="external-link"><code>vignettes/troubleshooting.Rmd</code></a></small>
       <div class="d-none name"><code>troubleshooting.Rmd</code></div>
     </div>
 
@@ -78,7 +78,7 @@
 <div class="section level2">
 <h2 id="supported-input-and-transport">Supported input and transport<a class="anchor" aria-label="anchor" href="#supported-input-and-transport"></a>
 </h2>
-<p>apipak reads local JSON documents in OpenAPI 3.0/3.1 or Swagger 2.0
+<p>specmill reads local JSON documents in OpenAPI 3.0/3.1 or Swagger 2.0
 format. YAML project configuration does not imply support for YAML
 schema documents. The parser is a supported-subset extractor, not a full
 OpenAPI validator.</p>
@@ -173,8 +173,8 @@ in coverage totals. They never authorize deleting old output.</p>
 <tr class="odd">
 <td>Package/function not found</td>
 <td>Install the reviewed toolkit, restart R, and inspect
-<code>packageVersion('apipak')</code> and
-<code>find.package('apipak')</code>
+<code>packageVersion('specmill')</code> and
+<code>find.package('specmill')</code>
 </td>
 </tr>
 <tr class="even">
@@ -248,9 +248,9 @@ policy, and fixture versions.</p>
 <div class="section level2">
 <h2 id="ownership-and-protected-files">Ownership and protected files<a class="anchor" aria-label="anchor" href="#ownership-and-protected-files"></a>
 </h2>
-<p><code>.apipak/manifest.json</code> records output hashes and
+<p><code>.specmill/manifest.json</code> records output hashes and
 generation input metadata. Keep it in Git. A header alone cannot grant
-ownership. apipak protects unowned files, locally edited output, and
+ownership. specmill protects unowned files, locally edited output, and
 protected lifecycle states. It rejects groups containing undeclared
 definitions or other top-level code.</p>
 <p>Use <a href="existing-clients.html">reviewed adoption</a> only after
@@ -270,17 +270,17 @@ requested deletions happened.</p>
 <p>Application parses R output and stages backups before mutation. It
 holds one exclusive project lock, verifies writes, and restores backups
 after an error. There is no cross-file filesystem transaction. A process
-termination can leave a recovery journal and <code>.apipak-lock</code>
+termination can leave a recovery journal and <code>.specmill-lock</code>
 directory.</p>
 <p>First stop other writers and confirm the interrupted R process has
 exited. Inspect the recovery plan without writing:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/normalizePath.html" class="external-link">normalizePath</a></span><span class="op">(</span><span class="st">'/path/to/client'</span>, winslash <span class="op">=</span> <span class="st">'/'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/apply_files.html">recover_client</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/apply_files.html">recover_client</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span></code></pre></div>
 <p>When no live writer remains, remove only an empty stale lock, if
 present:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">lock</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'.apipak-lock'</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">lock</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'.specmill-lock'</span><span class="op">)</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.exists</a></span><span class="op">(</span><span class="va">lock</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
 <span>    <span class="op">!</span><span class="fu">fs</span><span class="fu">::</span><span class="fu"><a href="https://fs.r-lib.org/reference/is_file.html" class="external-link">is_link</a></span><span class="op">(</span><span class="va">lock</span><span class="op">)</span>,</span>
@@ -289,15 +289,15 @@ present:</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">lock</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>The normalized <code>root</code> and literal
-<code>.apipak-lock</code> keep the target explicit. Do not remove a
+<code>.specmill-lock</code> keep the target explicit. Do not remove a
 nonempty directory or use a broad wildcard cleanup. Restore the reviewed
 journal, then replan:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/apply_files.html">recover_client</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'apply'</span><span class="op">)</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span></code></pre></div>
-<p>Recovery recognizes current and legacy wrapmaint journals, validates
-destinations and backups, and retains the journal on failure. Never
-delete journals/backups to bypass recovery. The lock is not stolen
+<code class="sourceCode R"><span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/apply_files.html">recover_client</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'apply'</span><span class="op">)</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span></code></pre></div>
+<p>Recovery recognizes specmill journals, validates destinations and
+backups, and retains the journal on failure. Never delete
+journals/backups to bypass recovery. The lock is not stolen
 automatically: directory age does not distinguish a dead process from a
 slow live writer.</p>
 </div>
@@ -310,7 +310,7 @@ slow live writer.</p>
 <span>  files <span class="op">=</span> <span class="st">'/path/to/schema.json'</span>, helper <span class="op">=</span> <span class="st">'request_helper'</span>,</span>
 <span>  policy_version <span class="op">=</span> <span class="st">'reviewed-1'</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="st">'/path/to/client'</span>, <span class="va">spec</span>, <span class="st">'plan'</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="st">'/path/to/client'</span>, <span class="va">spec</span>, <span class="st">'plan'</span><span class="op">)</span></span></code></pre></div>
 <p>Supply exactly one of <code>spec</code> and <code>config</code>. YAML
 is the recommended entry point for new integrations because it keeps
 service selection and policy explicit. <code><a href="../reference/render_operation.html">render_operation()</a></code>
@@ -326,7 +326,7 @@ diff counts and helper-call tests are regression evidence, not a general
 compatibility proof.</p>
 <p>The <code>readiness</code> group retains the versioned audit helpers
 for clients already using that workflow. Bind into an environment with
-<code>asNamespace('apipak')</code> as parent and set
+<code>asNamespace('specmill')</code> as parent and set
 <code>audit_policy</code> through its <code>read_audit_policy()</code>
 reader. Credential names, issue metadata, badge paths, and test-tier
 descriptions belong to the client’s audit policy. Prefer the client’s
@@ -339,7 +339,7 @@ existing thin audit command.</p>
 sanitized error, and the smallest local schema/policy that reproduces
 it. State which checks ran and whether any request was sent. Remove
 keys, tokens, private URLs, and private response content. Report at the
-<a href="https://github.com/seanthimons/apipak/issues" class="external-link">apipak issue
+<a href="https://github.com/seanthimons/specmill/issues" class="external-link">specmill issue
 tracker</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

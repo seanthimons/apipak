@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Routine maintenance and CI • apipak</title>
+<title>Routine maintenance and CI • specmill</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -20,9 +20,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">apipak</a>
+    <a class="navbar-brand me-2" href="../index.html">specmill</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/apipak.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/specmill.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -52,7 +52,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/apipak/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/specmill/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -69,7 +69,7 @@
       <h1>Routine maintenance and CI</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/seanthimons/apipak/blob/HEAD/vignettes/maintenance.Rmd" class="external-link"><code>vignettes/maintenance.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/HEAD/vignettes/maintenance.Rmd" class="external-link"><code>vignettes/maintenance.Rmd</code></a></small>
       <div class="d-none name"><code>maintenance.Rmd</code></div>
     </div>
 
@@ -78,7 +78,7 @@
 <p>Use the same loop for new and existing clients: <strong>update inputs
 -&gt; plan -&gt; review -&gt; apply -&gt; check -&gt; test -&gt;
 commit</strong>. Schemas, service policy, callbacks, fixed fixtures,
-output, and <code>.apipak/manifest.json</code> form one reviewed
+output, and <code>.specmill/manifest.json</code> form one reviewed
 change.</p>
 <div class="section level2">
 <h2 id="review-schema-changes">1. Review schema changes<a class="anchor" aria-label="anchor" href="#review-schema-changes"></a>
@@ -89,12 +89,12 @@ policy for both versions. For example, place <code>catalogue.json</code>
 in <code>schema-before/</code> and <code>schema-after/</code>:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">selection</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'GET'</span>, <span class="st">'POST'</span><span class="op">)</span>, exclude <span class="op">=</span> <span class="st">'^/internal/'</span><span class="op">)</span></span>
-<span><span class="va">diff</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/schema_diff.html">schema_diff</a></span><span class="op">(</span></span>
+<span><span class="va">diff</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/schema_diff.html">schema_diff</a></span><span class="op">(</span></span>
 <span>  <span class="st">'/path/to/schema-before'</span>, <span class="st">'/path/to/schema-after'</span>,</span>
 <span>  policies <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">'catalogue.json'</span> <span class="op">=</span> <span class="va">selection</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/schema_diff.html">format_diff_markdown</a></span><span class="op">(</span><span class="va">diff</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/schema_diff.html">count_diff_changes</a></span><span class="op">(</span><span class="va">diff</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/schema_diff.html">format_diff_markdown</a></span><span class="op">(</span><span class="va">diff</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/schema_diff.html">count_diff_changes</a></span><span class="op">(</span><span class="va">diff</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/schema_diff.html">schema_diff()</a></code> compares method/path identities and
 canonical data including reachable local references and response shapes.
 Changed contracts enter the breaking-change report lane conservatively
@@ -117,13 +117,13 @@ exclusions or reconciled renames and requires verified ownership.</p>
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/normalizePath.html" class="external-link">normalizePath</a></span><span class="op">(</span><span class="st">'/path/to/client'</span>, winslash <span class="op">=</span> <span class="st">'/'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
 <span><span class="va">plan</span><span class="op">$</span><span class="va">files</span></span>
 <span><span class="va">plan</span><span class="op">$</span><span class="va">drift</span></span>
 <span><span class="va">plan</span><span class="op">$</span><span class="va">diagnostics</span></span>
 <span><span class="co"># After reviewing the change:</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
 <span><span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/test_package.html" class="external-link">test_local</a></span><span class="op">(</span><span class="va">root</span>, filter <span class="op">=</span> <span class="st">'contract-'</span>, stop_on_failure <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>Supply the same explicit <code>callbacks</code> environment on each
 call when your policy uses callbacks. Run the relevant manual/helper
@@ -137,9 +137,9 @@ do not hand-edit generated files to fix a policy error.</p>
 <p>Save the following as <code>dev/generate.R</code> in a client without
 an existing command:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">.client_root</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generation_command.html">script_root</a></span><span class="op">(</span><span class="st">'generate.R'</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">.client_root</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generation_command.html">script_root</a></span><span class="op">(</span><span class="st">'generate.R'</span><span class="op">)</span></span>
 <span><span class="va">generate_main</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">root</span> <span class="op">=</span> <span class="va">.client_root</span>, <span class="va">args</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generation_command.html">generation_command</a></span><span class="op">(</span><span class="va">root</span>, args <span class="op">=</span> <span class="va">args</span>, kind <span class="op">=</span> <span class="st">'stubs'</span><span class="op">)</span></span>
+<span>  <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generation_command.html">generation_command</a></span><span class="op">(</span><span class="va">root</span>, args <span class="op">=</span> <span class="va">args</span>, kind <span class="op">=</span> <span class="st">'stubs'</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sys.parent.html" class="external-link">sys.nframe</a></span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0L</span><span class="op">)</span> <span class="fu">generate_main</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/generation_command.html">script_root()</a></code> locates the package from the source frame
@@ -200,7 +200,7 @@ apply.</p>
 <h2 id="inspect-implementation-and-test-gaps">4. Inspect implementation and test gaps<a class="anchor" aria-label="anchor" href="#inspect-implementation-and-test-gaps"></a>
 </h2>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">inspection</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/inspect_client.html">inspect_client</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">inspection</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/inspect_client.html">inspect_client</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
 <span><span class="va">inspection</span><span class="op">$</span><span class="va">coverage</span></span>
 <span><span class="va">inspection</span><span class="op">$</span><span class="va">manual_exports</span></span>
 <span><span class="va">inspection</span><span class="op">$</span><span class="va">diagnostics</span></span></code></pre></div>
@@ -223,9 +223,9 @@ the baseline’s parent directory before apply. Report-policy filenames
 passed as strings are resolved by R against the working directory; make
 them explicit with <code>file.path(root, ...)</code>:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/coverage_report.html">coverage_report</a></span><span class="op">(</span><span class="va">root</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'dev/coverage.yml'</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/coverage_report.html">coverage_report</a></span><span class="op">(</span><span class="va">root</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'dev/coverage.yml'</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/coverage_report.html">test_gap_report</a></span><span class="op">(</span><span class="va">root</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/coverage_report.html">coverage_report</a></span><span class="op">(</span><span class="va">root</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'dev/coverage.yml'</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/coverage_report.html">coverage_report</a></span><span class="op">(</span><span class="va">root</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'dev/coverage.yml'</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/coverage_report.html">test_gap_report</a></span><span class="op">(</span><span class="va">root</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  helpers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">'api_request'</span><span class="op">)</span>, report_dir <span class="op">=</span> <span class="st">'dev/test-gaps'</span>,</span>
 <span>  readiness_report <span class="op">=</span> <span class="st">'dev/readiness-report.json'</span></span>
 <span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
@@ -242,7 +242,7 @@ audit, not an audit created by this call.</p>
 run generation checks before tests. For a client with no callbacks, an R
 CI step can be:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="st">'.'</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="st">'.'</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">checked</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0L</span><span class="op">)</span></span>
 <span><span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/test_package.html" class="external-link">test_local</a></span><span class="op">(</span><span class="st">'.'</span>, stop_on_failure <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>If you intentionally retain unsupported operations, use an explicit
@@ -289,7 +289,7 @@ to guides. Put sequential workflows in vignettes and per-function detail
 in reference docs. Render examples offline; mark real API calls
 <code>eval=FALSE</code> or use fixed examples that do not contact
 services.</p>
-<p>For <strong>apipak’s own site</strong>, <code>_pkgdown.yml</code>
+<p>For <strong>specmill’s own site</strong>, <code>_pkgdown.yml</code>
 defines navigation and <code>.github/workflows/pkgdown.yml</code> builds
 on pull requests and publishes on the configured default-branch pushes
 or manual dispatch. Local build command:</p>

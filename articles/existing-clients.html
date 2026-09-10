@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Adopt an existing client • apipak</title>
+<title>Adopt an existing client • specmill</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -20,9 +20,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">apipak</a>
+    <a class="navbar-brand me-2" href="../index.html">specmill</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/apipak.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/specmill.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -52,7 +52,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/apipak/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/specmill/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -69,17 +69,17 @@
       <h1>Adopt an existing client</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/seanthimons/apipak/blob/HEAD/vignettes/existing-clients.Rmd" class="external-link"><code>vignettes/existing-clients.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/HEAD/vignettes/existing-clients.Rmd" class="external-link"><code>vignettes/existing-clients.Rmd</code></a></small>
       <div class="d-none name"><code>existing-clients.Rmd</code></div>
     </div>
 
     
     
-<p>Adoption connects an existing R package to apipak without recreating
-the package or replacing its HTTP implementation. Work on a dedicated
-branch, record a clean baseline, and begin with one representative
-operation.</p>
-<p>If your project is already configured, skip to <a href="maintenance.html">the maintenance loop</a>. ComptoxR maintainers
+<p>Adoption connects an existing R package to specmill without
+recreating the package or replacing its HTTP implementation. Work on a
+dedicated branch, record a clean baseline, and begin with one
+representative operation.</p>
+<p>If your project is already configured for specmill, skip to <a href="maintenance.html">the maintenance loop</a>. ComptoxR maintainers
 can use the commands at the end of this guide.</p>
 <div class="section level2">
 <h2 id="record-the-existing-contract">1. Record the existing contract<a class="anchor" aria-label="anchor" href="#record-the-existing-contract"></a>
@@ -97,7 +97,7 @@ with existing scaffold files.</p>
 <div class="section level2">
 <h2 id="add-project-and-service-files">2. Add project and service files<a class="anchor" aria-label="anchor" href="#add-project-and-service-files"></a>
 </h2>
-<p>Create <code>apipak.yml</code> in the client root:</p>
+<p>Create <code>specmill.yml</code> in the client root:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">config_version</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">package</span><span class="kw">:</span><span class="at"> existingclient</span></span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">apis/catalogue.yml</span><span class="kw">]</span></span></code></pre></div>
@@ -130,14 +130,14 @@ then create <code>apis/catalogue.yml</code>:</p>
 while mapping it to
 <code>request_item(endpoint = 'items', id = identifier, language = language)</code>.
 The helper must be defined in the client’s <code>R/</code> source.
-apipak parses its arguments before applying generated code.</p>
+specmill parses its arguments before applying generated code.</p>
 <p><code>inputs</code> declares the complete public interface and
 requires an explicit request mapping. <code>parameters</code> is the
 alternative when only a few schema-derived arguments need changing. See
 <a href="configuration.html">Configuration</a>.</p>
-<p>Exclude config, schemas, and <code>.apipak</code> from the built
+<p>Exclude config, schemas, and <code>.specmill</code> from the built
 client package using <code>.Rbuildignore</code>, but keep them in Git.
-Do not add apipak to runtime dependencies.</p>
+Do not add specmill to runtime dependencies.</p>
 </div>
 <div class="section level2">
 <h2 id="keep-executable-customizations-in-r">3. Keep executable customizations in R<a class="anchor" aria-label="anchor" href="#keep-executable-customizations-in-r"></a>
@@ -147,8 +147,8 @@ Do not add apipak to runtime dependencies.</p>
 <code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/normalizePath.html" class="external-link">normalizePath</a></span><span class="op">(</span><span class="st">'/path/to/existingclient'</span>, winslash <span class="op">=</span> <span class="st">'/'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">callbacks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">baseenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sys.source.html" class="external-link">sys.source</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'dev/callbacks.R'</span><span class="op">)</span>, envir <span class="op">=</span> <span class="va">callbacks</span><span class="op">)</span></span>
-<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
-<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, callbacks <span class="op">=</span> <span class="va">callbacks</span>, mode <span class="op">=</span> <span class="st">'plan'</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, callbacks <span class="op">=</span> <span class="va">callbacks</span>, mode <span class="op">=</span> <span class="st">'plan'</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Use <code>callback_files: [dev/callbacks.R]</code> in the project
 file to fingerprint that source. It does not source the file. Only
@@ -169,9 +169,9 @@ ownership example uses the bundled helper’s default contract.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">'existing-client-'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
-<span><span class="va">catalogue</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'catalogue'</span>, package <span class="op">=</span> <span class="st">'apipak'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">catalogue</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'catalogue'</span>, package <span class="op">=</span> <span class="st">'specmill'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">catalogue</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="va">root</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'config_version: 1'</span>, <span class="st">'services: [catalogue.yml]'</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'apipak.yml'</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'config_version: 1'</span>, <span class="st">'services: [catalogue.yml]'</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'specmill.yml'</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  <span class="st">'id: catalogue'</span>, <span class="st">'schemas: {files: [schema.json]}'</span>,</span>
 <span>  <span class="st">'helper: catalogue_request'</span></span>
@@ -184,14 +184,14 @@ ownership example uses the bundled helper’s default contract.</p>
 <span>  <span class="st">'    path_params = list(item_id = item_id), query = list(language = language), body = NULL)'</span>,</span>
 <span>  <span class="st">'}'</span></span>
 <span><span class="op">)</span>, <span class="va">legacy</span><span class="op">)</span></span>
-<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">action</span> <span class="op">==</span> <span class="st">'protected'</span>, <span class="va">plan</span><span class="op">$</span><span class="va">files</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [[1]]</span></span>
 <span><span class="co">#&gt; [[1]]$file</span></span>
 <span><span class="co">#&gt; [1] "R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$path</span></span>
-<span><span class="co">#&gt; [1] "C:/Users/sxthi/AppData/Local/Temp/RtmpOgepeM/existing-client-111f46d8830d1/R/get_item.R"</span></span>
+<span><span class="co">#&gt; [1] "C:/Users/sxthi/AppData/Local/Temp/RtmpicBFBv/existing-client-8f4814397075/R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$action</span></span>
 <span><span class="co">#&gt; [1] "protected"</span></span></code></pre></div>
@@ -203,13 +203,13 @@ newline:</p>
 <code class="sourceCode R"><span><span class="va">text</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">legacy</span>, warn <span class="op">=</span> <span class="cn">FALSE</span>, encoding <span class="op">=</span> <span class="st">'UTF-8'</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">'\n'</span><span class="op">)</span></span>
 <span><span class="va">hash</span> <span class="op">&lt;-</span> <span class="fu">digest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/digest/man/digest.html" class="external-link">digest</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Encoding.html" class="external-link">enc2utf8</a></span><span class="op">(</span><span class="va">text</span><span class="op">)</span>, algo <span class="op">=</span> <span class="st">'sha256'</span>, serialize <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">adopt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">'R/get_item.R'</span> <span class="op">=</span> <span class="va">hash</span><span class="op">)</span></span>
-<span><span class="va">reviewed</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
-<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span>, adopt <span class="op">=</span> <span class="va">adopt</span></span>
+<span><span class="va">reviewed</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span>, adopt <span class="op">=</span> <span class="va">adopt</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">applied</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
-<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span>, adopt <span class="op">=</span> <span class="va">adopt</span></span>
+<span><span class="va">applied</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span>, adopt <span class="op">=</span> <span class="va">adopt</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
+<span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">checked</span><span class="op">$</span><span class="va">files</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">action</span> <span class="op">==</span> <span class="st">'protected'</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The manifest now records ownership. Adoption hashes are a one-time
 review input; do not keep passing old hashes on later runs. A changed
@@ -223,7 +223,7 @@ separately.</p>
 <p>For a schema operation that must keep its handwritten wrapper, add
 <code>implementation: existing</code>, along with its explicit
 <code>name</code>, complete <code>inputs</code>, and
-<code>request</code> mapping. apipak checks the actual formals and
+<code>request</code> mapping. specmill checks the actual formals and
 retains the source. It can generate a fixed contract test, but does not
 rewrite that implementation’s documentation.</p>
 <p>To preserve grouped generated output, set
@@ -246,20 +246,20 @@ available for rollback. See <a href="testing.html">Testing</a> and <a href="trou
 <div class="section level2">
 <h2 id="comptoxr-use-the-maintained-integration">ComptoxR: use the maintained integration<a class="anchor" aria-label="anchor" href="#comptoxr-use-the-maintained-integration"></a>
 </h2>
-<p>These commands follow the migrated ComptoxR layout at revision
-<code>9146cd77</code>. Use the <code>CONTRIBUTING.md</code> in your
-checkout for its current branch/release policy. Older checkouts may
-still use wrapmaint.</p>
+<p>These commands use the specmill integration in ComptoxR. Use the
+<code>CONTRIBUTING.md</code> in your checkout for its current
+branch/release policy.</p>
 <p>From the ComptoxR root, install its checksum-pinned toolkit:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">'dev/install_toolkit.R'</span><span class="op">)</span></span>
 <span><span class="fu">install_toolkit</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The project declares Air <strong>0.9.0</strong> in
-<code>apipak.yml</code>; install that exact formatter before generation.
-The project selects CTX, EPI, and separate Chemi service files.
-<code>dev/apipak_callbacks.R</code> supplies development callbacks;
-<code>inst/hook_config.yml</code> remains the runtime hook policy. Keep
-these rather than substituting the simplified examples above.</p>
+<code>specmill.yml</code>; install that exact formatter before
+generation. The project selects CTX, EPI, and separate Chemi service
+files. <code>dev/specmill_callbacks.R</code> supplies development
+callbacks; <code>inst/hook_config.yml</code> remains the runtime hook
+policy. Keep these rather than substituting the simplified examples
+above.</p>
 <p>Preview and check from a terminal:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_stubs.R <span class="at">--plan</span></span>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="ex">Rscript</span> dev/generate_tests.R <span class="at">--dry-run</span></span>

@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Configure schemas, wrappers, and documentation • apipak</title>
+<title>Configure schemas, wrappers, and documentation • specmill</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -20,9 +20,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">apipak</a>
+    <a class="navbar-brand me-2" href="../index.html">specmill</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/apipak.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/specmill.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -52,7 +52,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/apipak/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/specmill/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -69,7 +69,7 @@
       <h1>Configure schemas, wrappers, and documentation</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/seanthimons/apipak/blob/HEAD/vignettes/configuration.Rmd" class="external-link"><code>vignettes/configuration.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/HEAD/vignettes/configuration.Rmd" class="external-link"><code>vignettes/configuration.Rmd</code></a></small>
       <div class="d-none name"><code>configuration.Rmd</code></div>
     </div>
 
@@ -85,8 +85,11 @@ path exactly, including trailing slashes.</p>
 YAML’s directory. Use relative paths inside YAML. Parent traversal,
 absolute paths, and symlinks are rejected.</p>
 <div class="section level2">
-<h2 id="project-file-apipak-yml">Project file: apipak.yml<a class="anchor" aria-label="anchor" href="#project-file-apipak-yml"></a>
+<h2 id="project-file-specmill-yml">Project file: specmill.yml<a class="anchor" aria-label="anchor" href="#project-file-specmill-yml"></a>
 </h2>
+<p><code><a href="../reference/load_project.html">load_project()</a></code> and maintenance commands use
+<code>specmill.yml</code> by default. Pass <code>config</code>
+explicitly to use a different project filename.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">config_version</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">package</span><span class="kw">:</span><span class="at"> catalogueclient</span></span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">services</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">apis/catalogue.yml</span><span class="kw">]</span></span></code></pre></div>
@@ -125,7 +128,7 @@ fingerprint, without sourcing them</td>
 </tr>
 </tbody>
 </table>
-<p>Use <code>apipak::load_project(root)</code> to validate and inspect
+<p>Use <code>specmill::load_project(root)</code> to validate and inspect
 the resolved service configuration before generating. Callback names
 require an explicit environment even for a read-only plan.</p>
 </div>
@@ -478,8 +481,8 @@ generating source:</p>
 <span><span class="va">callbacks</span><span class="op">$</span><span class="va">batch_limit</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">operation</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">'batch_limit'</span>, <span class="st">'1000'</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
-<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, callbacks <span class="op">=</span> <span class="va">callbacks</span>, mode <span class="op">=</span> <span class="st">'plan'</span></span>
+<span><span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
+<span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, callbacks <span class="op">=</span> <span class="va">callbacks</span>, mode <span class="op">=</span> <span class="st">'plan'</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Use <code>{callback: batch_limit}</code> as a request argument
 binding. A language object such as <code>quote(...)</code> becomes

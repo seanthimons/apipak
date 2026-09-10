@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Write and run contract tests • apipak</title>
+<title>Write and run contract tests • specmill</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -20,9 +20,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">apipak</a>
+    <a class="navbar-brand me-2" href="../index.html">specmill</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/apipak.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/specmill.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -52,7 +52,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/apipak/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/seanthimons/specmill/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -69,7 +69,7 @@
       <h1>Write and run contract tests</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/seanthimons/apipak/blob/HEAD/vignettes/testing.Rmd" class="external-link"><code>vignettes/testing.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/HEAD/vignettes/testing.Rmd" class="external-link"><code>vignettes/testing.Rmd</code></a></small>
       <div class="d-none name"><code>testing.Rmd</code></div>
     </div>
 
@@ -87,9 +87,9 @@ generated test offline. Install <code>httr2</code> and
 <h2 id="prepare-a-client-with-one-selected-operation">1. Prepare a client with one selected operation<a class="anchor" aria-label="anchor" href="#prepare-a-client-with-one-selected-operation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'catalogue/schema.json'</span>, package <span class="op">=</span> <span class="st">'apipak'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'catalogue/schema.json'</span>, package <span class="op">=</span> <span class="st">'specmill'</span>, mustWork <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">'tested-client-'</span><span class="op">)</span></span>
-<span><span class="va">created</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/initialize_client.html">initialize_client</a></span><span class="op">(</span></span>
+<span><span class="va">created</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/initialize_client.html">initialize_client</a></span><span class="op">(</span></span>
 <span>  <span class="va">root</span>, <span class="va">schema</span>, package <span class="op">=</span> <span class="st">'testedclient'</span>, title <span class="op">=</span> <span class="st">'Tested Catalogue Client'</span>,</span>
 <span>  author <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>given <span class="op">=</span> <span class="st">'Example'</span>, family <span class="op">=</span> <span class="st">'Maintainer'</span>, email <span class="op">=</span> <span class="st">'you@example.org'</span><span class="op">)</span>,</span>
 <span>  license <span class="op">=</span> <span class="st">'MIT + file LICENSE'</span>, base_url <span class="op">=</span> <span class="st">'https://api.example.org'</span></span>
@@ -155,10 +155,10 @@ current runner and manual tests.</p>
 <h2 id="generate-and-run-the-test">4. Generate and run the test<a class="anchor" aria-label="anchor" href="#generate-and-run-the-test"></a>
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">plan</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">plan</span><span class="op">$</span><span class="va">operations</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1L</span><span class="op">)</span></span>
-<span><span class="va">applied</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
-<span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'apipak.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
+<span><span class="va">applied</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'apply'</span><span class="op">)</span></span>
+<span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span><span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'check'</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">root</span>, <span class="st">'tests/testthat/test-contract-get_item.R'</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The fixed sequence test reads the RDS fixture and replaces
 <code>api_request</code> in the client namespace with a recorder. The
@@ -184,7 +184,7 @@ hooks you changed.</p>
 <h2 id="inspect-test-coverage-separately-from-execution">5. Inspect test coverage separately from execution<a class="anchor" aria-label="anchor" href="#inspect-test-coverage-separately-from-execution"></a>
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">inspection</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/inspect_client.html">inspect_client</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">inspection</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/inspect_client.html">inspect_client</a></span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
 <span><span class="va">inspection</span><span class="op">$</span><span class="va">coverage</span></span>
 <span><span class="co">#&gt; $testedclient</span></span>
 <span><span class="co">#&gt; $testedclient$total</span></span>
@@ -239,8 +239,8 @@ fixture</strong>. It checks supported constraints and stops if the
 chosen candidate fails them; it does not silently try a lower priority
 value. Schema examples are never evaluated as R code.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">operations</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/read_operations.html">read_operations</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span><span class="op">$</span><span class="va">operations</span></span>
-<span><span class="va">candidate_inputs</span> <span class="op">&lt;-</span> <span class="fu">apipak</span><span class="fu">::</span><span class="fu"><a href="../reference/operation_fixtures.html">operation_fixtures</a></span><span class="op">(</span><span class="va">operations</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">operations</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/read_operations.html">read_operations</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span><span class="op">$</span><span class="va">operations</span></span>
+<span><span class="va">candidate_inputs</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/operation_fixtures.html">operation_fixtures</a></span><span class="op">(</span><span class="va">operations</span><span class="op">)</span></span>
 <span><span class="va">candidate_inputs</span><span class="op">$</span><span class="va">get_item</span></span>
 <span><span class="co">#&gt; $item_id</span></span>
 <span><span class="co">#&gt; [1] "example"</span></span>
