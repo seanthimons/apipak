@@ -63,6 +63,9 @@ ComptoxR’s maintained integration uses `specmill.yml` and the
 checksum-pinned specmill release. See [the existing-client
 guide](https://seanthimons.github.io/specmill/articles/existing-clients.html).
 
+Maintainers: [builds, releases, and the new-schema
+trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).
+
 # Package index
 
 ## Set up and generate
