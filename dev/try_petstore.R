@@ -1,30 +1,74 @@
-# A new-schema trial with fixed expectations, no calls to the remote API.
-try_petstore <- function(output = 'artifacts/petstore-trial') {
+# Read-only smoke check for the installed client against the live demo.
+check_live_petstore <- function() {
+  direct <- function(path) {
+    request <- httr2::request(paste0(
+      'https://petstore3.swagger.io/api/v3',
+      path
+    ))
+    response <- httr2::req_perform(httr2::req_timeout(request, 30))
+    stopifnot(httr2::resp_status(response) == 200L)
+    httr2::resp_body_json(response, simplifyVector = FALSE)
+  }
+  pets <- petstoretrial::findPetsByStatus('available')
+  stopifnot(is.list(pets), length(pets) > 0L)
+  valid_pets <- vapply(
+    pets,
+    function(pet) {
+      is.character(pet$name) &&
+        length(pet$name) == 1L &&
+        is.list(pet$photoUrls) &&
+        all(vapply(pet$photoUrls, is.character, logical(1))) &&
+        identical(pet$status, 'available')
+    },
+    logical(1)
+  )
+  stopifnot(identical(pets, direct('/pet/findByStatus?status=available')))
+  id <- pets[[1L]]$id
+  stopifnot(is.numeric(id), length(id) == 1L, is.finite(id))
+  pet <- petstoretrial::getPetById(id)
+  stopifnot(identical(pet$id, id))
+  stopifnot(identical(
+    pet,
+    direct(paste0('/pet/', format(id, scientific = FALSE)))
+  ))
+  inventory <- petstoretrial::getInventory()
+  stopifnot(is.list(inventory), length(inventory) > 0L)
+  stopifnot(all(vapply(
+    inventory,
+    function(n) {
+      is.numeric(n) && length(n) == 1L && is.finite(n) && n == floor(n)
+    },
+    logical(1)
+  )))
+  stopifnot(identical(inventory, direct('/store/inventory')))
+  list(
+    checked_at = format(Sys.time(), tz = 'UTC', usetz = TRUE),
+    available_pets = length(pets),
+    selected_pet_id = id,
+    direct_responses_match = TRUE,
+    schema_fields_checked = c('name', 'photoUrls', 'status'),
+    schema_invalid_pet_ids = lapply(pets[!valid_pets], function(pet) pet$id),
+    responses = list(pets = pets, pet = pet, inventory = inventory)
+  )
+}
+
+# Build from the live service's schema; only GET endpoints are selected/called.
+try_petstore <- function(output = 'artifacts/petstore-live') {
   if (file.exists(output)) {
     stop('Choose a new trial directory')
   }
   dir.create(output, recursive = TRUE)
   output <- normalizePath(output, winslash = '/', mustWork = TRUE)
-  revision <- '989902919903b590e789f84501d8b937fa621fdf'
-  url <- paste0(
-    'https://raw.githubusercontent.com/OAI/OpenAPI-Specification/',
-    revision,
-    '/_archive_/schemas/v3.0/pass/petstore.yaml'
-  )
-  yaml_path <- file.path(output, 'petstore.yaml')
-  utils::download.file(url, yaml_path, mode = 'wb', quiet = TRUE)
-  document <- yaml::yaml.load_file(
-    yaml_path,
-    eval.expr = FALSE,
-    handlers = list(seq = as.list)
-  )
+  url <- 'https://petstore3.swagger.io/api/v3/openapi.json'
   schema <- file.path(output, 'petstore.json')
-  jsonlite::write_json(document, schema, auto_unbox = TRUE, pretty = TRUE)
+  utils::download.file(url, schema, mode = 'wb', quiet = TRUE)
+  document <- jsonlite::read_json(schema)
   jsonlite::write_json(
     list(
       url = url,
-      source_commit = revision,
-      sha256 = digest::digest(file = yaml_path, algo = 'sha256')
+      retrieved_at = format(Sys.time(), tz = 'UTC', usetz = TRUE),
+      api_version = document$info$version,
+      sha256 = digest::digest(file = schema, algo = 'sha256')
     ),
     file.path(output, 'schema-origin.json'),
     auto_unbox = TRUE,
@@ -35,16 +79,35 @@ try_petstore <- function(output = 'artifacts/petstore-trial') {
     root,
     schema,
     package = 'petstoretrial',
-    title = 'Petstore Schema Trial',
+    title = 'Live Petstore Client Trial',
     author = list(
       given = 'Example',
       family = 'Maintainer',
       email = 'you@example.org'
     ),
     license = 'MIT + file LICENSE',
-    base_url = 'https://petstore.example.invalid/v1'
+    base_url = 'https://petstore3.swagger.io/api/v3'
   )
-  pet <- list(id = 1L, name = 'Miso')
+  full_plan <- specmill::generate_client(
+    root,
+    config = 'specmill.yml',
+    mode = 'plan'
+  )
+  saveRDS(full_plan, file.path(output, 'full-schema-plan.rds'))
+  selected <- c('/pet/findByStatus', '/pet/{petId}', '/store/inventory')
+  service_path <- file.path(root, 'apis/default.yml')
+  service <- yaml::read_yaml(service_path)
+  service$schemas$files <- as.list(service$schemas$files)
+  service$selection <- list(
+    methods = list('GET'),
+    exclude = as.list(paste0(
+      '^\\Q',
+      setdiff(names(document$paths), selected),
+      '\\E$'
+    ))
+  )
+  yaml::write_yaml(service, service_path)
+  pet <- list(id = 1L, name = 'Miso', photoUrls = list(), status = 'available')
   contract <- function(
     inputs,
     method,
@@ -71,32 +134,32 @@ try_petstore <- function(output = 'artifacts/petstore-trial') {
     )
   }
   contracts <- list(
-    listPets = contract(
-      list(limit = 2L),
+    findPetsByStatus = contract(
+      list(status = 'available'),
       'GET',
-      '/pets',
+      '/pet/findByStatus',
       list(),
-      list(limit = 2L),
+      list(status = 'available'),
       NULL,
       list(pet)
     ),
-    showPetById = contract(
-      list(petId = '1'),
+    getPetById = contract(
+      list(petId = 1L),
       'GET',
-      '/pets/{petId}',
-      list(petId = '1'),
+      '/pet/{petId}',
+      list(petId = 1L),
       list(),
       NULL,
       pet
     ),
-    createPets = contract(
-      list(body = pet),
-      'POST',
-      '/pets',
+    getInventory = contract(
+      list(),
+      'GET',
+      '/store/inventory',
       list(),
       list(),
-      pet,
-      NULL
+      NULL,
+      list(available = 2L)
     )
   )
   dir.create(file.path(root, 'tests/testthat/fixtures'), recursive = TRUE)
@@ -148,8 +211,8 @@ try_petstore <- function(output = 'artifacts/petstore-trial') {
   )
   library <- file.path(output, 'library')
   dir.create(library)
-  callr::r(
-    function(archive, library) {
+  live <- callr::r(
+    function(archive, library, check_live) {
       utils::install.packages(
         archive,
         repos = NULL,
@@ -157,23 +220,25 @@ try_petstore <- function(output = 'artifacts/petstore-trial') {
         lib = library
       )
       stopifnot(!'specmill' %in% names(getNamespaceImports('petstoretrial')))
-      testthat::local_mocked_bindings(
-        api_request = function(...) list(...),
-        .package = 'petstoretrial'
-      )
-      stopifnot(identical(
-        petstoretrial::showPetById('7')$path_params,
-        list(petId = '7')
-      ))
+      check_live()
     },
-    args = list(archive = archive, library = library),
-    libpath = c(library, .libPaths())
+    args = list(
+      archive = archive,
+      library = library,
+      check_live = check_live_petstore
+    ),
+    libpath = c(library, .libPaths()),
+    timeout = 180
   )
+  saveRDS(live$responses, file.path(output, 'live-responses.rds'), version = 2)
+  live$responses <- NULL
   result <- list(
     package = 'petstoretrial',
     schema_source = url,
     operations = names(plan$operations),
     diagnostics = length(plan$diagnostics),
+    full_schema_diagnostics = length(full_plan$diagnostics),
+    live = live,
     second_apply_unchanged = TRUE,
     errors = checked$errors,
     warnings = checked$warnings,

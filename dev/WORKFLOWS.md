@@ -53,17 +53,39 @@ not copied; none is needed for this package's current release path.
 
 ## Try a different schema
 
-The separate Petstore trial downloads a pinned OpenAPI Initiative example,
-preserves YAML sequences when converting it to JSON, initializes a new client,
-supplies three independently specified contracts, generates code and help,
-verifies a no-op second apply, checks the archive, and installs it locally.
+The Petstore trial downloads the [live service's schema](https://petstore3.swagger.io/api/v3/openapi.json),
+records its retrieval time and checksum, and builds a client for three GET operations:
+findPetsByStatus, getPetById, and getInventory. It supplies independent offline
+contracts, verifies an unchanged second generation, checks the archive, and
+installs it into a separate library. The installed functions then retrieve real
+data and compare their results with direct HTTP requests to the same endpoints.
 
 ```r
 source('dev/try_petstore.R')
-try_petstore(output = 'artifacts/my-petstore-trial')
+try_petstore(output = 'artifacts/petstore-live')
 ```
 
 The output contains the schema and its provenance, generated petstoretrial
-package, generation plan, installable source archive, check logs, and result.json.
-All client requests are mocked. The helper uses an explicit example.invalid URL;
-this trial does not validate a live Petstore service or implement pagination.
+package, selected and full-schema generation plans, installable source archive,
+check logs, live-responses.rds, and result.json. Unsupported operations remain
+visible in full-schema-plan.rds; this is a three-operation client, not full API coverage.
+Package checks use offline fixtures; the subsequent live check requires internet
+access and can fail if the shared demo data changes between requests. It checks
+selected fields and exact response equivalence, not every OpenAPI constraint.
+Records violating the checked Pet fields are reported in live.schema_invalid_pet_ids;
+the live demo can return data that violates its own schema. Those findings are
+separate from the assertions that the client returns the same data as direct HTTP.
+No live write operations are performed.
+
+To use the built client in a new R session from the repository root:
+
+```r
+library(petstoretrial, lib.loc = 'artifacts/petstore-live/library')
+pets <- findPetsByStatus('available')
+getPetById(pets[[1]]$id)
+getInventory()
+```
+
+To repeat just the live check after loading the client, source dev/try_petstore.R
+and call check_live_petstore(). The archived schema is the exact downloaded JSON;
+the old illustrative /v1/pets schema is no longer used.
