@@ -53,6 +53,12 @@ not copied; none is needed for this package's current release path.
 
 ## Try a different schema
 
+For the full 19-endpoint configuration demonstration, including pet/store/user
+names, parameter renaming, grouped source and help, explicit mappings, and
+retained client functions, see [petstore/README.md](petstore/README.md).
+Run source('dev/build_petstore.R') and build_petstore() for that example.
+The three-operation smoke trial below remains a smaller separate example.
+
 The Petstore trial downloads the [live service's schema](https://petstore3.swagger.io/api/v3/openapi.json),
 records its retrieval time and checksum, and builds a client for three GET operations:
 findPetsByStatus, getPetById, and getInventory. It supplies independent offline

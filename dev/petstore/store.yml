@@ -1,0 +1,33 @@
+id: store
+schemas: {files: [schema/openapi.json]}
+selection: {exclude: ['^/(?!store(?:/|$))']}
+helper: api_request
+documentation: true
+defaults:
+  file: R/store.R
+  docs:
+    tags: {family: store endpoints}
+names:
+  GET /store/inventory: store_inventory
+  POST /store/order: store_order_create
+  GET /store/order/{orderId}: store_order_get
+  DELETE /store/order/{orderId}: store_order_delete
+operations:
+  GET /store/order/{orderId}:
+    parameters:
+      path orderId: {name: order_id}
+  DELETE /store/order/{orderId}:
+    parameters:
+      path orderId: {name: order_id}
+  POST /store/order:
+    implementation: existing
+    file: R/store_custom.R
+    inputs: {body: {default: null, type: object}}
+    request:
+      arguments:
+        method: {value: POST}
+        path: {value: /store/order}
+        path_params: {object: {}}
+        query: {object: {}}
+        body: {from: [params, body]}
+    docs: {title: Create an order using JSON}
