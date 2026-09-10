@@ -134,7 +134,7 @@ Filter(function(x) x$action == 'protected', plan$files)
 #> [1] "R/get_item.R"
 #> 
 #> [[1]]$path
-#> [1] "/tmp/RtmpfsIbHQ/existing-client-1e643fbf312e/R/get_item.R"
+#> [1] "/tmp/RtmpSEWBJo/existing-client-1edc205f0fed/R/get_item.R"
 #> 
 #> [[1]]$action
 #> [1] "protected"
