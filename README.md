@@ -9,7 +9,7 @@ Your package's users do not need specmill installed.
 
 ```r
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@v0.1.3')
+remotes::install_github('seanthimons/specmill@v0.1.4')
 ```
 
 For an existing project with a toolkit lock, use its own installer to get the

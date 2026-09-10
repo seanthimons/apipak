@@ -1,4 +1,4 @@
-# specmill 0.1.3 rename verification
+# specmill 0.1.4 rename verification
 
 Verified on Windows with R 4.5.1 and Air 0.9.0, 2026-09-10.
 
