@@ -20,7 +20,7 @@ Run this once in R. The tagged release makes the tutorial reproducible:
 ``` r
 
 install.packages('remotes')
-remotes::install_github('seanthimons/specmill@v0.1.3')
+remotes::install_github('seanthimons/specmill@v0.1.4')
 install.packages(c('httr2', 'testthat', 'devtools'))
 ```
 
@@ -33,7 +33,7 @@ version.
 ``` r
 
 packageVersion('specmill')
-#> [1] '0.1.3'
+#> [1] '0.1.4'
 ```
 
 You also need R package build tools appropriate to your operating system
