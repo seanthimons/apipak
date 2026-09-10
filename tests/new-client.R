@@ -177,10 +177,34 @@ new_client_acceptance <- function() {
     stop(paste(readLines(install_log), collapse = '\n'))
   }
   libraries <- .libPaths()[!file.exists(file.path(.libPaths(), 'specmill'))]
+  runtime_packages <- c('httr2', 'jsonlite')
+  stopifnot(all(
+    runtime_packages %in%
+      trimws(strsplit(
+        read.dcf(file.path(root, 'DESCRIPTION'))[1L, 'Imports'],
+        ',',
+        fixed = TRUE
+      )[[1L]])
+  ))
+  dependencies <- unique(c(
+    runtime_packages,
+    unlist(tools::package_dependencies(
+      runtime_packages,
+      utils::installed.packages(),
+      which = c('Depends', 'Imports', 'LinkingTo'),
+      recursive = TRUE
+    ))
+  ))
+  for (package in setdiff(dependencies, 'R')) {
+    source <- find.package(package)
+    if (!dirname(source) %in% libraries) {
+      stopifnot(file.copy(source, library, recursive = TRUE))
+    }
+  }
   callr::r(
     function() {
       stopifnot(!requireNamespace('specmill', quietly = TRUE))
-      requireNamespace('httr2', quietly = TRUE)
+      stopifnot(requireNamespace('httr2', quietly = TRUE))
       previous <- options()
       requireNamespace('temporarycatalogue', quietly = TRUE)
       stopifnot(identical(previous, options()))

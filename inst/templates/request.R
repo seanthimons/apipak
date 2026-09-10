@@ -17,7 +17,7 @@ api_request <- function(method, path, path_params, query, body) {
   media <- httr2::resp_header(response, 'content-type')
   if (is.null(media)) media <- ''
   media <- tolower(sub(';.*$', '', media))
-  if (grepl('(/json|\\+json)$', media)) return(httr2::resp_body_json(response, simplifyVector = FALSE))
+  if (grepl('(/json|\\+json)$', media)) return(jsonlite::fromJSON(httr2::resp_body_string(response), simplifyVector = FALSE))
   if (startsWith(media, 'text/') || media == 'image/svg+xml') return(httr2::resp_body_string(response))
   bytes
 }

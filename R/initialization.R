@@ -52,22 +52,25 @@ initialize_client <- function(
       Description = paste(title, 'Client generated from a local API schema.'),
       License = license,
       Encoding = 'UTF-8',
-      Imports = 'httr2',
+      Imports = 'httr2, jsonlite',
       Suggests = 'testthat'
     )
   }
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {
     stop('Invalid R package name')
   }
-  if (
-    existing &&
-      !grepl(
-        '(^|[,[:space:]])httr2([[:space:](,]|$)',
-        metadata[['Imports']] %or% ''
-      )
-  ) {
+  imports <- trimws(sub(
+    ' *\\(.*',
+    '',
+    strsplit(
+      metadata[['Imports']] %or% '',
+      ',',
+      fixed = TRUE
+    )[[1L]]
+  ))
+  if (existing && !all(c('httr2', 'jsonlite') %in% imports)) {
     stop(
-      'Existing DESCRIPTION must declare httr2 before adding the default transport'
+      'Existing DESCRIPTION must declare httr2 and jsonlite before adding the default transport'
     )
   }
   helper <- readLines(

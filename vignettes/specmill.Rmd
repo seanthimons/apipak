@@ -89,6 +89,10 @@ Initialization writes immediately and refuses existing-file conflicts. It create
 | `NAMESPACE`, `.Rbuildignore` | Package exports and exclusion of development inputs |
 | `.specmill/manifest.json` | Ownership hashes maintained by specmill |
 
+The scaffold declares `httr2` and `jsonlite` as runtime dependencies for HTTP
+requests and JSON bodies. Existing packages must declare both before using the
+default transport.
+
 It does not create a Git repository, README, test runner, or pkgdown site for
 the client. Those are ordinary package maintenance tasks. Do not rerun
 initialization to update a client; edit policy and regenerate instead.
