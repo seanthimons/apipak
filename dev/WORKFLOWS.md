@@ -1,7 +1,8 @@
 # Build and release workflows
 
-The existing check.yml runs package checks on Windows and Linux. pkgdown.yml
-builds executable guides and publishes the site after main changes.
+The check.yml workflow runs package checks on Windows and Linux only when
+manually dispatched. Automatic platform checks are paused during early development.
+pkgdown.yml builds executable guides and publishes the site after main changes.
 
 The additions borrow the manual build, version choices, artifact uploads,
 Conventional Commit check, and secret scan used by these repositories:
