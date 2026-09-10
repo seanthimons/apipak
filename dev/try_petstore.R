@@ -100,7 +100,11 @@ try_petstore <- function(output = 'artifacts/petstore-trial') {
     )
   )
   dir.create(file.path(root, 'tests/testthat/fixtures'), recursive = TRUE)
-  saveRDS(contracts, file.path(root, 'tests/testthat/fixtures/contracts.rds'))
+  saveRDS(
+    contracts,
+    file.path(root, 'tests/testthat/fixtures/contracts.rds'),
+    version = 2
+  )
   cat(
     '\ncontracts_file: tests/testthat/fixtures/contracts.rds\n',
     file = file.path(root, 'apis/default.yml'),
@@ -144,9 +148,14 @@ try_petstore <- function(output = 'artifacts/petstore-trial') {
   )
   library <- file.path(output, 'library')
   dir.create(library)
-  utils::install.packages(archive, repos = NULL, type = 'source', lib = library)
   callr::r(
-    function() {
+    function(archive, library) {
+      utils::install.packages(
+        archive,
+        repos = NULL,
+        type = 'source',
+        lib = library
+      )
       stopifnot(!'specmill' %in% names(getNamespaceImports('petstoretrial')))
       testthat::local_mocked_bindings(
         api_request = function(...) list(...),
@@ -157,6 +166,7 @@ try_petstore <- function(output = 'artifacts/petstore-trial') {
         list(petId = '7')
       ))
     },
+    args = list(archive = archive, library = library),
     libpath = c(library, .libPaths())
   )
   result <- list(
