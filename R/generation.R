@@ -519,6 +519,25 @@ generate_client <- function(
   if (length(intersect(retained_sources, names(source_names)))) {
     stop('Cannot replace a file containing a retained implementation')
   }
+  manifest_path <- project_path(root, '.specmill/manifest.json')
+  previous <- if (file.exists(manifest_path)) {
+    jsonlite::read_json(manifest_path)$files
+  } else {
+    list()
+  }
+  named_ids <- unlist(
+    lapply(seq_along(services), function(i) {
+      keys <- names(services[[i]][['policy']]$names)
+      vapply(
+        Filter(function(op) op$key %in% keys, parsed[[i]]$operations),
+        `[[`,
+        character(1),
+        'id'
+      )
+    }),
+    use.names = FALSE
+  )
+  grouped_rename_ids <- character()
   for (file in names(source_names)) {
     path <- project_path(root, file)
     if (!file.exists(path)) {
@@ -526,8 +545,28 @@ generate_client <- function(
     }
     definitions <- tg_find_function_defs_in_file(path)
     expressions <- as.list(parse(path))
+    extra_names <- setdiff(names(definitions), source_names[[file]])
+    if (length(extra_names) && !is.null(previous[[file]])) {
+      ids <- unlist(previous[[file]]$operations)
+      unmapped <- Filter(
+        function(op) op$id %in% setdiff(ids, named_ids),
+        configured_operations
+      )
+      unmapped_names <- vapply(unmapped, `[[`, character(1), 'name')
+      if (
+        length(intersect(ids, named_ids)) &&
+          setequal(ids, owners[[file]]) &&
+          length(definitions) == length(ids) &&
+          all(unmapped_names %in% names(definitions)) &&
+          identical(output_hash(path), previous[[file]]$hash) &&
+          !has_protected_lifecycle(path)
+      ) {
+        extra_names <- character()
+        grouped_rename_ids <- union(grouped_rename_ids, ids)
+      }
+    }
     if (
-      length(setdiff(names(definitions), source_names[[file]])) ||
+      length(extra_names) ||
         length(expressions) != length(definitions)
     ) {
       stop('Mixed file contains undeclared definitions or other code: ', file)
@@ -545,9 +584,7 @@ generate_client <- function(
   attr(desired, 'inputs') <- as.list(stats::setNames(input_hashes, labels))
   removals <- character()
   renamed <- character()
-  manifest_path <- project_path(root, '.specmill/manifest.json')
   if (file.exists(manifest_path)) {
-    previous <- jsonlite::read_json(manifest_path)$files
     excluded <- vapply(
       Filter(function(x) x$status == 'excluded', inventory),
       `[[`,
@@ -562,18 +599,6 @@ generate_client <- function(
     ))
     removals <- setdiff(removals, names(desired))
     # Only an explicit name mapping authorizes moving an existing owned output.
-    named_ids <- unlist(
-      lapply(seq_along(services), function(i) {
-        keys <- names(services[[i]][['policy']]$names)
-        vapply(
-          Filter(function(op) op$key %in% keys, parsed[[i]]$operations),
-          `[[`,
-          character(1),
-          'id'
-        )
-      }),
-      use.names = FALSE
-    )
     relocated <- names(Filter(
       function(x) {
         ids <- unlist(x$operations)
@@ -615,7 +640,7 @@ generate_client <- function(
   }
   if (any(vapply(services, function(x) isTRUE(x$documentation), logical(1)))) {
     desired <- document_output(root, desired, removals)
-    if (length(renamed)) {
+    if (length(renamed) || length(grouped_rename_ids)) {
       old_docs <- setdiff(
         grep('^man/', names(previous), value = TRUE),
         names(desired)
@@ -628,7 +653,7 @@ generate_client <- function(
         )])
         if (
           length(ids) &&
-            all(ids %in% named_ids) &&
+            all(ids %in% union(named_ids, grouped_rename_ids)) &&
             all(ids %in% replacement_ids)
         ) {
           if (
@@ -681,7 +706,8 @@ generate_client <- function(
     wrapper_functions <- lapply(runtime_definitions, function(x) {
       eval(x$expr, baseenv())
     })
-    for (name in removals[grepl('^R/.*\\.R$', removals)]) {
+    replaced_sources <- union(removals, names(desired))
+    for (name in replaced_sources[grepl('^R/.*\\.R$', replaced_sources)]) {
       if (!file.exists(project_path(root, name))) {
         next
       }
