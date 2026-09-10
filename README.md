@@ -53,3 +53,5 @@ The compatibility engine was extracted from ComptoxR under its MIT license
 
 ComptoxR's maintained integration uses `specmill.yml` and the checksum-pinned
 specmill release. See [the existing-client guide](https://seanthimons.github.io/specmill/articles/existing-clients.html).
+
+Maintainers: [builds, releases, and the new-schema trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).

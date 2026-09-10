@@ -10,3 +10,5 @@
 ^_pkgdown\.yml$
 ^docs$
 ^\.docs-lib$
+^artifacts$
+^dev$

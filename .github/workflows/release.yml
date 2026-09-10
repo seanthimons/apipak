@@ -1,0 +1,105 @@
+name: Build and release
+on:
+  pull_request:
+    paths: ['.github/workflows/release.yml', 'dev/build_release.R']
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: Version component to bump (none for the current version)
+        type: choice
+        options: [none, patch, minor, major]
+        default: none
+      publish:
+        description: Publish an immutable release from main after checks pass
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && 'manual' || github.run_id }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION_TYPE: ${{ inputs.version_type || 'none' }}
+      PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Require main for publication
+        if: env.PUBLISH == 'true'
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-pandoc@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+      - uses: posit-dev/setup-air@cf390573ff4fe0f198f35df3a642b1409328d859 # v1
+        with:
+          version: '0.9.0'
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          extra-packages: any::desc, any::pkgbuild, any::rcmdcheck
+      - name: Prepare version
+        shell: Rscript {0}
+        run: |
+          component <- Sys.getenv('VERSION_TYPE')
+          stopifnot(component %in% c('none', 'patch', 'minor', 'major'))
+          if (component != 'none') desc::desc_bump_version(component)
+          version <- read.dcf('DESCRIPTION')[1L, 'Version']
+          stopifnot(grepl('^[0-9]+[.][0-9]+[.][0-9]+$', version))
+          cat(paste0('VERSION=', version, '\n'), file = Sys.getenv('GITHUB_ENV'), append = TRUE)
+      - name: Reject an existing release tag
+        if: env.PUBLISH == 'true'
+        run: |
+          git fetch origin --tags
+          if git show-ref --verify --quiet "refs/tags/v${VERSION}"; then
+            echo "::error::Version ${VERSION} already has a tag. Choose a version bump."
+            exit 1
+          fi
+      - name: Commit prepared metadata locally
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add DESCRIPTION
+          git diff --cached --quiet || git commit -m "build: release specmill ${VERSION}"
+      - name: Build once and check the source archive
+        shell: Rscript {0}
+        run: |
+          source('dev/build_release.R')
+          build_release()
+      - name: Upload checked archive and provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: specmill-${{ env.VERSION }}-source
+          path: |
+            artifacts/release/*.tar.gz
+            artifacts/release/SHA256SUMS
+            artifacts/release/release.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload check logs on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-check-logs
+          path: artifacts/release/check
+          if-no-files-found: ignore
+      - name: Publish the checked archive
+        if: env.PUBLISH == 'true'
+        run: |
+          cd artifacts/release
+          sha256sum --check SHA256SUMS
+          revision="$(jq -r .source_commit release.json)"
+          test "$revision" = "$(git rev-parse HEAD)"
+          test "$VERSION" = "$(jq -r .version release.json)"
+          archive="$(jq -r .asset release.json)"
+          git push origin HEAD:main
+          gh release create "v${VERSION}" "$archive" SHA256SUMS release.json \
+            --target "$revision" --title "specmill ${VERSION}" --generate-notes --draft
+          gh release edit "v${VERSION}" --draft=false --latest
