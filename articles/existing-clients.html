@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Adopt an existing client • specmill</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Adopt an existing client">
 <meta name="description" content="Preserve an existing package's interface and runtime, with a ComptoxR workflow.">
@@ -69,7 +69,7 @@
       <h1>Adopt an existing client</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/HEAD/vignettes/existing-clients.Rmd" class="external-link"><code>vignettes/existing-clients.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/main/vignettes/existing-clients.Rmd" class="external-link"><code>vignettes/existing-clients.Rmd</code></a></small>
       <div class="d-none name"><code>existing-clients.Rmd</code></div>
     </div>
 
@@ -191,7 +191,7 @@ ownership example uses the bundled helper’s default contract.</p>
 <span><span class="co">#&gt; [1] "R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$path</span></span>
-<span><span class="co">#&gt; [1] "C:/Users/sxthi/AppData/Local/Temp/RtmpicBFBv/existing-client-8f4814397075/R/get_item.R"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/Rtmp2k4y7X/existing-client-1f2066e9a581/R/get_item.R"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; [[1]]$action</span></span>
 <span><span class="co">#&gt; [1] "protected"</span></span></code></pre></div>
@@ -201,7 +201,7 @@ reviewed, using UTF-8 text, LF line endings, and no terminal
 newline:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">text</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">legacy</span>, warn <span class="op">=</span> <span class="cn">FALSE</span>, encoding <span class="op">=</span> <span class="st">'UTF-8'</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">'\n'</span><span class="op">)</span></span>
-<span><span class="va">hash</span> <span class="op">&lt;-</span> <span class="fu">digest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/digest/man/digest.html" class="external-link">digest</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Encoding.html" class="external-link">enc2utf8</a></span><span class="op">(</span><span class="va">text</span><span class="op">)</span>, algo <span class="op">=</span> <span class="st">'sha256'</span>, serialize <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">hash</span> <span class="op">&lt;-</span> <span class="fu">digest</span><span class="fu">::</span><span class="fu"><a href="https://eddelbuettel.github.io/digest/man/digest.html" class="external-link">digest</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Encoding.html" class="external-link">enc2utf8</a></span><span class="op">(</span><span class="va">text</span><span class="op">)</span>, algo <span class="op">=</span> <span class="st">'sha256'</span>, serialize <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">adopt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">'R/get_item.R'</span> <span class="op">=</span> <span class="va">hash</span><span class="op">)</span></span>
 <span><span class="va">reviewed</span> <span class="op">&lt;-</span> <span class="fu">specmill</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_client.html">generate_client</a></span><span class="op">(</span></span>
 <span>  <span class="va">root</span>, config <span class="op">=</span> <span class="st">'specmill.yml'</span>, mode <span class="op">=</span> <span class="st">'plan'</span>, adopt <span class="op">=</span> <span class="va">adopt</span></span>
@@ -294,7 +294,7 @@ and public-boundary policy.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

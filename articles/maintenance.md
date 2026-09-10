@@ -1,0 +1,238 @@
+# Routine maintenance and CI
+
+Use the same loop for new and existing clients: **update inputs -\> plan
+-\> review -\> apply -\> check -\> test -\> commit**. Schemas, service
+policy, callbacks, fixed fixtures, output, and `.specmill/manifest.json`
+form one reviewed change.
+
+## 1. Review schema changes
+
+Keep the old schema snapshot while downloading the new one using your
+client’s own acquisition process. Use the same filename and selection
+policy for both versions. For example, place `catalogue.json` in
+`schema-before/` and `schema-after/`:
+
+``` r
+
+selection <- list(methods = c('GET', 'POST'), exclude = '^/internal/')
+diff <- specmill::schema_diff(
+  '/path/to/schema-before', '/path/to/schema-after',
+  policies = list('catalogue.json' = selection)
+)
+cat(specmill::format_diff_markdown(diff))
+specmill::count_diff_changes(diff)
+```
+
+[`schema_diff()`](https://seanthimons.github.io/specmill/reference/schema_diff.md)
+compares method/path identities and canonical data including reachable
+local references and response shapes. Changed contracts enter the
+breaking-change report lane conservatively for review. Parsing failures
+stop comparison. These labels do not prove runtime compatibility.
+
+For parsed operation records, `compare_operations(old, new)` gives a
+smaller report of additions, removals, changed parameters/bodies, and
+unknown response compatibility. Unsupported operations remain parser
+diagnostics, so review them alongside any comparison.
+
+Compare schema revisions under a fixed policy, then review policy
+changes separately. Otherwise, changing an exclusion can look like an
+upstream deletion. Generation does not automatically delete an
+implementation merely because an operation disappears from an
+unsupported or changed schema. Eligible removal comes from explicit
+exclusions or reconciled renames and requires verified ownership.
+
+## 2. Generate and verify
+
+``` r
+
+root <- normalizePath('/path/to/client', winslash = '/', mustWork = TRUE)
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan$files
+plan$drift
+plan$diagnostics
+# After reviewing the change:
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+testthat::test_local(root, filter = 'contract-', stop_on_failure = TRUE)
+```
+
+Supply the same explicit `callbacks` environment on each call when your
+policy uses callbacks. Run the relevant manual/helper tests too.
+Reapplying unchanged inputs should produce only unchanged/retained file
+actions. Review output diffs before committing; do not hand-edit
+generated files to fix a policy error.
+
+## 3. Add a thin sourceable command
+
+Save the following as `dev/generate.R` in a client without an existing
+command:
+
+``` r
+
+.client_root <- specmill::script_root('generate.R')
+generate_main <- function(root = .client_root, args = commandArgs(trailingOnly = TRUE)) {
+  specmill::generation_command(root, args = args, kind = 'stubs')
+}
+if (sys.nframe() == 0L) generate_main()
+```
+
+[`script_root()`](https://seanthimons.github.io/specmill/reference/generation_command.md)
+locates the package from the source frame or Rscript invocation, so the
+command works from another working directory. Add explicit callback
+loading inside `generate_main()` if needed, as in the existing-client
+guide. Source it in R and call `generate_main(args = '--plan')`, or run:
+
+``` sh
+Rscript dev/generate.R --plan
+Rscript dev/generate.R --check
+Rscript dev/generate.R
+```
+
+The final command **applies**. Compatibility commands intentionally have
+a different default from the core
+[`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md),
+which defaults to check.
+
+| Command kind | Preview | Check | Apply |
+|----|----|----|----|
+| `stubs` (wrappers and documentation) | `--plan` | `--check` | No mode flag |
+| `tests` (fixed contract tests) | `--dry-run` | `--check` | `--generate` or no mode flag |
+
+`--help` describes accepted flags. The stubs command accepts legacy
+`--rebuild=<prefix>` flags; YAML still controls selection. The tests
+command accepts `--force`, which never overrides ownership. Check/apply
+test commands fail if any selected operation lacks a fixed contract.
+Plan can report the gaps.
+
+For custom orchestration, use `generate_client(artifacts = ...)` to
+limit reconciliation to `wrappers`, `tests`, or `documentation`. Shared
+ownership and manifest checks still apply.
+
+## 4. Inspect implementation and test gaps
+
+``` r
+
+inspection <- specmill::inspect_client(root)
+inspection$coverage
+inspection$manual_exports
+inspection$diagnostics
+```
+
+Coverage counts files and declarations, not passing tests or working
+endpoints. Selected unsupported operations remain in totals. Manual
+exported wrappers are separate from the schema denominator and still
+need their own tests.
+
+For badges and baseline comparisons, create a separate client report
+policy:
+
+``` yaml
+# dev/coverage.yml
+baseline: dev/coverage-baseline.json
+groups:
+  catalogue:
+    services: '^catalogue$'
+    label: Catalogue wrappers
+    badge: man/figures/catalogue-coverage.json
+```
+
+Group `services` values are regex strings matching service IDs. Groups
+must partition every configured service exactly once. Create the
+baseline’s parent directory before apply. Report-policy filenames passed
+as strings are resolved by R against the working directory; make them
+explicit with `file.path(root, ...)`:
+
+``` r
+
+specmill::coverage_report(root, file.path(root, 'dev/coverage.yml'))
+specmill::coverage_report(root, file.path(root, 'dev/coverage.yml'), mode = 'apply')
+specmill::test_gap_report(root, list(
+  helpers = list('api_request'), report_dir = 'dev/test-gaps',
+  readiness_report = 'dev/readiness-report.json'
+))
+```
+
+Reports default to read-only plans. Coverage apply writes badges and its
+baseline; gap-report apply writes a dated JSON report. Gap reasons
+distinguish missing contracts, absent/empty test files, and unsupported
+operations. `readiness_report` is a pointer to your canonical audit, not
+an audit created by this call.
+
+## 5. Add client-specific checks to CI
+
+CI should install the project’s reviewed toolkit and formatter, then run
+generation checks before tests. For a client with no callbacks, an R CI
+step can be:
+
+``` r
+
+checked <- specmill::generate_client('.', config = 'specmill.yml', mode = 'check')
+stopifnot(length(checked$diagnostics) == 0L)
+testthat::test_local('.', stop_on_failure = TRUE)
+```
+
+If you intentionally retain unsupported operations, use an explicit
+reviewed diagnostic allowance instead of removing the diagnostics gate.
+Do not use `continue-on-error` for invalid configuration or schema
+parsing before publishing generated output. Generation commands write
+existing summary keys to `GITHUB_OUTPUT` when that environment variable
+is set; core functions return structured results and errors instead of
+choosing a process exit code.
+
+[`check_public_boundary()`](https://seanthimons.github.io/specmill/reference/check_public_boundary.md)
+accepts your forbidden host/file/export/schema regexes and approved
+manual-export list.
+[`check_client_hooks()`](https://seanthimons.github.io/specmill/reference/validate_hooks.md)
+validates supplied runtime hook declarations against parsed client
+definitions. Their reference pages explain arguments and return values.
+Keep these policies client-specific.
+
+[`credential_status()`](https://seanthimons.github.io/specmill/reference/credential_status.md)
+and
+[`credential_preflight()`](https://seanthimons.github.io/specmill/reference/credential_status.md)
+detect absent/placeholder credentials without logging values or making
+requests. They cannot prove a key is authorized. Offline generation and
+fixed contract tests need no live key.
+
+## 6. Build documentation for your generated client
+
+Set `documentation: true` and write useful `docs` policy before building
+the client site. Generation stages roxygen and reconciles `man/` and
+`NAMESPACE`; the help pages then become pkgdown reference pages. Add
+human-written vignettes for authentication, common workflows, result
+interpretation, and errors.
+
+From the **client package root**, install the documentation tools and
+initialize pkgdown once:
+
+``` r
+
+install.packages(c('pkgdown', 'usethis', 'rmarkdown', 'knitr'))
+usethis::use_pkgdown()
+pkgdown::build_site(preview = FALSE)
+```
+
+For a GitHub-hosted client, `usethis::use_pkgdown_github_pages()`
+configures the publishing workflow and Pages settings. Review the
+generated workflow for your default branch. See [usethis’s pkgdown
+setup](https://usethis.r-lib.org/reference/use_pkgdown.html).
+
+Keep its README short: purpose, installation, one example, and links to
+guides. Put sequential workflows in vignettes and per-function detail in
+reference docs. Render examples offline; mark real API calls
+`eval=FALSE` or use fixed examples that do not contact services.
+
+For **specmill’s own site**, `_pkgdown.yml` defines navigation and
+`.github/workflows/pkgdown.yml` builds on pull requests and publishes on
+the configured default-branch pushes or manual dispatch. Local build
+command:
+
+``` r
+
+pkgdown::build_site(preview = FALSE)
+```
+
+Open `docs/index.html` after building. Site output is ignored by Git and
+package builds; source articles and help pages are tracked. The workflow
+follows the [r-lib pkgdown
+example](https://github.com/r-lib/actions/blob/v2/examples/pkgdown.yaml).

@@ -1,6 +1,7 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://seanthimons.github.io/specmill/404.html</loc></url>
-<url><loc>https://seanthimons.github.io/specmill/articles/apipak.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/HANDOFF.html</loc></url>
+<url><loc>https://seanthimons.github.io/specmill/LICENSE-text.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/configuration.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/existing-clients.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/index.html</loc></url>
@@ -9,11 +10,7 @@
 <url><loc>https://seanthimons.github.io/specmill/articles/testing.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/articles/troubleshooting.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/authors.html</loc></url>
-<url><loc>https://seanthimons.github.io/specmill/HANDOFF.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/index.html</loc></url>
-<url><loc>https://seanthimons.github.io/specmill/LICENSE-text.html</loc></url>
-<url><loc>https://seanthimons.github.io/specmill/reference/apipak-package.html</loc></url>
-<url><loc>https://seanthimons.github.io/specmill/reference/apipak.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/apply_files.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/bind_tools.html</loc></url>
 <url><loc>https://seanthimons.github.io/specmill/reference/check_public_boundary.html</loc></url>

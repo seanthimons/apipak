@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Routine maintenance and CI • specmill</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Routine maintenance and CI">
 <meta name="description" content="Update schemas, run thin maintenance commands, inspect reports, and publish client docs.">
@@ -69,7 +69,7 @@
       <h1>Routine maintenance and CI</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/HEAD/vignettes/maintenance.Rmd" class="external-link"><code>vignettes/maintenance.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/seanthimons/specmill/blob/main/vignettes/maintenance.Rmd" class="external-link"><code>vignettes/maintenance.Rmd</code></a></small>
       <div class="d-none name"><code>maintenance.Rmd</code></div>
     </div>
 
@@ -277,10 +277,10 @@ result interpretation, and errors.</p>
 documentation tools and initialize pkgdown once:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'pkgdown'</span>, <span class="st">'usethis'</span>, <span class="st">'rmarkdown'</span>, <span class="st">'knitr'</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">usethis</span><span class="fu">::</span><span class="fu"><a href="https://usethis.r-lib.org/reference/use_pkgdown.html" class="external-link">use_pkgdown</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">usethis</span><span class="fu">::</span><span class="fu">use_pkgdown</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu">pkgdown</span><span class="fu">::</span><span class="fu"><a href="https://pkgdown.r-lib.org/reference/build_site.html" class="external-link">build_site</a></span><span class="op">(</span>preview <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>For a GitHub-hosted client,
-<code><a href="https://usethis.r-lib.org/reference/use_pkgdown.html" class="external-link">usethis::use_pkgdown_github_pages()</a></code> configures the
+<code>usethis::use_pkgdown_github_pages()</code> configures the
 publishing workflow and Pages settings. Review the generated workflow
 for your default branch. See <a href="https://usethis.r-lib.org/reference/use_pkgdown.html" class="external-link">usethis’s
 pkgdown setup</a>.</p>
@@ -311,7 +311,7 @@ pkgdown example</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

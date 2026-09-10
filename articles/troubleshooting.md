@@ -1,0 +1,179 @@
+# Supported schemas, file safety, and troubleshooting
+
+## Supported input and transport
+
+specmill reads local JSON documents in OpenAPI 3.0/3.1 or Swagger 2.0
+format. YAML project configuration does not imply support for YAML
+schema documents. The parser is a supported-subset extractor, not a full
+OpenAPI validator.
+
+| Feature | Current behavior |
+|----|----|
+| Scalar path/query parameters | Supported; path parameters must be required |
+| Local `$ref` | Supported within a document; external or cyclic input references are diagnosed |
+| JSON scalar bodies | Supported |
+| Nested JSON objects/arrays | Supported with declared properties and supported item types |
+| Array/object path/query inputs | Outside the default serializer subset; diagnose or use a complete client mapping |
+| Composed/free-form input schemas | Diagnosed when unsupported |
+| Multipart, uploads, non-JSON request media | Outside the generated default transport subset |
+| HTTP method | Explicitly declared; no inferred GET/POST conversion |
+| Pagination/batching | Client behavior; a `page` argument alone causes one request |
+| Response interpretation | Client helper owns decoding and service-specific meaning |
+
+Fixture selection checks supported type, enum, numeric bounds, string
+lengths, and patterns. Helpers still own complete runtime validation and
+serialization. Do not interpret a chosen fixture as a valid live
+identifier or a safe operation to invoke. A GET endpoint may itself
+submit work.
+
+[`read_operations()`](https://seanthimons.github.io/specmill/reference/read_operations.md)
+returns supported `operations`, structurally valid but unsupported
+`unsupported_operations`, an `inventory`, and `diagnostics`. A complete
+public `inputs` plus `request` mapping can handle supported metadata
+through a client serializer. Generation labels that operation
+`client-mapped` and retains the original reasons in
+`mapping_diagnostics`. Malformed metadata or broken references do not
+become safe merely by adding a mapping.
+
+`implementation: existing` retains a declared manual implementation and
+reports limitations in `retained_diagnostics`. Unsupported selections
+stay visible in coverage totals. They never authorize deleting old
+output.
+
+## Common errors
+
+| Symptom | Next step |
+|----|----|
+| Package/function not found | Install the reviewed toolkit, restart R, and inspect `packageVersion('specmill')` and `find.package('specmill')` |
+| Missing schema / pattern matched nothing | Resolve paths against `root`, check case, and use sequences such as `files: [schema.json]` |
+| Unknown YAML field / invalid regex | Compare with [Configuration](https://seanthimons.github.io/specmill/articles/configuration.md); use case-sensitive stringr syntax |
+| Unknown operation override | Match the original method/path, including path parameter spelling and trailing slash |
+| Name collision | Supply distinct public names across all services, including case; avoid helper/callback names |
+| Unresolved callback | Source your development callbacks into the explicitly supplied environment |
+| Missing helper definition / helper argument | Define it in client `R/` and map the actual helper signature |
+| Missing fixed contracts | Author independent fixtures for selected operations; use test `--dry-run` to inspect gaps |
+| Generated output is stale or protected | Inspect a fresh plan; apply reviewed input changes or resolve ownership |
+| Formatter version mismatch | Install the exact Air version declared by the project; keep formatting policy consistent |
+| Unsafe documentation tag | Put executable/custom roxygen handlers in client code, and use `docs` fields for policy |
+| Plan/input changed during generation | Stop concurrent edits/writers, make callbacks deterministic, then replan |
+| HTTP failure | Diagnose authentication, input, request construction, schema drift, runtime behavior, and service status separately |
+
+A normal return from `check` only establishes freshness for reconciled
+output. Inspect diagnostics and run tests separately. For reproducible
+generation, pin the toolkit and formatter alongside schema, policy, and
+fixture versions.
+
+## Ownership and protected files
+
+`.specmill/manifest.json` records output hashes and generation input
+metadata. Keep it in Git. A header alone cannot grant ownership.
+specmill protects unowned files, locally edited output, and protected
+lifecycle states. It rejects groups containing undeclared definitions or
+other top-level code.
+
+Use [reviewed
+adoption](https://seanthimons.github.io/specmill/articles/existing-clients.md)
+only after comparing a legacy file with the intended generated contract.
+Never compute adoption hashes across every file merely to silence
+protection. If your local change is intentional, move it into policy or
+a maintained callback, or retain that wrapper explicitly.
+
+For a rename, the protected original blocks replacement so the old
+public function cannot silently remain beside a new one. Explicit
+exclusions can remove verified owned output; protected removals are
+reported as retained. Review the file actions rather than assuming all
+requested deletions happened.
+
+## Interrupted apply and recovery
+
+Application parses R output and stages backups before mutation. It holds
+one exclusive project lock, verifies writes, and restores backups after
+an error. There is no cross-file filesystem transaction. A process
+termination can leave a recovery journal and `.specmill-lock` directory.
+
+First stop other writers and confirm the interrupted R process has
+exited. Inspect the recovery plan without writing:
+
+``` r
+
+root <- normalizePath('/path/to/client', winslash = '/', mustWork = TRUE)
+specmill::recover_client(root)
+```
+
+When no live writer remains, remove only an empty stale lock, if
+present:
+
+``` r
+
+lock <- file.path(root, '.specmill-lock')
+if (dir.exists(lock)) {
+  stopifnot(
+    !fs::is_link(lock),
+    length(list.files(lock, all.files = TRUE, no.. = TRUE)) == 0L
+  )
+  unlink(lock, recursive = TRUE)
+}
+```
+
+The normalized `root` and literal `.specmill-lock` keep the target
+explicit. Do not remove a nonempty directory or use a broad wildcard
+cleanup. Restore the reviewed journal, then replan:
+
+``` r
+
+specmill::recover_client(root, 'apply')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+```
+
+Recovery recognizes specmill journals, validates destinations and
+backups, and retains the journal on failure. Never delete
+journals/backups to bypass recovery. The lock is not stolen
+automatically: directory age does not distinguish a dead process from a
+slow live writer.
+
+## Legacy R-list and compatibility interfaces
+
+Existing R-list callers can continue to use the same generator:
+
+``` r
+
+spec <- list(
+  files = '/path/to/schema.json', helper = 'request_helper',
+  policy_version = 'reviewed-1'
+)
+specmill::generate_client('/path/to/client', spec, 'plan')
+```
+
+Supply exactly one of `spec` and `config`. YAML is the recommended entry
+point for new integrations because it keeps service selection and policy
+explicit.
+[`render_operation()`](https://seanthimons.github.io/specmill/reference/render_operation.md)
+and
+[`apply_files()`](https://seanthimons.github.io/specmill/reference/apply_files.md)
+are lower-level building blocks; most projects should use
+[`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md)
+to retain reconciliation and validation.
+
+`bind_tools(group, envir)` installs extracted compatibility functions
+into an explicit environment containing client policy. It is intended
+for existing endpoint-table integrations. It does not configure a new
+client automatically. The client supplies selection, method allowlists,
+rendering, fixtures, and reporting policy. Legacy diff counts and
+helper-call tests are regression evidence, not a general compatibility
+proof.
+
+The `readiness` group retains the versioned audit helpers for clients
+already using that workflow. Bind into an environment with
+`asNamespace('specmill')` as parent and set `audit_policy` through its
+`read_audit_policy()` reader. Credential names, issue metadata, badge
+paths, and test-tier descriptions belong to the client’s audit policy.
+Prefer the client’s existing thin audit command.
+
+## Reporting a reproducible problem
+
+Include the toolkit version, operating system, generation mode,
+sanitized error, and the smallest local schema/policy that reproduces
+it. State which checks ran and whether any request was sent. Remove
+keys, tokens, private URLs, and private response content. Report at the
+[specmill issue
+tracker](https://github.com/seanthimons/specmill/issues).
