@@ -187,6 +187,9 @@ conflicts. It creates:</p>
 </tr>
 </tbody>
 </table>
+<p>The scaffold declares <code>httr2</code> and <code>jsonlite</code> as
+runtime dependencies for HTTP requests and JSON bodies. Existing
+packages must declare both before using the default transport.</p>
 <p>It does not create a Git repository, README, test runner, or pkgdown
 site for the client. Those are ordinary package maintenance tasks. Do
 not rerun initialization to update a client; edit policy and regenerate

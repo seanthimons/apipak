@@ -54,10 +54,11 @@ paths.
 This function writes immediately and refuses any existing-file conflict.
 Supply package, title, author (given, family, email), and license for a
 new package. Existing DESCRIPTION metadata is retained; it must already
-declare httr2. The base URL can come from the first schema server, but
-must be an absolute HTTP URL. Initialization does not generate wrappers
-or tests: follow with generate_client(). The helper is client runtime
-code and does not import specmill.
+declare httr2 and jsonlite, which the default transport needs for HTTP
+and JSON. The base URL can come from the first schema server, but must
+be an absolute HTTP URL. Initialization does not generate wrappers or
+tests: follow with generate_client(). The helper is client runtime code
+and does not import specmill.
 
 ## See also
 
