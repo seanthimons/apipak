@@ -91,7 +91,7 @@ read_operations <- function(files, policy = list()) {
             } else if (!is.null(body)) {
               body <- local_ref(body, document)
               body_required <- isTRUE(body$required)
-              if (!identical(names(body$content), 'application/json')) {
+              if (!'application/json' %in% names(body$content)) {
                 stop('Unsupported body media type')
               }
               body <- body$content[['application/json']]$schema
