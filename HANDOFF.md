@@ -1,10 +1,33 @@
 # Handoff: specmill multi-API capability work
 
-**Generated**: 2026-09-11 (updated for diagnostic classification)
+**Generated**: 2026-09-11 (updated for nested API configuration)
 **Branch**: `feat/multi-api-initialization`
 **Status**: Ready for review; capability implementation remains open
 
 ## Latest Proving-Ground Policy State
+
+The proving ground now has **27 API YAML files containing 69 nested tag groups**.
+Shared exclusions live once per API; group exclusions contain only additional
+restrictions. `specmill.yml` still imposes GET/POST globally. New multi-API
+initialization generates this structure by default; flat single-schema and
+existing service files remain supported. Read `vignettes/configuration.Rmd` for
+the hierarchy and `R/api-configuration.R` for the loader expansion.
+
+Migration preserved resolved service settings, IDs, names, helpers, auth mappings,
+defaults, and operation overrides. `dev/consolidate_proving_ground_apis.R` is the
+sourceable proving-ground migration with an isolated preflight, backup, and
+rollback. The 69 old files plus project YAML are backed up at
+`.docs-lib/api-config-backup/`; repeating consolidation and policy import is a
+no-op. Historical CSVs below retain the pre-consolidation filenames.
+The full clean-source package check passed with zero errors, warnings, or notes,
+including the new hierarchy test, existing multi-API transport tests, flat-file
+compatibility, and vignette rebuilds. Logs are in
+`.docs-lib/api-groups-package-check.log` (a separate Quarto version-query warning
+followed the successful check).
+The checked build is installed in the normal R 4.5 user library. A fresh process
+using installed `specmill` (without `load_all`) reproduced 293/205/50; see
+`.docs-lib/api-groups-install.log`. Existing R sessions should reload the package;
+the proving-ground build script's install section already unloads the old copy.
 
 ComptoxR's existing method/route exclusions are now applied to `specmill-testing`.
 The active baseline is **293 renderable, 205 excluded, 50 blocked** (46 capability

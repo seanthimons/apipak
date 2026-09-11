@@ -51,6 +51,11 @@ read_operations <- function(files, policy = list()) {
                 !toupper(method) %in% policy$project_methods
             ) {
               'Prohibited by project methods'
+            } else if (
+              !is.null(policy$api_methods) &&
+                !toupper(method) %in% policy$api_methods
+            ) {
+              paste('Prohibited by API methods:', policy$api)
             } else {
               'Prohibited by service methods'
             }
@@ -59,6 +64,8 @@ read_operations <- function(files, policy = list()) {
             if (stringr::str_detect(path, pattern)) {
               level <- if (pattern %in% policy$project_exclude) {
                 'project'
+              } else if (pattern %in% policy$api_exclude) {
+                paste('API', policy$api)
               } else {
                 'service'
               }

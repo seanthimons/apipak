@@ -166,6 +166,68 @@ even for a read-only plan.
 
 ## Service files
 
+### Multiple APIs: one file per API, with nested groups
+
+When `schema` is a reviewed `configure_apis()` data frame, initialization writes
+one `apis/<api>.yml` per included API. Schema tags become nested `groups`, not
+additional YAML files. For example, 27 schemas with 69 tag groups produce 27 API
+files containing those 69 groups. A single-schema initialization still offers
+the original flat tag files, and existing flat service files remain supported.
+
+```yaml
+# apis/chemicals.yml
+api: chemicals
+schemas:
+  files: [schema/chemicals.json]
+  patterns: []
+  exclude: []
+selection:
+  methods: [GET, POST]
+  exclude: ['^/admin(?:/|$)']
+helper: chemicals_request
+authentication: {}
+documentation: true
+defaults:
+  batch: {max_items: null, max_bytes: null}
+groups:
+  chemicals_search:
+    selection:
+      methods: [GET, POST]
+      exclude: []
+      include: ['GET /search']
+    names:
+      GET /search: chemicals_search
+    defaults:
+      file: R/chemicals_search.R
+    operations: {}
+```
+
+List this API file in `specmill.yml` under `services`. Each group key is its stable
+service ID and must be unique across the project. Keep those IDs when moving
+existing configuration so ownership and operation identities remain stable.
+
+Selection runs through **project, API, then group**. Allowed methods intersect;
+path exclusions accumulate. A group cannot restore an endpoint prohibited by its
+API or project. An API exclusion affects only its own groups. The preview names
+the policy level responsible for an exclusion. Group `include` lists and public
+names remain intact even when a higher-level rule excludes an operation.
+
+Edit API `selection.exclude` once for shared route policy; use group
+`selection.exclude` only for additional restrictions. `schemas.exclude` instead
+filters schema filenames. Neither setting edits the original schema document.
+
+API schema sources, helper, authentication references, and documentation settings
+are inherited unless a group overrides them. Operation defaults merge in order:
+project, API, group, then operation. Set function names and output `file` in groups
+or operations; API defaults reject them to avoid accidental shared output names.
+Use `group_by = 'none'` when tags are not useful: each API still has one file with
+a single group. YAML file count, tag grouping, and generated R-file layout are
+separate choices.
+
+`configure_client()` proposals do not overwrite existing configuration. Existing
+flat YAML continues to work; consolidate reviewed settings explicitly instead of
+replacing them with a fresh scaffold and losing names, exclusions, or overrides.
+
 ### Project-wide limits and inherited settings
 
 Set package-wide selection in `specmill.yml`, for example:

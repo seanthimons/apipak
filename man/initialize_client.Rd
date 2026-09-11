@@ -16,7 +16,7 @@ initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
 \item{license}{Explicit license string for a new package. \code{MIT + file LICENSE} also creates an MIT license metadata file.}
 \item{base_url}{Absolute HTTP base URL for a new client-owned transport.}
 \item{naming}{Preserve operationId names by default, or propose tag-prefixed snake_case names. See configure_client.}
-\item{group_by}{Group service configuration by first tag (default), or use one default service with none.}
+\item{group_by}{Group operations by first tag (default), or use one default group with none. Multi-API initialization writes one YAML file per API with nested groups; single-schema initialization keeps flat group files.}
 }
 \value{A list of applied file records, each containing file, path, and action. The configuration attribute contains proposed files, operation assignments, and diagnostics. Stops before application for invalid metadata, tag filename collisions, or conflicting scaffold paths.}
 \details{This function writes immediately and refuses any existing-file conflict. Supply package, title, author (given, family, email), and license for a new package. Existing DESCRIPTION metadata is retained; it must already declare httr2 and jsonlite, which the default transport needs for HTTP and JSON. The base URL can come from the first schema server, but must be an absolute HTTP URL. Initialization does not generate wrappers or tests: follow with generate_client(). The helper is client runtime code and does not import specmill.}

@@ -254,10 +254,26 @@ load_project <- function(
     )
     if (!all(file.exists(inputs))) stop('Missing callback input file')
   }
-  services <- lapply(service_files, function(file) {
-    path <- project_path(root, file)
-    service <- read_config_yaml(path)
-    inputs <<- c(inputs, path)
+  entries <- do.call(
+    c,
+    lapply(service_files, function(file) {
+      path <- project_path(root, file)
+      inputs <<- c(inputs, path)
+      expand_api_configuration(read_config_yaml(path), file, callbacks)
+    })
+  )
+  api_files <- unique(vapply(
+    Filter(function(x) !is.null(x$api), entries),
+    function(x) paste(x$api, x$file),
+    character(1)
+  ))
+  api_names <- sub(' .*', '', api_files)
+  if (anyDuplicated(api_names)) {
+    stop('Duplicate API name')
+  }
+  services <- lapply(entries, function(entry) {
+    file <- entry$file
+    service <- entry$service
     config_fields(
       service,
       c(
@@ -472,10 +488,16 @@ load_project <- function(
       hook_callback = hook_callback,
       policy = list(
         service = id,
-        methods = intersect(project_methods, methods),
-        exclude = union(project_exclude, exclude),
+        methods = intersect(
+          intersect(project_methods, entry$methods %or% project_methods),
+          methods
+        ),
+        exclude = union(union(project_exclude, entry$exclude), exclude),
         project_methods = project_methods,
         project_exclude = project_exclude,
+        api = entry$api,
+        api_methods = entry$methods,
+        api_exclude = entry$exclude,
         include = include,
         names = names,
         override_keys = names(overrides)

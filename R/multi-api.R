@@ -35,10 +35,14 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
     proposal <- configuration_proposal(schema, package, naming, group_by)
     project <- yaml::yaml.load(proposal$files[['specmill.yml']])
     local_auth <- project$authentication
-    credentials <- setNames(
-      paste(api, names(local_auth), sep = '.'),
-      names(local_auth)
-    )
+    credentials <- if (length(local_auth)) {
+      setNames(
+        paste(api, names(local_auth), sep = '.'),
+        names(local_auth)
+      )
+    } else {
+      setNames(character(), character())
+    }
     for (scheme in names(local_auth)) {
       authentication[[credentials[[scheme]]]] <- toupper(paste(
         configuration_words(package),
@@ -62,6 +66,7 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
       code,
       fixed = TRUE
     )
+    api_groups <- list()
     for (file in grep('^apis/', names(proposal$files), value = TRUE)) {
       text <- proposal$files[[file]]
       # Reuse the commented single-schema scaffold, changing only identities.
@@ -87,25 +92,27 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
           fixed = TRUE
         )
       }
-      text <- paste(text, paste0('helper: ', helper), sep = '\n')
-      if (!is.null(local_auth)) {
-        text <- paste(
-          text,
-          sub(
-            '\n$',
-            '',
-            yaml::as.yaml(list(authentication = as.list(credentials)))
-          ),
-          sep = '\n'
-        )
-      }
-      destination <- paste0('apis/', id, '.yml')
-      if (destination %in% names(files)) {
-        stop('API service filenames collide: ', destination)
-      }
-      files[[destination]] <- text
-      services <- c(services, destination)
+      group <- yaml::yaml.load(text, handlers = list(seq = function(x) x))
+      group$id <- NULL
+      group$schemas <- NULL
+      api_groups[[id]] <- group
     }
+    api_config <- list(
+      api = api,
+      schemas = list(
+        files = list(schema_file),
+        patterns = list(),
+        exclude = list()
+      ),
+      selection = project$selection,
+      helper = helper,
+      authentication = as.list(credentials),
+      defaults = setNames(list(), character()),
+      groups = api_groups
+    )
+    destination <- paste0('apis/', api, '.yml')
+    files[[destination]] <- api_configuration_text(api_config)
+    services <- c(services, destination)
     for (op in proposal$operations) {
       op$name <- paste(api, op$name, sep = '_')
       op$api <- api
@@ -125,7 +132,8 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
   root_config$services <- as.list(services)
   root_config$authentication <- authentication
   files[['specmill.yml']] <- paste(
-    '# Package-wide settings; service filters can only narrow selection.',
+    '# One API configuration file per schema; endpoint tag groups are nested inside.',
+    '# Package-wide settings; API and group filters can only narrow selection.',
     '# Authentication keys are API-name.scheme-name; values are environment variable names.',
     '# Never put tokens here. Share an environment variable only when explicitly intended.',
     sub('\n$', '', yaml::as.yaml(root_config)),
