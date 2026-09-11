@@ -81,6 +81,12 @@ multi_api_acceptance <- function() {
   }
   one <- schema('First API', '/one')
   one$paths[['/items']]$post$tags <- list('')
+  one$paths[['/status']] <- list(
+    get = list(
+      operationId = 'status',
+      responses = list('200' = list(description = 'OK'))
+    )
+  )
   two <- schema('Second API', '/two')
   jsonlite::write_json(one, file.path(root, 'random1.json'), auto_unbox = TRUE)
   jsonlite::write_json(two, file.path(root, 'random2.json'), auto_unbox = TRUE)
@@ -120,12 +126,16 @@ multi_api_acceptance <- function() {
     ),
     license = 'MIT + file LICENSE'
   )
+  project_path <- file.path(root, 'specmill.yml')
+  project <- yaml::read_yaml(project_path, handlers = list(seq = function(x) x))
+  project$defaults$batch <- list(max_items = 1L, max_bytes = 64L)
+  yaml::write_yaml(project, project_path)
   plan <- specmill::generate_client(
     root,
     config = 'specmill.yml',
     mode = 'plan'
   )
-  stopifnot(length(plan$operations) == 2L, !length(plan$diagnostics))
+  stopifnot(length(plan$operations) == 3L, !length(plan$diagnostics))
   specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
   runtime <- new.env(parent = baseenv())
@@ -133,6 +143,7 @@ multi_api_acceptance <- function() {
     sys.source(file, runtime)
   }
   withr::local_envvar(c(MULTITEST_RENAMED_KEY = NA, MULTITEST_SECOND_KEY = NA))
+  stopifnot(runtime$renamed_status()$path == '/one/status')
   fails <- function(expr) {
     stopifnot(inherits(tryCatch(force(expr), error = identity), 'error'))
   }

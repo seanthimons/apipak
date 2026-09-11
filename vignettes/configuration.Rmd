@@ -64,7 +64,8 @@ operations:
       max_bytes: 1048576
 ```
 
-The helper rejects oversized requests before sending them. Item limits apply
+Shared limits apply only to applicable request bodies, so ordinary GET requests
+are unaffected. The helper rejects oversized requests before sending them. Item limits apply
 to top-level array bodies supplied as unnamed lists; byte limits measure the
 serialized UTF-8 JSON or raw binary payload. Limits embedded only in prose need
 explicit review; they are not silently treated as schema constraints. Automatic

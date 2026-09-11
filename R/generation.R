@@ -457,9 +457,16 @@ generate_client <- function(
       configured <- configure_operation(op, service)
       op <- configured$operation
       operation_spec <- configured$spec
-      op$batch <- Filter(Negate(is.null), operation_spec$batch %or% list())
+      op$batch <- if (is.null(op$body)) {
+        list()
+      } else {
+        Filter(Negate(is.null), operation_spec$batch %or% list())
+      }
       if (!is.null(op$batch$max_items) && !identical(op$body$type, 'array')) {
-        stop('max_items requires a top-level array request body: ', op$id)
+        if (!is.null(service$operations[[op$key]]$batch$max_items)) {
+          stop('max_items requires a top-level array request body: ', op$id)
+        }
+        op$batch$max_items <- NULL
       }
       if (
         length(op$batch) &&
