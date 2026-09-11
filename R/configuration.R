@@ -163,10 +163,50 @@ load_project <- function(
       'package',
       'formatter',
       'callback_files',
-      'authentication'
+      'authentication',
+      'selection',
+      'helper',
+      'documentation',
+      'defaults'
     ),
     'project'
   )
+  project_selection <- project$selection %or% list()
+  config_fields(project_selection, c('methods', 'exclude'), 'project selection')
+  project_methods <- if ('methods' %in% names(project_selection)) {
+    config_sequence(project_selection$methods, 'project methods')
+  } else {
+    c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
+  }
+  if (
+    any(
+      !project_methods %in%
+        c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
+    )
+  ) {
+    stop('Invalid project HTTP method')
+  }
+  project_exclude <- if ('exclude' %in% names(project_selection)) {
+    config_regexes(project_selection$exclude, 'project path exclusions')
+  } else {
+    character()
+  }
+  project_defaults <- project$defaults %or% list()
+  validate_settings(project_defaults, 'project defaults', callbacks)
+  if (any(c('name', 'file') %in% names(project_defaults))) {
+    stop('Set name and file in service configuration, not project defaults')
+  }
+  if (!is.null(project$helper)) {
+    config_string(project$helper, 'project helper')
+  }
+  if (
+    !is.null(project$documentation) &&
+      (!is.logical(project$documentation) ||
+        length(project$documentation) != 1L ||
+        is.na(project$documentation))
+  ) {
+    stop('project documentation must be true or false')
+  }
   if (!is.null(project$authentication)) {
     config_fields(
       project$authentication,
@@ -312,12 +352,15 @@ load_project <- function(
     } else {
       character()
     }
-    helper <- config_string(service$helper, paste(id, 'helper'))
+    helper <- config_string(
+      service$helper %or% project$helper,
+      paste(id, 'helper')
+    )
     if (!identical(make.names(helper), helper)) {
       stop(id, ': helper must be an R function name')
     }
     names <- service$names %or% list()
-    defaults <- service$defaults %or% list()
+    defaults <- merge_settings(project_defaults, service$defaults %or% list())
     overrides <- service$operations %or% list()
     validate_settings(defaults, paste(id, 'defaults'), callbacks)
     config_fields(overrides, names(overrides), 'operations')
@@ -414,8 +457,10 @@ load_project <- function(
       hook_callback = hook_callback,
       policy = list(
         service = id,
-        methods = methods,
-        exclude = exclude,
+        methods = intersect(project_methods, methods),
+        exclude = union(project_exclude, exclude),
+        project_methods = project_methods,
+        project_exclude = project_exclude,
         include = include,
         names = names,
         override_keys = names(overrides)
@@ -424,7 +469,7 @@ load_project <- function(
       package = package,
       prepare = prepare,
       callbacks = callbacks,
-      documentation = service$documentation,
+      documentation = service$documentation %or% project$documentation,
       defaults = defaults,
       operations = overrides,
       contracts = contracts,

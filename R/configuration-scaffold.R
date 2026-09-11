@@ -155,7 +155,23 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   project <- list(
     config_version = 1L,
     package = package,
-    services = as.list(paste0('apis/', services, '.yml'))
+    services = as.list(paste0('apis/', services, '.yml')),
+    selection = list(
+      methods = as.list(c(
+        'GET',
+        'POST',
+        'PUT',
+        'PATCH',
+        'DELETE',
+        'HEAD',
+        'OPTIONS',
+        'TRACE'
+      )),
+      exclude = list()
+    ),
+    helper = 'api_request',
+    documentation = TRUE,
+    defaults = list(implementation = 'generated')
   )
   if (
     length(
@@ -176,6 +192,10 @@ configuration_proposal <- function(schema, package, naming, group_by) {
       list(
         package = '# Package identity; keep consistent with DESCRIPTION.',
         services = '# Service configuration files, relative to the package root.',
+        selection = '# Package-wide limits: services cannot re-enable these excluded methods or paths.',
+        helper = '# Default runtime helper; services may override it.',
+        documentation = '# Generate help and exports unless a service overrides this setting.',
+        defaults = '# Shared settings; service defaults and individual overrides take precedence.\n# Keep function names and output files in service YAML.',
         authentication = paste(
           '# Schema security scheme -> environment variable name. Never put tokens here.',
           '# API keys and bearer tokens are supported; OAuth login/refresh is deferred.',
@@ -215,12 +235,10 @@ configuration_proposal <- function(schema, package, naming, group_by) {
         exclude = list(),
         include = as.list(keys[selected])
       ),
-      helper = 'api_request',
-      documentation = TRUE,
       names = as.list(setNames(public_names[selected], keys[selected]))
     )
     # Untagged schemas retain the existing per-function source layout.
-    service$defaults <- list(implementation = 'generated')
+    service$defaults <- setNames(list(), character())
     if (group != 'default') {
       service$defaults <- c(
         service$defaults,
@@ -271,6 +289,9 @@ configuration_proposal <- function(schema, package, naming, group_by) {
           )
         )
       ),
+      '# Inherited from specmill.yml; uncomment to override for this service:',
+      '# helper: api_request',
+      '# documentation: true',
       '# Optional hooks: define client functions before enabling these settings.',
       '# hooks: {} # Public wrapper name -> pre_request/post_response hook-name sequences.',
       '# hook_callback: run_hook',

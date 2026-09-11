@@ -905,32 +905,69 @@ generate_client <- function(
       )
     )
   }
-  list(
-    files = result,
-    operations = configured_operations,
-    drift = drift,
-    diagnostics = diagnostics,
-    mapping_diagnostics = do.call(
-      c,
-      unname(lapply(parsed, `[[`, 'mapping_diagnostics'))
-    ),
-    retained_diagnostics = do.call(
-      c,
-      unname(lapply(parsed, `[[`, 'retained_diagnostics'))
-    ),
-    unused_hooks = unused_hooks,
-    inventory = inventory,
-    retained_sources = retained_sources,
-    manifest = list(
-      toolkit_version = as.character(utils::packageVersion('specmill')),
-      inputs = input_hashes,
-      policy_version = vapply(
-        services,
-        function(x) x$policy_version %or% 'unspecified',
-        character(1)
+  structure(
+    list(
+      files = result,
+      excluded = Filter(
+        function(x) {
+          x$status == 'excluded' && x$reason != 'Not in service include'
+        },
+        inventory
+      ),
+      operations = configured_operations,
+      drift = drift,
+      diagnostics = diagnostics,
+      mapping_diagnostics = do.call(
+        c,
+        unname(lapply(parsed, `[[`, 'mapping_diagnostics'))
+      ),
+      retained_diagnostics = do.call(
+        c,
+        unname(lapply(parsed, `[[`, 'retained_diagnostics'))
+      ),
+      unused_hooks = unused_hooks,
+      inventory = inventory,
+      retained_sources = retained_sources,
+      manifest = list(
+        toolkit_version = as.character(utils::packageVersion('specmill')),
+        inputs = input_hashes,
+        policy_version = vapply(
+          services,
+          function(x) x$policy_version %or% 'unspecified',
+          character(1)
+        )
       )
-    )
+    ),
+    class = c('specmill_generation', 'list')
   )
+}
+
+print.specmill_generation <- function(x, ...) {
+  cat('Selected operations (', length(x$operations), ')\n', sep = '')
+  for (op in x$operations) {
+    cat('  ', op$service, ': ', op$key, ' -> ', op$name, '\n', sep = '')
+  }
+  cat('\nExcluded operations (', length(x$excluded), ')\n', sep = '')
+  for (op in x$excluded) {
+    cat('  ', op$service, ': ', op$key, ' - ', op$reason, '\n', sep = '')
+  }
+  cat('\nFiles to remove\n')
+  for (file in Filter(function(file) file$action == 'remove', x$files)) {
+    cat('  ', file$file, '\n', sep = '')
+  }
+  if (length(x$diagnostics)) {
+    cat('\nDiagnostics\n')
+    print(x$diagnostics)
+  }
+  protected <- Filter(
+    function(file) file$action %in% c('protected', 'retained'),
+    x$files
+  )
+  if (length(protected)) {
+    cat('\nProtected or retained files\n')
+    print(protected)
+  }
+  invisible(x)
 }
 
 # Fixed expectations are supplied by the client, independently of wrapper parsing.

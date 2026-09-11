@@ -112,7 +112,7 @@ new_client_acceptance <- function() {
   policy <- file.path(root, 'apis/default.yml')
   writeLines(
     sub(
-      '^defaults:$',
+      '^defaults:.*$',
       'defaults:\n  docs: {lifecycle: experimental}',
       readLines(policy)
     ),

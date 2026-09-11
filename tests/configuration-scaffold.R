@@ -83,9 +83,8 @@ configuration_scaffold_acceptance <- function() {
       !length(policy$selection$exclude),
       all(c('files', 'patterns', 'exclude') %in% names(policy$schemas)),
       all(
-        c('defaults', 'operations', 'documentation', 'names') %in% names(policy)
+        c('defaults', 'operations', 'names') %in% names(policy)
       ),
-      policy$defaults$implementation == 'generated',
       grepl(
         '# An operation must pass methods AND include',
         plan$files[[path]],

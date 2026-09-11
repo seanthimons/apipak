@@ -35,14 +35,35 @@ read_operations <- function(files, policy = list()) {
       )) {
         key <- paste(toupper(method), path)
         id <- paste(policy$service %or% 'default', key)
-        selected <- toupper(method) %in%
-          methods &&
-          (is.null(include) || key %in% include) &&
-          !any(vapply(
-            patterns,
-            function(pattern) stringr::str_detect(path, pattern),
-            logical(1)
-          ))
+        reason <- character()
+        if (!is.null(include) && !key %in% include) {
+          reason <- 'Not in service include'
+        } else {
+          if (!toupper(method) %in% methods) {
+            reason <- if (
+              !is.null(policy$project_methods) &&
+                !toupper(method) %in% policy$project_methods
+            ) {
+              'Prohibited by project methods'
+            } else {
+              'Prohibited by service methods'
+            }
+          }
+          for (pattern in patterns) {
+            if (stringr::str_detect(path, pattern)) {
+              level <- if (pattern %in% policy$project_exclude) {
+                'project'
+              } else {
+                'service'
+              }
+              reason <- c(
+                reason,
+                paste('Matches', level, 'exclusion:', pattern)
+              )
+            }
+          }
+        }
+        selected <- !length(reason)
         record <- list(
           id = id,
           key = key,
@@ -52,7 +73,7 @@ read_operations <- function(files, policy = list()) {
           source = file,
           source_hash = source_hash,
           status = if (selected) 'selected' else 'excluded',
-          reason = if (selected) '' else 'Explicit selection policy'
+          reason = paste(reason, collapse = '; ')
         )
         inventory[[length(inventory) + 1L]] <- record
         if (!selected) {
