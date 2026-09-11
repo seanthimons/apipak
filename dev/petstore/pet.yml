@@ -1,0 +1,89 @@
+id: pet
+schemas: {files: [schema/openapi.json]}
+selection: {exclude: ['^/(?!pet(?:/|$))']}
+helper: api_request
+documentation: true
+defaults:
+  file: R/pet.R
+  docs:
+    tags: {family: pet endpoints}
+names:
+  PUT /pet: pet_update
+  POST /pet: pet_create
+  GET /pet/findByStatus: pet_find_by_status
+  GET /pet/findByTags: pet_find_by_tags
+  GET /pet/{petId}: pet_get
+  POST /pet/{petId}: pet_update_fields
+  DELETE /pet/{petId}: pet_delete
+  POST /pet/{petId}/uploadImage: pet_upload_image
+operations:
+  GET /pet/{petId}:
+    parameters:
+      path petId: {name: pet_id}
+  POST /pet/{petId}:
+    parameters:
+      path petId: {name: pet_id}
+  GET /pet/findByTags:
+    inputs:
+      tags: {required: true, type: character, description: Character vector of tags.}
+    request:
+      arguments:
+        method: {value: GET}
+        path: {value: /pet/findByTags}
+        path_params: {object: {}}
+        query: {object: {tags: {from: [params, tags]}}}
+        body: {value: null}
+  DELETE /pet/{petId}:
+    inputs:
+      pet_id: {required: true, type: integer}
+      api_key: {default: null, type: character}
+    request:
+      arguments:
+        method: {value: DELETE}
+        path: {value: '/pet/{petId}'}
+        path_params: {object: {petId: {from: [params, pet_id]}}}
+        query: {object: {}}
+        body: {value: null}
+        headers: {compact_object: {api_key: {from: [params, api_key]}}}
+  # The native parser rejects these media types before mapping. Retain reviewed
+  # client implementations; keep the original limitations in the plan.
+  PUT /pet:
+    implementation: existing
+    file: R/pet_custom.R
+    inputs: {body: {required: true, type: object}}
+    request:
+      arguments:
+        method: {value: PUT}
+        path: {value: /pet}
+        path_params: {object: {}}
+        query: {object: {}}
+        body: {from: [params, body]}
+    docs: {title: Update a pet using JSON}
+  POST /pet:
+    implementation: existing
+    file: R/pet_custom.R
+    inputs: {body: {required: true, type: object}}
+    request:
+      arguments:
+        method: {value: POST}
+        path: {value: /pet}
+        path_params: {object: {}}
+        query: {object: {}}
+        body: {from: [params, body]}
+    docs: {title: Create a pet using JSON}
+  POST /pet/{petId}/uploadImage:
+    implementation: existing
+    file: R/pet_custom.R
+    inputs:
+      pet_id: {required: true, type: integer}
+      image: {default: null, type: raw, description: Raw image bytes; NULL omits the body.}
+      metadata: {default: null, type: character}
+    request:
+      arguments:
+        method: {value: POST}
+        path: {value: '/pet/{petId}/uploadImage'}
+        path_params: {object: {petId: {from: [params, pet_id]}}}
+        query: {compact_object: {additionalMetadata: {from: [params, metadata]}}}
+        body: {from: [params, image]}
+        raw_body: {value: true}
+    docs: {title: Upload raw image bytes for a pet}

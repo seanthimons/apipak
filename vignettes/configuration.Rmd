@@ -128,6 +128,37 @@ client custom tags with existing roxygen handlers. ComptoxR's `apiStage` handler
 remains client code. Executable and structural built-in tags are rejected.
 Schema descriptions are treated as prose, not executable configuration.
 
+## Group endpoint families
+
+Schema tags do not automatically become R function prefixes or separate R
+namespaces. Configure public names, source files, and help families explicitly.
+For example, a Petstore service file can contain:
+
+```yaml
+id: pet
+schemas: {files: [schema/openapi.json]}
+selection: {exclude: ['^/(?!pet(?:/|$))']}
+helper: api_request
+documentation: true
+names:
+  GET /pet/{petId}: pet_get
+defaults:
+  file: R/pet.R
+  docs:
+    tags: {family: pet endpoints}
+operations:
+  GET /pet/{petId}:
+    parameters:
+      path petId: {name: pet_id}
+```
+
+This exposes `pet_get(pet_id)` while preserving `/pet/{petId}` on the wire.
+List separate `apis/pet.yml`, `apis/store.yml`, and `apis/user.yml` files in the
+project's `services` sequence to maintain independent policies for each group.
+Their combined selections can cover the entire schema. The
+[full Petstore example](https://github.com/seanthimons/specmill/blob/main/dev/petstore/README.md)
+demonstrates native generation, explicit mappings, and retained client code.
+
 ## Operation settings
 
 | Field | Meaning |

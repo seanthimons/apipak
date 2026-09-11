@@ -1,0 +1,44 @@
+id: user
+schemas: {files: [schema/openapi.json]}
+selection: {exclude: ['^/(?!user(?:/|$))']}
+helper: api_request
+documentation: true
+defaults:
+  file: R/user.R
+  docs:
+    tags: {family: user endpoints}
+names:
+  POST /user: user_create
+  POST /user/createWithList: user_create_many
+  GET /user/login: user_login
+  GET /user/logout: user_logout
+  GET /user/{username}: user_get
+  PUT /user/{username}: user_update
+  DELETE /user/{username}: user_delete
+operations:
+  POST /user:
+    implementation: existing
+    file: R/user_custom.R
+    inputs: {body: {default: null, type: object}}
+    request:
+      arguments:
+        method: {value: POST}
+        path: {value: /user}
+        path_params: {object: {}}
+        query: {object: {}}
+        body: {from: [params, body]}
+    docs: {title: Create a user using JSON}
+  PUT /user/{username}:
+    implementation: existing
+    file: R/user_custom.R
+    inputs:
+      username: {required: true, type: character}
+      body: {default: null, type: object}
+    request:
+      arguments:
+        method: {value: PUT}
+        path: {value: '/user/{username}'}
+        path_params: {object: {username: {from: [params, username]}}}
+        query: {object: {}}
+        body: {from: [params, body]}
+    docs: {title: Update a user using JSON}
