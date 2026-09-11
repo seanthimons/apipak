@@ -1,0 +1,14 @@
+"classification","reason","method","operations"
+"capability_gap","Unsupported body media type","GET",3
+"capability_gap","Unsupported free-form body object","GET",7
+"capability_gap","Unsupported parameter type","GET",1
+"schema_defect","Invalid input schema type","POST",9
+"capability_gap","Missing body schema","POST",11
+"capability_gap","Unsupported body composition","POST",4
+"capability_gap","Unsupported body media type","POST",10
+"capability_gap","Unsupported external or cyclic reference: #/components/schemas/ProtocolRecord","POST",3
+"capability_gap","Unsupported free-form body object","POST",63
+"capability_gap","Unsupported parameter type","POST",10
+"capability_gap","Unsupported parameter type; Unsupported free-form body object","POST",2
+"capability_gap","Unsupported external or cyclic reference: #/components/schemas/ProtocolRecord","PUT",1
+"capability_gap","Unsupported free-form body object","PUT",3
