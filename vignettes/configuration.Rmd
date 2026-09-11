@@ -48,6 +48,49 @@ custom transports or hide unsupported endpoints.
 `load_project()` and maintenance commands use `specmill.yml` by default.
 Pass `config` explicitly to use a different project filename.
 
+Generated YAML exposes the method filter, path exclusions, schema discovery,
+public names, shared defaults, documentation switch and per-operation overrides.
+Comments explain each section and show optional authentication, formatting,
+callbacks, hooks and contract-test settings without enabling them unnecessarily.
+
+### Exclude methods without editing endpoint lists
+
+In each generated service file (`apis/pet.yml`, `apis/store.yml`, and
+`apis/user.yml` for Petstore), replace the `selection.methods` list with:
+
+```yaml
+selection:
+  methods: [GET, POST]
+  exclude: []
+  include: # Keep the existing entries below this key.
+    # ... existing METHOD /path entries ...
+```
+
+This excerpt shows where to edit; keep the actual generated `include` list.
+Selection filters intersect: an included endpoint still has to match the allowed
+methods and avoid the excluded path patterns. Leave PUT/DELETE/PATCH entries in
+`include`, `names`, and `operations`; they do not override the method filter.
+Excluded operations stay visible in the inventory but are skipped before parsing
+and wrapper generation. You do not need to review or delete hundreds of entries.
+
+Regenerate wrappers and documentation, then reload the package:
+
+```r
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan$operations
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+devtools::load_all(root)
+```
+
+For the bundled Petstore schema, this retains 14 GET/POST wrappers and removes
+five previously generated PUT/DELETE wrappers, their exports and help pages,
+including when wrappers share files. Manually modified or unowned files remain
+protected; resolve any reported conflicts before proceeding. Restore the methods
+and regenerate to bring the wrappers back. Existing YAML is never overwritten
+automatically: older projects can preview `configure_client()` and copy the
+desired settings from its proposal.
+
 ```yaml
 config_version: 1
 package: catalogueclient

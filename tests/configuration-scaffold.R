@@ -73,6 +73,26 @@ configuration_scaffold_acceptance <- function() {
   )
   stopifnot(identical(attr(created, 'configuration')$files, plan$files))
   project <- specmill::load_project(root)
+  for (path in grep('^apis/', names(plan$files), value = TRUE)) {
+    policy <- yaml::yaml.load(plan$files[[path]])
+    stopifnot(
+      setequal(
+        policy$selection$methods,
+        c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
+      ),
+      !length(policy$selection$exclude),
+      all(c('files', 'patterns', 'exclude') %in% names(policy$schemas)),
+      all(
+        c('defaults', 'operations', 'documentation', 'names') %in% names(policy)
+      ),
+      policy$defaults$implementation == 'generated',
+      grepl(
+        '# An operation must pass methods AND include',
+        plan$files[[path]],
+        fixed = TRUE
+      )
+    )
+  }
   allowlists <- unlist(
     lapply(project$services, function(x) x$policy$include),
     use.names = FALSE

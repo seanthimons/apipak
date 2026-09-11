@@ -613,6 +613,12 @@ generate_client <- function(
     }),
     use.names = FALSE
   )
+  excluded <- vapply(
+    Filter(function(x) x$status == 'excluded', inventory),
+    `[[`,
+    character(1),
+    'id'
+  )
   grouped_rename_ids <- character()
   for (file in names(source_names)) {
     path <- project_path(root, file)
@@ -630,8 +636,8 @@ generate_client <- function(
       )
       unmapped_names <- vapply(unmapped, `[[`, character(1), 'name')
       if (
-        length(intersect(ids, named_ids)) &&
-          setequal(ids, owners[[file]]) &&
+        length(intersect(ids, union(named_ids, excluded))) &&
+          setequal(setdiff(ids, excluded), owners[[file]]) &&
           length(definitions) == length(ids) &&
           all(unmapped_names %in% names(definitions)) &&
           identical(output_hash(path), previous[[file]]$hash) &&
@@ -678,12 +684,6 @@ generate_client <- function(
   removals <- character()
   renamed <- character()
   if (file.exists(manifest_path)) {
-    excluded <- vapply(
-      Filter(function(x) x$status == 'excluded', inventory),
-      `[[`,
-      character(1),
-      'id'
-    )
     removals <- names(Filter(
       function(x) {
         length(x$operations) && all(unlist(x$operations) %in% excluded)
@@ -747,7 +747,7 @@ generate_client <- function(
         if (
           length(ids) &&
             all(ids %in% union(named_ids, grouped_rename_ids)) &&
-            all(ids %in% replacement_ids)
+            all(ids %in% union(replacement_ids, excluded))
         ) {
           if (
             !identical(

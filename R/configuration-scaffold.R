@@ -138,7 +138,18 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   for (diagnostic in parsed$diagnostics) {
     report(diagnostic$key, 'unsupported', diagnostic$reason)
   }
-  encode <- function(x) sub('\n$', '', yaml::as.yaml(x))
+  encode <- function(x, comments = list()) {
+    text <- sub('\n$', '', yaml::as.yaml(x))
+    for (field in names(comments)) {
+      text <- sub(
+        paste0('(?m)^', field, ':'),
+        paste0(comments[[field]], '\n', field, ':'),
+        text,
+        perl = TRUE
+      )
+    }
+    text
+  }
   services <- sort(unique(groups), method = 'radix')
   files <- list('schema/openapi.json' = file_text(schema))
   project <- list(
@@ -159,27 +170,120 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   ) {
     project$authentication <- authentication_envvars(document, package)
   }
-  files[['specmill.yml']] <- encode(project)
+  files[['specmill.yml']] <- paste(
+    encode(
+      project,
+      list(
+        package = '# Package identity; keep consistent with DESCRIPTION.',
+        services = '# Service configuration files, relative to the package root.',
+        authentication = paste(
+          '# Schema security scheme -> environment variable name. Never put tokens here.',
+          '# API keys and bearer tokens are supported; OAuth login/refresh is deferred.',
+          sep = '\n'
+        )
+      )
+    ),
+    if (is.null(project$authentication)) {
+      '# authentication: {} # Opt in to generated auth when the schema declares security.'
+    },
+    '# Optional formatting: uncomment and use your exact installed air version.',
+    '# formatter: {name: air, version: "0.9.0"}',
+    '# Callback source files to fingerprint; pass their functions via callbacks, too.',
+    'callback_files: []',
+    sep = '\n'
+  )
   for (group in services) {
     selected <- members[[group]]
     service <- list(
       id = if (group == 'default' && length(services) == 1L) package else group,
-      schemas = list(files = list('schema/openapi.json')),
-      selection = list(include = as.list(keys[selected])),
+      schemas = list(
+        files = list('schema/openapi.json'),
+        patterns = list(),
+        exclude = list()
+      ),
+      selection = list(
+        methods = as.list(c(
+          'GET',
+          'POST',
+          'PUT',
+          'PATCH',
+          'DELETE',
+          'HEAD',
+          'OPTIONS',
+          'TRACE'
+        )),
+        exclude = list(),
+        include = as.list(keys[selected])
+      ),
       helper = 'api_request',
       documentation = TRUE,
       names = as.list(setNames(public_names[selected], keys[selected]))
     )
     # Untagged schemas retain the existing per-function source layout.
+    service$defaults <- list(implementation = 'generated')
     if (group != 'default') {
-      service$defaults <- list(
-        file = paste0('R/', group, '.R'),
-        docs = list(
-          tags = list(family = paste(unique(tags[selected]), 'endpoints'))
+      service$defaults <- c(
+        service$defaults,
+        list(
+          file = paste0('R/', group, '.R'),
+          docs = list(
+            tags = list(family = paste(unique(tags[selected]), 'endpoints'))
+          )
         )
       )
     }
-    files[[paste0('apis/', group, '.yml')]] <- encode(service)
+    service$operations <- setNames(list(), character())
+    files[[paste0('apis/', group, '.yml')]] <- paste(
+      encode(
+        service,
+        list(
+          schemas = paste(
+            '# Local schema files; patterns are file globs, exclude matches basenames by regex.',
+            '# All paths resolve from the package root.',
+            sep = '\n'
+          ),
+          selection = paste(
+            '# An operation must pass methods AND include AND not match exclude (path regexes).',
+            '# Keep only GET and POST below to omit PUT/PATCH/DELETE wrappers.',
+            '# Leave their include/name entries in place; regeneration removes unchanged owned output.',
+            '# An empty include selects nothing; remove include to allow every matching operation.',
+            sep = '\n'
+          ),
+          helper = '# Runtime request helper, defined in R/.',
+          documentation = '# Generate roxygen, help pages, and NAMESPACE exports.',
+          names = '# Edit the public R function names here; keys stay METHOD /original/path.',
+          defaults = paste(
+            '# Shared operation settings. Per-operation settings below override these.',
+            '# file groups wrappers in one R file; omit it for one file per function.',
+            if (group == 'default') {
+              '# Example: add file: R/endpoints.R under defaults.'
+            },
+            '# docs can set title, description, return, parameters, examples, tags and lifecycle.',
+            sep = '\n'
+          ),
+          operations = paste(
+            '# Optional overrides keyed by METHOD /original/path. Replace {} with entries.',
+            '# Each entry can set file, helper, parameters, parameter_order and docs.',
+            '# parameters keys use the original location and name, e.g. "query limit".',
+            '# Example parameter setting: {name: max_results, default: 10, description: Maximum results.}',
+            '# Advanced facades use inputs, extra_parameters and request.arguments mappings.',
+            sep = '\n'
+          )
+        )
+      ),
+      '# Optional hooks: define client functions before enabling these settings.',
+      '# hooks: {} # Public wrapper name -> pre_request/post_response hook-name sequences.',
+      '# hook_callback: run_hook',
+      '# hook_config: inst/hooks.yml # Alternative to inline hooks, not both.',
+      '# prepare: prepare_operation # Development callback; pass an explicit callbacks environment.',
+      '# policy_version: "1" # Your review label, recorded in generation metadata.',
+      '# Optional fixed request expectations for generated tests:',
+      '# contracts: {} # Public wrapper name -> fixed request expectations.',
+      '# contracts_file: tests/testthat/contracts.rds',
+      '# response_fixture: {} # Mock response used by inline single-call contracts.',
+      '# Full configuration examples: https://seanthimons.github.io/specmill/articles/configuration.html',
+      sep = '\n'
+    )
   }
   list(files = files, operations = records, diagnostics = diagnostics)
 }
