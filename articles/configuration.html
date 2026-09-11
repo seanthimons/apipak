@@ -302,6 +302,37 @@ structural built-in tags are rejected. Schema descriptions are treated
 as prose, not executable configuration.</p>
 </div>
 <div class="section level2">
+<h2 id="group-endpoint-families">Group endpoint families<a class="anchor" aria-label="anchor" href="#group-endpoint-families"></a>
+</h2>
+<p>Schema tags do not automatically become R function prefixes or
+separate R namespaces. Configure public names, source files, and help
+families explicitly. For example, a Petstore service file can
+contain:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">id</span><span class="kw">:</span><span class="at"> pet</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">schemas</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">files</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">schema/openapi.json</span><span class="kw">]}</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">selection</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">exclude</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">'^/(?!pet(?:/|$))'</span><span class="kw">]}</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="fu">helper</span><span class="kw">:</span><span class="at"> api_request</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fu">documentation</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="fu">names</span><span class="kw">:</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /pet/{petId}</span><span class="kw">:</span><span class="at"> pet_get</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="fu">defaults</span><span class="kw">:</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="at">  </span><span class="fu">file</span><span class="kw">:</span><span class="at"> R/pet.R</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="at">  </span><span class="fu">docs</span><span class="kw">:</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="at">    </span><span class="fu">tags</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">family</span><span class="kw">:</span><span class="at"> pet endpoints</span><span class="kw">}</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /pet/{petId}</span><span class="kw">:</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="at">    </span><span class="fu">parameters</span><span class="kw">:</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="at">      </span><span class="fu">path petId</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">name</span><span class="kw">:</span><span class="at"> pet_id</span><span class="kw">}</span></span></code></pre></div>
+<p>This exposes <code>pet_get(pet_id)</code> while preserving
+<code>/pet/{petId}</code> on the wire. List separate
+<code>apis/pet.yml</code>, <code>apis/store.yml</code>, and
+<code>apis/user.yml</code> files in the project’s <code>services</code>
+sequence to maintain independent policies for each group. Their combined
+selections can cover the entire schema. The <a href="https://github.com/seanthimons/specmill/blob/main/dev/petstore/README.md" class="external-link">full
+Petstore example</a> demonstrates native generation, explicit mappings,
+and retained client code.</p>
+</div>
+<div class="section level2">
 <h2 id="operation-settings">Operation settings<a class="anchor" aria-label="anchor" href="#operation-settings"></a>
 </h2>
 <table class="table">
@@ -398,23 +429,23 @@ errors.</p>
 <h2 id="map-public-inputs-to-your-existing-helper">Map public inputs to your existing helper<a class="anchor" aria-label="anchor" href="#map-public-inputs-to-your-existing-helper"></a>
 </h2>
 <p>The default helper contract is:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">api_request</span><span class="op">(</span><span class="va">method</span>, <span class="va">path</span>, <span class="va">path_params</span>, <span class="va">query</span>, <span class="va">body</span><span class="op">)</span></span></code></pre></div>
 <p>To preserve a different helper interface, explicitly replace its
 argument map:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="at">    </span><span class="fu">inputs</span><span class="kw">:</span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="at">      </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">}</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="at">      </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">default</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> logical</span><span class="kw">}</span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="at">    </span><span class="fu">request</span><span class="kw">:</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="at">      </span><span class="fu">arguments</span><span class="kw">:</span></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="at">        </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">value</span><span class="kw">:</span><span class="at"> items</span><span class="kw">}</span></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="at">        </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> identifier</span><span class="kw">]}</span></span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="at">        </span><span class="fu">options</span><span class="kw">:</span></span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="at">          </span><span class="fu">compact_object</span><span class="kw">:</span></span>
-<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="at">            </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> verbose</span><span class="kw">]}</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">operations</span><span class="kw">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="at">  </span><span class="fu">GET /items/{item_id}</span><span class="kw">:</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="at">    </span><span class="fu">name</span><span class="kw">:</span><span class="at"> fetch_item</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="at">    </span><span class="fu">inputs</span><span class="kw">:</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="at">      </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">required</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> character</span><span class="kw">}</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="at">      </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">default</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">,</span><span class="at"> </span><span class="fu">type</span><span class="kw">:</span><span class="at"> logical</span><span class="kw">}</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="at">    </span><span class="fu">request</span><span class="kw">:</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="at">      </span><span class="fu">arguments</span><span class="kw">:</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="at">        </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">value</span><span class="kw">:</span><span class="at"> items</span><span class="kw">}</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="at">        </span><span class="fu">identifier</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> identifier</span><span class="kw">]}</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="at">        </span><span class="fu">options</span><span class="kw">:</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="at">          </span><span class="fu">compact_object</span><span class="kw">:</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="at">            </span><span class="fu">verbose</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">params</span><span class="kw">,</span><span class="at"> verbose</span><span class="kw">]}</span></span></code></pre></div>
 <p>Here the helper must accept <code>endpoint</code>,
 <code>identifier</code>, and <code>options</code>. Extra inputs are sent
 only when explicitly bound. Each binding has exactly one form:</p>
@@ -476,7 +507,7 @@ runtime value validation.</p>
 </h2>
 <p>A development binding callback receives one operation while
 generating source:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">callbacks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">baseenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">callbacks</span><span class="op">$</span><span class="va">batch_limit</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">operation</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">'batch_limit'</span>, <span class="st">'1000'</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -491,11 +522,11 @@ client runtime code; a string remains a quoted literal. A
 must preserve its identity. These functions run during planning too:
 keep them deterministic and free of filesystem/network side effects.</p>
 <p>Runtime hooks execute when a user calls the generated wrapper:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">hook_callback</span><span class="kw">:</span><span class="at"> run_hook</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">hooks</span><span class="kw">:</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="at">  </span><span class="fu">fetch_item</span><span class="kw">:</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="at">    </span><span class="fu">pre_request</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">validate_identifier</span><span class="kw">]</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="at">    </span><span class="fu">post_response</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">tidy_item</span><span class="kw">]</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">hook_callback</span><span class="kw">:</span><span class="at"> run_hook</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">hooks</span><span class="kw">:</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="at">  </span><span class="fu">fetch_item</span><span class="kw">:</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="at">    </span><span class="fu">pre_request</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">validate_identifier</span><span class="kw">]</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="at">    </span><span class="fu">post_response</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">tidy_item</span><span class="kw">]</span></span></code></pre></div>
 <p>The wrapper invokes the client’s executor as
 <code>run_hook('fetch_item', 'pre_request', list(params = params))</code>.
 The executor runs the named chain in order and returns state. Returned
