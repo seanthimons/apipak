@@ -119,7 +119,7 @@ nested_body_acceptance <- function() {
   stopifnot(
     !length(parsed$operations),
     length(parsed$diagnostics) == 1L,
-    grepl('cyclic', parsed$diagnostics[[1L]]$reason)
+    identical(parsed$diagnostics[[1L]]$code, 'recursive_reference')
   )
   cat(
     'Nested JSON bodies: recursive fixtures, scalar payloads, nested required fields and cyclic-reference diagnostics passed.\n'

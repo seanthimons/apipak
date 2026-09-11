@@ -31,7 +31,9 @@ labels, assignments, issue closures, or upstream reports were changed.
 
 1. Start #14 with a small schema and exact received JSON assertions, reusing #7's
    existing infrastructure. Do not wait for all of #7 to finish before testing.
-2. Work on #15 diagnostics and #16 contract evidence independently. #16 blocks
+2. The #15 diagnostic implementation adds classification, code, source location,
+   and guidance while preserving statuses and generation coverage. Continue #16
+   contract evidence independently. #16 blocks
    choosing transport semantics for the flagged operations, not every #8/#9 case.
 3. Implement #9's unambiguous multipart/POST-form cases, then #8 slices supported
    by contract evidence. Keep shared blockers attributed to both capabilities.

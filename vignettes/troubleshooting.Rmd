@@ -45,6 +45,45 @@ coverage totals. They never authorize deleting old output.
 
 ## Common errors
 
+### Read the operation's disposition
+
+Preview with `generate_client(root, config = 'specmill.yml', mode = 'plan')`.
+The `inventory` keeps every discovered operation, including exclusions. Its
+additive `classification` field explains the disposition without changing the
+existing `status` values used for selection and file ownership:
+
+| Classification | Meaning and action |
+|---|---|
+| `ready` | Parsing found no blocker in the supported subset; verify the generated request before relying on live results |
+| `policy_exclusion` | Project or service selection excluded the operation; review its `reason` to reconsider it. Excluded schemas are not validated |
+| `schema_defect` | A source-contract problem was detected; verify and correct it or explicitly retain an existing implementation |
+| `capability_gap` | specmill cannot handle the construct; consider a supported complete client mapping or leave it visible pending implementation |
+| `review_required` | An unclassified error needs source/configuration review; no schema-validity claim is made |
+
+Diagnostics also include `code`, `source_location` (an escaped JSON pointer), and
+`guidance`. For multiple transport limitations, `reason` lists the observed
+messages and the structured fields describe the first blocker. A later metadata
+error takes precedence. Referenced input locations may point into shared schema
+definitions. Mapped and retained operations preserve the original classification
+as evidence in `mapping_diagnostics` or `retained_diagnostics`; consult `status`
+for their current generation disposition.
+
+An unconstrained body is different from a missing body schema. `items: {}` places
+no constraints on array elements. Swagger 2 body arrays inherit Draft 4 semantics
+that allow omitted `items`; Swagger 2 non-body arrays and OpenAPI 3.0 array schemas
+require it. These contexts receive different diagnostic codes. See
+[OpenAPI 3.0 Schema Objects](https://spec.openapis.org/oas/v3.0.3.html#schema-object),
+[Swagger 2 parameters](https://spec.openapis.org/oas/v2.0.html#parameter-object), and
+[Draft 4 array validation](https://json-schema.org/draft-04/draft-fge-json-schema-validation-00#rfc.section.5.3.1.4).
+
+Do not delete an operation merely because it has no named object properties:
+primitive arrays are meaningful inputs, and free-form bodies can represent a
+generator limitation. Local recursion, unresolved references, and external
+references now have separate codes. No diagnostic classification establishes
+full schema validity or live-service correctness.
+
+### Resolve common failures
+
 | Symptom | Next step |
 |---|---|
 | Package/function not found | Install the reviewed toolkit, restart R, and inspect `packageVersion('specmill')` and `find.package('specmill')` |

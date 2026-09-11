@@ -137,6 +137,9 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   )
   for (diagnostic in parsed$diagnostics) {
     report(diagnostic$key, 'unsupported', diagnostic$reason)
+    fields <- c('classification', 'source_location', 'guidance')
+    diagnostics[[length(diagnostics)]][fields] <- diagnostic[fields]
+    diagnostics[[length(diagnostics)]]$diagnostic_code <- diagnostic$code
   }
   encode <- function(x, comments = list()) {
     text <- sub('\n$', '', yaml::as.yaml(x))

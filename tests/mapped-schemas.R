@@ -71,6 +71,9 @@ mapped_schema_acceptance <- function() {
       length(result$operations) == 1L,
       !length(result$diagnostics),
       length(result$mapping_diagnostics) == 1L,
+      result$mapping_diagnostics[[1L]]$classification == 'capability_gap',
+      nzchar(result$mapping_diagnostics[[1L]]$source_location),
+      result$inventory[[1L]]$classification == 'capability_gap',
       result$inventory[[1L]]$status == 'client-mapped',
       nzchar(result$inventory[[1L]]$reason)
     )

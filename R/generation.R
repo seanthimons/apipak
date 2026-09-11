@@ -998,7 +998,31 @@ print.specmill_generation <- function(x, ...) {
   }
   if (length(x$diagnostics)) {
     cat('\nDiagnostics\n')
-    print(x$diagnostics)
+    for (diagnostic in x$diagnostics) {
+      cat(
+        '  [',
+        diagnostic$classification %or% 'review_required',
+        '] ',
+        diagnostic$service,
+        ': ',
+        diagnostic$key,
+        ' - ',
+        diagnostic$reason,
+        '\n',
+        sep = ''
+      )
+      if (!is.null(diagnostic$source_location)) {
+        cat(
+          '    ',
+          diagnostic$source,
+          ' ',
+          diagnostic$source_location,
+          '\n',
+          sep = ''
+        )
+        cat('    ', diagnostic$guidance, '\n', sep = '')
+      }
+    }
   }
   protected <- Filter(
     function(file) file$action %in% c('protected', 'retained'),

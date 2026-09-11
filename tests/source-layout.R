@@ -63,7 +63,9 @@ source_layout_acceptance <- function() {
   path <- file.path(root, 'R/generated.R')
   stopifnot(
     length(result$operations) == 4L,
-    length(getFromNamespace('tg_find_function_defs_in_file', 'specmill')(path)) ==
+    length(getFromNamespace('tg_find_function_defs_in_file', 'specmill')(
+      path
+    )) ==
       4L
   )
   run('check')
@@ -189,6 +191,8 @@ source_layout_acceptance <- function() {
   result <- run('apply')
   stopifnot(
     length(result$retained_diagnostics) == 1L,
+    result$retained_diagnostics[[1L]]$classification == 'schema_defect',
+    nzchar(result$retained_diagnostics[[1L]]$guidance),
     grepl(
       'Invalid input schema type',
       result$retained_diagnostics[[1L]]$reason

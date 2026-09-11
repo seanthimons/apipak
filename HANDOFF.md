@@ -1,6 +1,6 @@
 # Handoff: specmill multi-API capability work
 
-**Generated**: 2026-09-11 17:26 -04:00
+**Generated**: 2026-09-11 (updated for diagnostic classification)
 **Branch**: `feat/multi-api-initialization`
 **Status**: Ready for review; capability implementation remains open
 
@@ -20,6 +20,15 @@ The user is reviewing the README; leave both READMEs unchanged during this task.
 - Opened #14 JSON shapes, #15 diagnostics, #16 source-contract review, and #17
   configuration name collisions. Existing #4 and #6–#13 remain open.
 - Added `dev/audits/proving-ground/ISSUE-CROSSWALK.md` with ownership/dependencies.
+- Implemented #15's diagnostic classification slice: additive classification,
+  code, JSON-pointer location, and guidance survive parsing, inventory,
+  configuration proposals, mappings, and retained implementations. Selection and
+  ownership statuses are unchanged. See `tests/diagnostics.R` and troubleshooting.
+- Re-ran the full proving ground: 421 renderable / 127 diagnostics; native
+  classification agrees with the independent audit at 118 gaps / nine defects.
+- Full clean-source `R CMD check --no-manual --as-cran` passed with zero errors,
+  warnings, or notes, including all acceptance scripts and vignette rebuilds.
+  A separate Quarto version-query warning followed the successful check.
 
 ## Not Yet Done
 
@@ -58,8 +67,8 @@ audit is not exhaustive validation of all 548 operations or all schema versions.
 
 **User changes:** `dev/build_petstore.R` was deleted by the user before this task.
 Do not restore, stage, or commit that deletion incidentally. Check `git status`
-on resume for additional changes. The handoff/crosswalk are the only tracked
-files changed in the issue-crosswalk follow-up.
+on resume for additional changes. The diagnostic implementation changes parser
+helpers, reporting, targeted acceptance tests, and troubleshooting documentation.
 
 ## Files to Know
 
@@ -70,6 +79,7 @@ files changed in the issue-crosswalk follow-up.
 | `dev/audits/proving-ground/operations.csv` | Per-operation evidence, review flags and classifications |
 | `dev/audits/proving-ground/schemas.csv` | 27 input snapshot hashes |
 | `dev/audit_proving_ground.R` | Interactive reproduction function; targeted corpus audit, not a general validator |
+| `R/diagnostics.R`, `tests/diagnostics.R` | Typed failures, additive diagnostic fields, and sourceable regression acceptance |
 | `R/operations.R`, `R/input_schema.R`, `R/context.R` | Active metadata path; `R/context.R::local_ref()` is the resolver to trace |
 | `R/body_shapes.R` | `supported_body()`, `body_fixture()`, `body_checks()` all need coherent JSON shape support |
 | `R/generation.R`, `inst/templates/request.R` | Wrapper rendering and generated HTTP serialization |
@@ -138,6 +148,10 @@ The audit calls installed `specmill`, not automatically the checkout's R files.
 - The audit's modeled GET/POST and non-admin policy was never applied to YAML.
 - `.docs-lib/`, `evidence/`, and `artifacts/` are ignored. `docs/` is a historical
   documentation checkout; do not edit it for this work.
+- On Windows, `R CMD build` copies the source tree before applying exclusions;
+  nested historical worktrees can hit path-length limits. Check a clean copy of
+  package source directories instead of deleting those worktrees. Current check
+  logs are in `.docs-lib/diagnostics-package-check.log`.
 
 ## Project Maintenance Context
 

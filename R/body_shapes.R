@@ -1,49 +1,88 @@
-supported_body <- function(body, document, seen = character()) {
+supported_body <- function(
+  body,
+  document,
+  seen = character(),
+  source_location = '#'
+) {
+  fail <- function(
+    code,
+    message,
+    classification = 'capability_gap',
+    at = source_location
+  ) {
+    schema_problem(code, classification, message, at)
+  }
   if (!is.list(body) || !length(body)) {
-    stop('Missing body schema')
+    fail('unconstrained_schema', 'Unsupported unconstrained body schema')
   }
   ref <- body[['$ref']]
-  body <- local_ref(body, document, seen)
+  body <- local_ref(body, document, seen, source_location)
+  if (!is.null(ref)) {
+    source_location <- ref
+  }
   seen <- c(seen, ref)
   if (any(c('oneOf', 'anyOf', 'allOf') %in% names(body))) {
-    stop('Unsupported body composition')
+    fail('body_composition', 'Unsupported body composition')
   }
   if (is.null(body$type) && length(body$properties)) {
     body$type <- 'object'
   }
   if (identical(body$type, 'array')) {
-    body$items <- supported_body(body$items, document, seen)
+    if (is.null(body$items)) {
+      fail(
+        'unconstrained_array_items',
+        'Unsupported unconstrained array items',
+        at = schema_location(source_location, 'items')
+      )
+    }
+    body$items <- supported_body(
+      body$items,
+      document,
+      seen,
+      schema_location(source_location, 'items')
+    )
   } else if (identical(body$type, 'object')) {
     if (
       !length(body$properties) ||
         !is.null(body$additionalProperties) &&
           !isFALSE(body$additionalProperties)
     ) {
-      stop('Unsupported free-form body object')
+      fail('free_form_body', 'Unsupported free-form body object')
     }
     if (
       is.null(names(body$properties)) || any(!nzchar(names(body$properties)))
     ) {
-      stop('Invalid body properties')
+      fail('invalid_properties', 'Invalid body properties', 'schema_defect')
     }
     required <- unlist(body$required, use.names = FALSE)
     if (
       length(required) &&
         (!is.character(required) || any(!required %in% names(body$properties)))
     ) {
-      stop('Invalid required body fields')
+      fail('invalid_required', 'Invalid required body fields', 'schema_defect')
     }
-    body$properties <- lapply(
-      body$properties,
-      supported_body,
-      document = document,
-      seen = seen
+    body$properties <- stats::setNames(
+      lapply(
+        names(body$properties),
+        function(name) {
+          supported_body(
+            body$properties[[name]],
+            document,
+            seen,
+            schema_location(
+              schema_location(source_location, 'properties'),
+              name
+            )
+          )
+        }
+      ),
+      names(body$properties)
     )
   } else if (
     length(body$type) != 1L ||
       !body$type %in% c('string', 'integer', 'number', 'boolean')
   ) {
-    stop('Unsupported body shape')
+    fail('body_shape', 'Unsupported body shape')
   }
   body
 }

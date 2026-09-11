@@ -24,7 +24,7 @@ boundary_acceptance <- function() {
   cyclic$components$schemas$Item <- list('$ref' = '#/components/schemas/Item')
   stopifnot(any(vapply(
     read(cyclic)$diagnostics,
-    function(d) grepl('cyclic', d$reason),
+    function(d) identical(d$code, 'recursive_reference'),
     logical(1)
   )))
   bad <- base

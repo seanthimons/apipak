@@ -1,17 +1,45 @@
 # Resolve input metadata independently of the default transport's supported
 # subset. Explicit client mappings can use this metadata without claiming that
 # the default renderer knows how to serialize it or invent a valid fixture.
-input_schema <- function(schema, document, seen = character()) {
+input_schema <- function(
+  schema,
+  document,
+  seen = character(),
+  source_location = '#',
+  parameter_items = FALSE
+) {
+  fail <- function(
+    code,
+    message,
+    classification = 'schema_defect',
+    at = source_location
+  ) {
+    schema_problem(code, classification, message, at)
+  }
   if (is.null(schema)) {
     return(stats::setNames(list(), character()))
   }
   if (!is.list(schema) || is.null(names(schema))) {
-    stop('Input schema must be an object')
+    if (
+      is.logical(schema) &&
+        length(schema) == 1L &&
+        startsWith(document$openapi %or% '', '3.1')
+    ) {
+      fail(
+        'boolean_schema',
+        'Unsupported boolean input schema',
+        'capability_gap'
+      )
+    }
+    fail('invalid_schema', 'Input schema must be an object')
   }
   ref <- schema[['$ref']]
-  schema <- local_ref(schema, document, seen)
+  schema <- local_ref(schema, document, seen, source_location)
+  if (!is.null(ref)) {
+    source_location <- ref
+  }
   if (is.null(names(schema))) {
-    stop('Input schema must be an object')
+    fail('invalid_schema', 'Input schema must be an object')
   }
   seen <- c(seen, ref)
   type <- unlist(schema$type, use.names = FALSE)
@@ -31,17 +59,45 @@ input_schema <- function(schema, document, seen = character()) {
             )
         ))
   ) {
-    stop('Invalid input schema type')
+    fail(
+      'invalid_type',
+      'Invalid input schema type',
+      at = schema_location(source_location, 'type')
+    )
+  }
+  version <- document$openapi %or% document$swagger
+  if (
+    identical(schema$type, 'array') &&
+      is.null(schema$items) &&
+      (startsWith(version, '3.0') ||
+        (identical(version, '2.0') && parameter_items))
+  ) {
+    fail(
+      'missing_array_items',
+      'Array schema requires items in this schema version and parameter context',
+      at = schema_location(source_location, 'items')
+    )
   }
   if (!is.null(schema$properties)) {
     if (!is.list(schema$properties) || is.null(names(schema$properties))) {
-      stop('Invalid input properties')
+      fail('invalid_properties', 'Invalid input properties')
     }
-    schema$properties <- lapply(
-      schema$properties,
-      input_schema,
-      document = document,
-      seen = seen
+    schema$properties <- stats::setNames(
+      lapply(
+        names(schema$properties),
+        function(name) {
+          input_schema(
+            schema$properties[[name]],
+            document,
+            seen,
+            schema_location(
+              schema_location(source_location, 'properties'),
+              name
+            )
+          )
+        }
+      ),
+      names(schema$properties)
     )
   }
   required <- unlist(schema$required, use.names = FALSE)
@@ -52,21 +108,32 @@ input_schema <- function(schema, document, seen = character()) {
         anyDuplicated(required) ||
         any(!nzchar(required)))
   ) {
-    stop('Invalid required input fields')
+    fail('invalid_required', 'Invalid required input fields')
   }
   if (!is.null(schema$items)) {
-    schema$items <- input_schema(schema$items, document, seen)
+    schema$items <- input_schema(
+      schema$items,
+      document,
+      seen,
+      schema_location(source_location, 'items'),
+      parameter_items
+    )
   }
   for (field in intersect(names(schema), c('oneOf', 'anyOf', 'allOf'))) {
     branches <- schema[[field]]
     if (!is.list(branches) || !length(branches) || !is.null(names(branches))) {
-      stop('Invalid input schema composition')
+      fail('invalid_composition', 'Invalid input schema composition')
     }
     schema[[field]] <- lapply(
-      branches,
-      input_schema,
-      document = document,
-      seen = seen
+      seq_along(branches),
+      function(i) {
+        input_schema(
+          branches[[i]],
+          document,
+          seen,
+          schema_location(schema_location(source_location, field), i - 1L)
+        )
+      }
     )
   }
   if (
@@ -76,7 +143,8 @@ input_schema <- function(schema, document, seen = character()) {
     schema$additionalProperties <- input_schema(
       schema$additionalProperties,
       document,
-      seen
+      seen,
+      schema_location(source_location, 'additionalProperties')
     )
   }
   schema

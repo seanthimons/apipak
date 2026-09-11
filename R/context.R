@@ -56,31 +56,60 @@ bind_tools <- function(group, envir) {
 # Escape schema strings as R literals. No remote text is evaluated as code.
 r_literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = '\n')
 
-local_ref <- function(node, document, seen = character()) {
+local_ref <- function(
+  node,
+  document,
+  seen = character(),
+  source_location = '#'
+) {
+  fail <- function(code, message, classification = 'schema_defect') {
+    schema_problem(code, classification, message, source_location)
+  }
   if (!is.list(node)) {
-    stop('Reference target must be an object')
+    fail('invalid_reference_target', 'Reference target must be an object')
   }
   ref <- node[['$ref']]
   if (is.null(ref)) {
     return(node)
   }
-  if (length(ref) != 1L || !startsWith(ref, '#/') || ref %in% seen) {
-    stop('Unsupported external or cyclic reference: ', ref, call. = FALSE)
+  if (!is.character(ref) || length(ref) != 1L || is.na(ref)) {
+    fail('invalid_reference', 'Reference must be a string')
+  }
+  if (!startsWith(ref, '#/')) {
+    fail(
+      if (startsWith(ref, '#')) 'local_reference' else 'external_reference',
+      paste(
+        if (startsWith(ref, '#')) {
+          'Unsupported local reference fragment:'
+        } else {
+          'Unsupported external reference:'
+        },
+        ref
+      ),
+      'capability_gap'
+    )
+  }
+  if (ref %in% seen) {
+    fail(
+      'recursive_reference',
+      paste('Unsupported local recursive reference:', ref),
+      'capability_gap'
+    )
   }
   parts <- strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1]]
   if (any(grepl('~([^01]|$)', parts))) {
-    stop('Invalid reference escape: ', ref)
+    fail('invalid_reference', paste('Invalid reference escape:', ref))
   }
   parts <- gsub('~0', '~', gsub('~1', '/', parts, fixed = TRUE), fixed = TRUE)
   value <- document
   for (part in parts) {
     if (!is.list(value)) {
-      stop('Missing reference: ', ref, call. = FALSE)
+      fail('unresolved_reference', paste('Missing reference:', ref))
     }
     value <- value[[part]]
   }
   if (is.null(value)) {
-    stop('Missing reference: ', ref, call. = FALSE)
+    fail('unresolved_reference', paste('Missing reference:', ref))
   }
-  local_ref(value, document, c(seen, ref))
+  local_ref(value, document, c(seen, ref), ref)
 }
