@@ -13,6 +13,37 @@ paths, and symlinks are rejected.
 
 ## Project file: specmill.yml
 
+For a new package,
+[`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md)
+writes editable YAML grouped by schema tags. To preview that
+configuration first, or propose it for an existing package:
+
+``` r
+
+proposal <- specmill::configure_client(
+  root, schema, package = 'petstoretrial', naming = 'tag_prefix'
+)
+proposal$files[['apis/pet.yml']]
+proposal$diagnostics
+proposal$changes
+```
+
+The default `naming = 'operation_id'` preserves valid schema names;
+`tag_prefix` turns `getPetById` into `pet_get_by_id`. Exact tag tokens
+and their simple plural are removed before adding the prefix; synonyms
+are not guessed. Missing IDs use method/path names. Every proposed name
+is explicit in the YAML for editing. Multiple tags use the first, with a
+diagnostic; missing tags use `default`. `group_by = 'none'` creates a
+single default service instead.
+
+`mode = 'apply'` writes absent configuration files only. If existing
+YAML or the schema copy differs, nothing is written: review the
+before/after text and make the desired edits yourself. Filename
+collisions block writing; function-name collisions must be resolved
+before wrapper generation. Unsupported operations remain included, with
+diagnostics. Configuration generation does not create custom transports
+or hide unsupported endpoints.
+
 [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)
 and maintenance commands use `specmill.yml` by default. Pass `config`
 explicitly to use a different project filename.
@@ -30,12 +61,70 @@ services: [apis/catalogue.yml]
 | `package` | R package name; read from `DESCRIPTION` when omitted |
 | `formatter` | Optional `{name: air, version: '0.9.0'}`; the exact installed version is required |
 | `callback_files` | Optional sequence of development callback source paths to fingerprint, without sourcing them |
+| `authentication` | Map from schema security-scheme names to credential environment-variable names; never put tokens here |
 
 Use `specmill::load_project(root)` to validate and inspect the resolved
 service configuration before generating. Callback names require an
 explicit environment even for a read-only plan.
 
 ## Service files
+
+The default transport supports scalar path/query/header parameters,
+OpenAPI string query arrays with `style: form` (repeated keys when
+`explode: true`, comma-separated values otherwise), JSON bodies, and
+`application/octet-stream` bodies declared as `type: string`,
+`format: binary`. Pass a character vector for query arrays and a raw
+vector for binary uploads. JSON is selected when offered alongside
+XML/form alternatives.
+
+Initialization proposes authentication configuration for schemas
+declaring security schemes. For example, to use ComptoxR’s
+environment-variable convention:
+
+``` yaml
+authentication:
+  api_key: ctx_api_key
+```
+
+Here `api_key` must be the security-scheme name in the schema;
+`ctx_api_key` is the environment variable chosen by the package
+maintainer. Keep real tokens out of this file. Generation writes
+`R/api_auth.R` with documented helpers:
+
+``` r
+
+# In the generated package, after loading it:
+set_api_token('YOUR_TOKEN', scheme = 'api_key')                 # this session
+set_api_token('YOUR_TOKEN', scheme = 'api_key', persist = TRUE) # also save
+```
+
+Persistence updates the user `.Renviron` (or `R_ENVIRON_USER`),
+preserves unrelated lines, and makes the token available immediately.
+Credentials are plain text in that file. A project `.Renviron` can take
+precedence at the next R startup. Neither loading the package nor
+generating it writes credentials. `api_token()` retrieves the configured
+value and fails with setup instructions when it is missing.
+
+Requests inherit top-level `security` unless overridden by the
+operation. `security: []` is public;
+[`{}`](https://rdrr.io/r/base/Paren.html) within the alternatives
+permits anonymous access. Public/anonymous requests receive no automatic
+credentials. Otherwise, generation supports API keys in headers, query
+parameters, or cookies and HTTP bearer tokens. Each alternative is an OR
+choice; all schemes inside one choice are required. Missing credentials
+fail before any HTTP request. OAuth login, refresh, and OpenID Connect
+are deferred; an unsupported-only requirement produces a clear runtime
+error.
+
+Omitting `authentication` preserves existing client-owned
+authentication, including ComptoxR’s helper. Explicit custom request
+mappings also retain responsibility for authentication. Adding the field
+opts into generated authentication.
+
+Existing helpers need optional `headers`, `query_serialization`,
+`body_media`, or `auth` arguments when an operation uses these features.
+Generation validates helper compatibility and does not overwrite
+client-owned helpers.
 
 ``` yaml
 id: catalogue
@@ -57,6 +146,7 @@ policy_version: reviewed-1
 | `schemas.exclude` | Sequence of case-sensitive regexes matched against schema basenames |
 | `helper` | Required client runtime function name, defined in `R/` |
 | `selection.methods` | Uppercase methods to include; omitted means all standard HTTP methods |
+| `selection.include` | Exact `METHOD /path` allowlist; omitted means all operations, empty selects none, unknown keys fail |
 | `selection.exclude` | Case-sensitive stringr regexes; exclude an original path if any matches |
 | `names` | Map from `METHOD /path` to public wrapper name |
 | `documentation` | Boolean; `true` generates roxygen, help pages, and exports; initialization sets it to true |
@@ -130,14 +220,15 @@ as prose, not executable configuration.
 
 ## Group endpoint families
 
-Schema tags do not automatically become R function prefixes or separate
-R namespaces. Configure public names, source files, and help families
-explicitly. For example, a Petstore service file can contain:
+Initialization groups operations by tag and writes the resulting choices
+as editable YAML. Function prefixes are opt-in through
+`naming = 'tag_prefix'`; the package still has one R namespace. For
+example, a Petstore service can contain:
 
 ``` yaml
 id: pet
 schemas: {files: [schema/openapi.json]}
-selection: {exclude: ['^/(?!pet(?:/|$))']}
+selection: {include: ['GET /pet/{petId}']}
 helper: api_request
 documentation: true
 names:

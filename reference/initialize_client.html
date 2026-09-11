@@ -52,7 +52,8 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">initialize_client</span><span class="op">(</span><span class="va">root</span>, <span class="va">schema</span>, package <span class="op">=</span> <span class="cn">NULL</span>, title <span class="op">=</span> <span class="cn">NULL</span>, author <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    license <span class="op">=</span> <span class="cn">NULL</span>, base_url <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+<span>    license <span class="op">=</span> <span class="cn">NULL</span>, base_url <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>    naming <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"operation_id"</span>, <span class="st">"tag_prefix"</span><span class="op">)</span>, group_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tag"</span>, <span class="st">"none"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -80,10 +81,16 @@
 <dt id="arg-base-url">base_url<a class="anchor" aria-label="anchor" href="#arg-base-url"></a></dt>
 <dd><p>Absolute HTTP base URL for a new client-owned transport.</p></dd>
 
+<dt id="arg-naming">naming<a class="anchor" aria-label="anchor" href="#arg-naming"></a></dt>
+<dd><p>Preserve operationId names by default, or propose tag-prefixed snake_case names. See configure_client.</p></dd>
+
+<dt id="arg-group-by">group_by<a class="anchor" aria-label="anchor" href="#arg-group-by"></a></dt>
+<dd><p>Group service configuration by first tag (default), or use one default service with none.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list of applied file records, each containing file, path, and action. Stops before application for invalid metadata or conflicting scaffold paths.</p>
+    <p>A list of applied file records, each containing file, path, and action. The configuration attribute contains proposed files, operation assignments, and diagnostics. Stops before application for invalid metadata, tag filename collisions, or conflicting scaffold paths.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -92,6 +99,10 @@
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><a href="https://seanthimons.github.io/specmill/articles/specmill.html">Step-by-step guide</a>.</p></div>
+    </div>
+    <div class="section level2">
+    <h2 id="note">Note<a class="anchor" aria-label="anchor" href="#note"></a></h2>
+    <p>Service YAML includes explicit operation allowlists and editable names, including unsupported operations. Name collisions and unsupported transports require review before wrapper generation; initialization does not resolve them. Inspect attr(result, 'configuration')$diagnostics, or preview with configure_client() before initialization.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

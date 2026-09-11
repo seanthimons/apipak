@@ -27,6 +27,14 @@ get the reviewed version.
   explains preserving public functions, helpers, hooks, and
   generated-file ownership.
 
+In the development version,
+[`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md)
+writes service YAML from schema tags, including editable function names
+and exact operation selections.
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
+previews the configuration for a new or existing package. Use
+`naming = 'tag_prefix'` for names such as `pet_get_by_id`.
+
 Once a project has `specmill.yml`, the maintenance loop is:
 
 ``` r

@@ -18,9 +18,12 @@ compare_operations(old, new)
 
 - policy:
 
-  A list with optional service identity, methods allowlist, path exclude
-  regexes, names keyed by METHOD /path, and override_keys for declared
-  operation settings.
+  A list with optional service identity, methods allowlist, include
+  allowlist of exact METHOD /path keys, path exclude regexes, names
+  keyed by METHOD /path, and override_keys for declared operation
+  settings. When include is supplied, an operation must match it as well
+  as the method and path filters; an empty include selects nothing.
+  Unknown included keys are errors.
 
 - old:
 
@@ -39,13 +42,21 @@ reason; no changes returns an empty list.
 
 ## Details
 
-The supported subset includes scalar path/query input and JSON scalar,
-nested declared-object, and nested array bodies. External/cyclic input
-references, unsupported media, and unsupported parameter/body shapes are
-diagnosed. Structurally valid unsupported metadata is returned
-separately for reviewed client mapping. This is not a full schema
-validator. Comparison classifies input changes conservatively and cannot
-prove HTTP or response compatibility.
+The supported subset includes scalar path/query/header input, OpenAPI
+form-style string query arrays, JSON scalar/nested-object/array bodies,
+and binary string bodies sent as application/octet-stream. Binary inputs
+are raw vectors. OpenAPI request bodies select application/json when
+offered, including alongside other media types; alternative XML/form
+encodings are not generated. External/cyclic input references,
+unsupported media, and unsupported parameter/body shapes are diagnosed.
+Structurally valid unsupported metadata is returned separately for
+reviewed client mapping. Effective security requirements and resolved
+security schemes are retained for generation. Authentication changes are
+reported for review. Generated authentication is enabled by the
+project's authentication environment-variable map; existing client
+helpers remain responsible when that map is omitted. This is not a full
+schema validator. Comparison classifies input changes conservatively and
+cannot prove HTTP or response compatibility.
 
 ## See also
 

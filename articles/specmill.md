@@ -87,16 +87,27 @@ It creates:
 | File | What you maintain |
 |----|----|
 | `DESCRIPTION`, `LICENSE` | Package identity, dependencies, and your license |
-| `R/api_request.R` | Client-owned httr2 transport; adapt authentication here |
+| `R/api_request.R` | Client-owned httr2 transport for JSON/binary bodies, headers, query values, and generated authentication |
 | `schema/openapi.json` | Local copy of the schema |
 | `specmill.yml` | Project version and selected service files |
-| `apis/default.yml` | Schema selection, helper name, and generation policy |
+| `apis/<tag>.yml` (or `apis/default.yml` here) | Exact operation selection, editable names, helper, and generation policy |
 | `NAMESPACE`, `.Rbuildignore` | Package exports and exclusion of development inputs |
 | `.specmill/manifest.json` | Ownership hashes maintained by specmill |
 
 The scaffold declares `httr2` and `jsonlite` as runtime dependencies for
 HTTP requests and JSON bodies. Existing packages must declare both
 before using the default transport.
+
+Tagged schemas automatically get one service file per first operation
+tag, plus grouped source files and help families. This catalogue has no
+tags, so it uses `default` and keeps one source file per function. Pass
+`naming = 'tag_prefix'` to propose names such as `pet_get_by_id`, or
+`group_by = 'none'` to keep one service. Inspect
+`attr(created, 'configuration')$diagnostics` for grouping, naming, and
+unsupported-operation findings.
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
+previews the same configuration without initializing a package or
+overwriting existing YAML.
 
 It does not create a Git repository, README, test runner, or pkgdown
 site for the client. Those are ordinary package maintenance tasks. Do
@@ -117,8 +128,19 @@ cat(readLines(file.path(root, 'apis/default.yml')), sep = '\n')
 #> schemas:
 #>   files:
 #>   - schema/openapi.json
+#> selection:
+#>   include:
+#>   - GET /items
+#>   - POST /items
+#>   - GET /items/{item_id}
+#>   - POST /refresh
 #> helper: api_request
 #> documentation: yes
+#> names:
+#>   GET /items: list_items
+#>   POST /items: create_item
+#>   GET /items/{item_id}: get_item
+#>   POST /refresh: refresh
 ```
 
 An empty diagnostics list means these operations fit the supported
@@ -223,8 +245,15 @@ serialized body, and response handling.
 
 ## 8. Install and use your client
 
-After changing the helper to use your actual service and authentication,
-run:
+For schemas with API-key or HTTP bearer security, initialization also
+proposes an `authentication` map in `specmill.yml`. Generation creates
+`R/api_auth.R` with `set_api_token()` and `api_token()`. Configure the
+token at runtime; keep it out of YAML. Public endpoints need no token.
+OAuth login and refresh are deferred. See the [configuration
+guide](https://seanthimons.github.io/specmill/articles/configuration.md)
+for setup and persistence.
+
+After configuring the actual service and any required credentials, run:
 
 ``` r
 

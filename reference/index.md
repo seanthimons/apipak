@@ -4,6 +4,8 @@
 
 - [`initialize_client()`](https://seanthimons.github.io/specmill/reference/initialize_client.md)
   : Initialize a new client package
+- [`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
+  : Propose editable configuration from a schema
 - [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)
   : Load and validate a YAML project
 - [`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md)

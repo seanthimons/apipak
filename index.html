@@ -81,6 +81,7 @@
 <li>
 <strong>Existing package or ComptoxR:</strong> <a href="https://seanthimons.github.io/specmill/articles/existing-clients.html">Adopt an existing client</a> explains preserving public functions, helpers, hooks, and generated-file ownership.</li>
 </ul>
+<p>In the development version, <code><a href="reference/initialize_client.html">initialize_client()</a></code> writes service YAML from schema tags, including editable function names and exact operation selections. <code><a href="reference/configure_client.html">configure_client()</a></code> previews the configuration for a new or existing package. Use <code>naming = 'tag_prefix'</code> for names such as <code>pet_get_by_id</code>.</p>
 <p>Once a project has <code>specmill.yml</code>, the maintenance loop is:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">root</span> <span class="op">&lt;-</span> <span class="st">'/absolute/path/to/your/client'</span></span>

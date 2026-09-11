@@ -7,7 +7,8 @@ policy, and a client-owned httr2 request helper.
 
 ``` r
 initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
-    license = NULL, base_url = NULL)
+    license = NULL, base_url = NULL,
+    naming = c("operation_id", "tag_prefix"), group_by = c("tag", "none"))
 ```
 
 ## Arguments
@@ -43,11 +44,22 @@ initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
 
   Absolute HTTP base URL for a new client-owned transport.
 
+- naming:
+
+  Preserve operationId names by default, or propose tag-prefixed
+  snake_case names. See configure_client.
+
+- group_by:
+
+  Group service configuration by first tag (default), or use one default
+  service with none.
+
 ## Value
 
 A list of applied file records, each containing file, path, and action.
-Stops before application for invalid metadata or conflicting scaffold
-paths.
+The configuration attribute contains proposed files, operation
+assignments, and diagnostics. Stops before application for invalid
+metadata, tag filename collisions, or conflicting scaffold paths.
 
 ## Details
 
@@ -64,3 +76,11 @@ and does not import specmill.
 
 [Step-by-step
 guide](https://seanthimons.github.io/specmill/articles/specmill.html).
+
+## Note
+
+Service YAML includes explicit operation allowlists and editable names,
+including unsupported operations. Name collisions and unsupported
+transports require review before wrapper generation; initialization does
+not resolve them. Inspect attr(result, 'configuration')\$diagnostics, or
+preview with configure_client() before initialization.

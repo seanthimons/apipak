@@ -161,7 +161,8 @@ conflicts. It creates:</p>
 </tr>
 <tr class="even">
 <td><code>R/api_request.R</code></td>
-<td>Client-owned httr2 transport; adapt authentication here</td>
+<td>Client-owned httr2 transport for JSON/binary bodies, headers, query
+values, and generated authentication</td>
 </tr>
 <tr class="odd">
 <td><code>schema/openapi.json</code></td>
@@ -172,8 +173,11 @@ conflicts. It creates:</p>
 <td>Project version and selected service files</td>
 </tr>
 <tr class="odd">
-<td><code>apis/default.yml</code></td>
-<td>Schema selection, helper name, and generation policy</td>
+<td>
+<code>apis/&lt;tag&gt;.yml</code> (or <code>apis/default.yml</code>
+here)</td>
+<td>Exact operation selection, editable names, helper, and generation
+policy</td>
 </tr>
 <tr class="even">
 <td>
@@ -190,6 +194,16 @@ conflicts. It creates:</p>
 <p>The scaffold declares <code>httr2</code> and <code>jsonlite</code> as
 runtime dependencies for HTTP requests and JSON bodies. Existing
 packages must declare both before using the default transport.</p>
+<p>Tagged schemas automatically get one service file per first operation
+tag, plus grouped source files and help families. This catalogue has no
+tags, so it uses <code>default</code> and keeps one source file per
+function. Pass <code>naming = 'tag_prefix'</code> to propose names such
+as <code>pet_get_by_id</code>, or <code>group_by = 'none'</code> to keep
+one service. Inspect
+<code>attr(created, 'configuration')$diagnostics</code> for grouping,
+naming, and unsupported-operation findings.
+<code><a href="../reference/configure_client.html">configure_client()</a></code> previews the same configuration without
+initializing a package or overwriting existing YAML.</p>
 <p>It does not create a Git repository, README, test runner, or pkgdown
 site for the client. Those are ordinary package maintenance tasks. Do
 not rerun initialization to update a client; edit policy and regenerate
@@ -209,8 +223,19 @@ instead.</p>
 <span><span class="co">#&gt; schemas:</span></span>
 <span><span class="co">#&gt;   files:</span></span>
 <span><span class="co">#&gt;   - schema/openapi.json</span></span>
+<span><span class="co">#&gt; selection:</span></span>
+<span><span class="co">#&gt;   include:</span></span>
+<span><span class="co">#&gt;   - GET /items</span></span>
+<span><span class="co">#&gt;   - POST /items</span></span>
+<span><span class="co">#&gt;   - GET /items/{item_id}</span></span>
+<span><span class="co">#&gt;   - POST /refresh</span></span>
 <span><span class="co">#&gt; helper: api_request</span></span>
-<span><span class="co">#&gt; documentation: yes</span></span></code></pre></div>
+<span><span class="co">#&gt; documentation: yes</span></span>
+<span><span class="co">#&gt; names:</span></span>
+<span><span class="co">#&gt;   GET /items: list_items</span></span>
+<span><span class="co">#&gt;   POST /items: create_item</span></span>
+<span><span class="co">#&gt;   GET /items/{item_id}: get_item</span></span>
+<span><span class="co">#&gt;   POST /refresh: refresh</span></span></code></pre></div>
 <p>An empty diagnostics list means these operations fit the supported
 parser subset. It does not prove the service works. Review diagnostics
 before using real schemas; see <a href="troubleshooting.html">Supported
@@ -303,8 +328,15 @@ response handling.</p>
 <div class="section level2">
 <h2 id="install-and-use-your-client">8. Install and use your client<a class="anchor" aria-label="anchor" href="#install-and-use-your-client"></a>
 </h2>
-<p>After changing the helper to use your actual service and
-authentication, run:</p>
+<p>For schemas with API-key or HTTP bearer security, initialization also
+proposes an <code>authentication</code> map in
+<code>specmill.yml</code>. Generation creates <code>R/api_auth.R</code>
+with <code>set_api_token()</code> and <code>api_token()</code>.
+Configure the token at runtime; keep it out of YAML. Public endpoints
+need no token. OAuth login and refresh are deferred. See the <a href="configuration.html">configuration guide</a> for setup and
+persistence.</p>
+<p>After configuring the actual service and any required credentials,
+run:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span><span class="va">root</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/help.html" class="external-link">help</a></span><span class="op">(</span><span class="st">'get_item'</span>, package <span class="op">=</span> <span class="st">'catalogueclient'</span><span class="op">)</span></span>
