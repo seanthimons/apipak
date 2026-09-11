@@ -12,8 +12,8 @@ supported_body <- function(
   ) {
     schema_problem(code, classification, message, at)
   }
-  if (!is.list(body) || !length(body)) {
-    fail('unconstrained_schema', 'Unsupported unconstrained body schema')
+  if (!is.list(body)) {
+    fail('body_shape', 'Unsupported body shape')
   }
   ref <- body[['$ref']]
   body <- local_ref(body, document, seen, source_location)
@@ -29,11 +29,7 @@ supported_body <- function(
   }
   if (identical(body$type, 'array')) {
     if (is.null(body$items)) {
-      fail(
-        'unconstrained_array_items',
-        'Unsupported unconstrained array items',
-        at = schema_location(source_location, 'items')
-      )
+      body$items <- list()
     }
     body$items <- supported_body(
       body$items,
@@ -43,23 +39,28 @@ supported_body <- function(
     )
   } else if (identical(body$type, 'object')) {
     if (
-      !length(body$properties) ||
-        !is.null(body$additionalProperties) &&
-          !isFALSE(body$additionalProperties)
-    ) {
-      fail('free_form_body', 'Unsupported free-form body object')
-    }
-    if (
-      is.null(names(body$properties)) || any(!nzchar(names(body$properties)))
+      length(body$properties) &&
+        (is.null(names(body$properties)) ||
+          any(!nzchar(names(body$properties))))
     ) {
       fail('invalid_properties', 'Invalid body properties', 'schema_defect')
     }
     required <- unlist(body$required, use.names = FALSE)
     if (
       length(required) &&
-        (!is.character(required) || any(!required %in% names(body$properties)))
+        (!is.character(required) ||
+          (isFALSE(body$additionalProperties) &&
+            any(!required %in% names(body$properties))))
     ) {
       fail('invalid_required', 'Invalid required body fields', 'schema_defect')
+    }
+    if (is.list(body$additionalProperties)) {
+      body$additionalProperties <- supported_body(
+        body$additionalProperties,
+        document,
+        seen,
+        schema_location(source_location, 'additionalProperties')
+      )
     }
     body$properties <- stats::setNames(
       lapply(
@@ -79,6 +80,23 @@ supported_body <- function(
       names(body$properties)
     )
   } else if (
+    is.null(body$type) &&
+      !length(setdiff(
+        names(body),
+        c(
+          'title',
+          'description',
+          'example',
+          'default',
+          'nullable',
+          'readOnly',
+          'writeOnly',
+          'deprecated'
+        )
+      ))
+  ) {
+    return(body)
+  } else if (
     length(body$type) != 1L ||
       !body$type %in% c('string', 'integer', 'number', 'boolean')
   ) {
@@ -88,123 +106,161 @@ supported_body <- function(
 }
 
 body_fixture <- function(schema, override = NULL) {
-  if (missing(override)) {
-    for (field in c('example', 'default')) {
-      if (field %in% names(schema)) {
-        return(body_fixture(schema, schema[[field]]))
-      }
-    }
-    if (length(schema$enum)) return(body_fixture(schema, schema$enum[[1L]]))
+  value <- if (missing(override)) {
+    body_fixture_value(schema)
+  } else {
+    body_fixture_value(schema, override)
   }
-  if (!missing(override) && is.null(override)) {
-    if (isTRUE(schema$nullable) || 'null' %in% schema$type) {
-      return(NULL)
-    }
-    stop('Explicit null body fixture is not nullable')
+  body_value(value, schema)
+}
+
+body_fixture_value <- function(schema, override = NULL) {
+  if (!missing(override)) {
+    return(override)
+  }
+  for (field in c('example', 'default')) {
+    if (field %in% names(schema)) return(schema[[field]])
+  }
+  if (length(schema$enum)) {
+    return(schema$enum[[1L]])
+  }
+  if (is.null(schema$type)) {
+    return(list())
   }
   if (identical(schema$type, 'array')) {
-    if (
-      !missing(override) && (!is.list(override) || !is.null(names(override)))
-    ) {
-      stop('Array fixture must be an unnamed list')
-    }
-    count <- if (is.null(override)) {
-      schema$minItems %or% 1L
-    } else {
-      length(override)
-    }
-    if (
-      !is.null(schema$minItems) &&
-        count < schema$minItems ||
-        !is.null(schema$maxItems) && count > schema$maxItems
-    ) {
-      stop('Invalid array fixture length')
-    }
-    return(lapply(seq_len(count), function(i) {
-      if (is.null(override)) {
-        body_fixture(schema$items)
-      } else {
-        body_fixture(schema$items, override[[i]])
-      }
+    return(lapply(seq_len(schema$minItems %or% 1L), function(i) {
+      body_fixture_value(schema$items)
     }))
   }
   if (identical(schema$type, 'object')) {
-    if (!missing(override)) {
-      if (
-        !is.list(override) ||
-          (length(override) && is.null(names(override))) ||
-          !all(unlist(schema$required) %in% names(override))
-      ) {
-        stop('Missing required body fields in fixture')
-      }
-      unknown <- setdiff(names(override), names(schema$properties))
-      if (length(unknown) && isFALSE(schema$additionalProperties)) {
-        stop('Unknown body fixture fields')
-      }
-      for (name in intersect(names(override), names(schema$properties))) {
-        override[name] <- list(body_fixture(
-          schema$properties[[name]],
-          override[[name]]
-        ))
-      }
-      return(override)
-    }
+    keys <- union(names(schema$properties), unlist(schema$required)) %or%
+      character()
     return(setNames(
-      lapply(names(schema$properties), function(name) {
-        body_fixture(schema$properties[[name]])
+      lapply(keys, function(name) {
+        child <- schema$properties[[name]] %or%
+          if (is.list(schema$additionalProperties)) {
+            schema$additionalProperties
+          } else {
+            list()
+          }
+        body_fixture_value(child)
       }),
-      names(schema$properties)
+      keys
     ))
   }
-  if (missing(override)) {
-    fixture_value(schema)
-  } else {
-    fixture_value(schema, override)
-  }
+  fixture_value(schema)
 }
 
-# Emit presence checks for nested containers without adding a runtime dependency.
-body_checks <- function(schema, value, depth = 0L) {
-  if (schema$type == 'object') {
-    lines <- paste0(
-      'if (!is.list(',
-      value,
-      ') || !all(',
-      r_literal(unlist(schema$required %or% character())),
-      ' %in% names(',
-      value,
-      '))) stop("Missing required body fields")'
-    )
-    for (name in names(schema$properties)) {
-      child <- schema$properties[[name]]
-      expression <- paste0(value, '[[', r_literal(name), ']]')
-      if (child$type %in% c('array', 'object')) {
-        lines <- c(
-          lines,
-          paste0('if (!is.null(', expression, ')) {'),
-          paste0('  ', body_checks(child, expression, depth + 1L)),
-          '}'
+# Self-contained: generated clients need no specmill runtime or new helper argument.
+body_value <- function(value, schema) {
+  validate <- function(value, schema) {
+    type <- schema$type
+    if (is.null(value)) {
+      if (is.null(type) || isTRUE(schema$nullable)) {
+        return(NULL)
+      }
+      stop('Explicit null body is not nullable')
+    }
+    if (is.object(value) || !is.null(dim(value))) {
+      stop('Body must contain plain JSON values')
+    }
+    if (
+      identical(type, 'object') ||
+        (is.null(type) && is.list(value) && !is.null(names(value)))
+    ) {
+      if (!is.list(value) || (length(value) && is.null(names(value)))) {
+        stop('Object body must be a named list')
+      }
+      keys <- names(value)
+      if (anyNA(keys) || anyDuplicated(keys) || any(!nzchar(keys))) {
+        stop('Invalid body object names')
+      }
+      if (!all(unlist(schema$required) %in% keys)) {
+        stop('Missing required body fields')
+      }
+      unknown <- setdiff(keys, names(schema$properties))
+      if (length(unknown) && isFALSE(schema$additionalProperties)) {
+        stop('Unknown body fields')
+      }
+      value <- lapply(seq_along(value), function(i) {
+        name <- keys[[i]]
+        child <- schema$properties[[name]]
+        if (is.null(child)) {
+          child <- if (is.list(schema$additionalProperties)) {
+            schema$additionalProperties
+          } else {
+            list()
+          }
+        }
+        validate(value[[i]], child)
+      })
+      names(value) <- if (length(keys)) keys else character()
+    } else if (identical(type, 'array') || (is.null(type) && is.list(value))) {
+      if (!is.list(value) || !is.null(names(value))) {
+        stop('Array body must be an unnamed list')
+      }
+      if (
+        (!is.null(schema$minItems) && length(value) < schema$minItems) ||
+          (!is.null(schema$maxItems) && length(value) > schema$maxItems)
+      ) {
+        stop('Invalid body array length')
+      }
+      value <- lapply(value, validate, schema = schema$items)
+    } else {
+      valid <- is.atomic(value) &&
+        length(value) == 1L &&
+        !anyNA(value) &&
+        is.null(names(value))
+      if (valid) {
+        valid <- switch(
+          if (is.null(type)) 'any' else type,
+          string = is.character(value),
+          integer = is.numeric(value) &&
+            is.finite(value) &&
+            value == trunc(value),
+          number = is.numeric(value) && is.finite(value),
+          boolean = is.logical(value),
+          any = is.character(value) ||
+            is.logical(value) ||
+            (is.numeric(value) && is.finite(value)),
+          FALSE
         )
       }
+      if (!isTRUE(valid)) {
+        stop('Invalid body scalar type')
+      }
+      if (!is.null(schema$enum) && !value %in% unlist(schema$enum)) {
+        stop('Invalid body enum')
+      }
+      if (
+        (!is.null(schema$minimum) && value < schema$minimum) ||
+          (!is.null(schema$maximum) && value > schema$maximum)
+      ) {
+        stop('Invalid body numeric bounds')
+      }
+      if (
+        (!is.null(schema$minLength) && nchar(value) < schema$minLength) ||
+          (!is.null(schema$maxLength) && nchar(value) > schema$maxLength) ||
+          (!is.null(schema$pattern) &&
+            !grepl(schema$pattern, value, perl = TRUE))
+      ) {
+        stop('Invalid body string')
+      }
     }
-    lines
-  } else if (schema$type == 'array') {
-    item <- paste0('.item', depth)
-    lines <- paste0(
-      'if (!is.list(',
-      value,
-      ')) stop("Array body must be a list")'
-    )
-    if (schema$items$type %in% c('array', 'object')) {
-      lines <- c(
-        lines,
-        paste0('invisible(lapply(', value, ', function(', item, ') {'),
-        paste0('  ', body_checks(schema$items, item, depth + 1L)),
-        '}))'
-      )
-    }
-    lines
-  } else {
-    character()
+    value
   }
+  validate(value, schema)
+}
+
+body_checks <- function(schema, value) {
+  paste0(
+    value,
+    ' <- (',
+    r_literal(body_value),
+    ')(',
+    value,
+    ', ',
+    r_literal(schema),
+    ')'
+  )
 }

@@ -27,9 +27,9 @@ schema_stress_acceptance <- function() {
   status <- vapply(parsed$inventory, `[[`, character(1), 'status')
   stopifnot(
     length(status) == 43L,
-    sum(status == 'selected') == 32L,
-    sum(status == 'unsupported') == 11L,
-    length(parsed$diagnostics) == 11L
+    sum(status == 'selected') == 33L,
+    sum(status == 'unsupported') == 10L,
+    length(parsed$diagnostics) == 10L
   )
   reasons <- setNames(
     vapply(
@@ -43,7 +43,7 @@ schema_stress_acceptance <- function() {
     reasons[['POST /chem/standardize']] == 'Unsupported body media type',
     reasons[['POST /convert/cdx-to-mol']] == 'Unsupported body media type',
     reasons[['POST /ocsr/process-upload']] == 'Unsupported body media type',
-    reasons[['POST /convert/batch']] == 'Unsupported free-form body object',
+    reasons[['POST /convert/batch']] == '',
     reasons[['GET /chem/tanimoto']] == 'Unsupported parameter type',
     reasons[['GET /depict/2D_enhanced']] == 'Unsupported parameter type'
   )
@@ -233,7 +233,7 @@ schema_stress_acceptance <- function() {
     identical(jsonlite::fromJSON(request$body, simplifyVector = FALSE), body)
   )
   cat(
-    'Schema stress: 43 visible operations, 32 supported, 11 diagnosed; three local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
+    'Schema stress: 43 visible operations, 33 supported, 10 diagnosed; three local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

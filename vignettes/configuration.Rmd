@@ -314,6 +314,33 @@ Existing helpers need optional `headers`, `query_serialization`, `body_media`, o
 arguments when an operation uses these features. Generation validates helper
 compatibility and does not overwrite client-owned helpers.
 
+### JSON body values
+
+Generated wrappers accept named lists for objects and unnamed lists for arrays,
+including single-item arrays. For a declared object, `list()` becomes `{}`;
+for a declared array it stays `[]`. In unconstrained values, use
+`setNames(list(), character())` for `{}` and `list()` for `[]`.
+Scalars are single strings, finite numbers, or logical values. Heterogeneous
+arrays can contain these scalars, nested lists, and `NULL`. Atomic vectors,
+data frames, classed objects, missing values, and duplicate or empty object
+names are rejected; convert them to plain JSON-shaped lists explicitly.
+
+Omit an optional body argument to send no body. Explicit `body = NULL` sends
+JSON `null` when the schema is unconstrained or declares `nullable: true`;
+otherwise it fails. Inside an object, `list(field = NULL)` retains the field as
+`null`, while leaving the name out omits it. Required fields must be present,
+even when their values may be null. Wrappers pass an explicitly unboxed JSON
+null to the existing helper for a top-level null; no new helper arguments are
+needed. Client-owned helpers still control their own serialization.
+
+Open objects accept extra fields. A schema in `additionalProperties` validates
+each extra value; `additionalProperties: false` rejects extra fields. Fixtures
+and wrappers share these checks. Examples may supply fixture values but never
+establish a type. Swagger 2 body arrays may omit `items`; OpenAPI 3.0 arrays and
+Swagger 2 non-body arrays must supply it. Explicit `items: {}` accepts any JSON
+value. Composition, recursive schemas, boolean schemas, and union/null type
+declarations remain outside this support; this is not a full JSON Schema validator.
+
 ```yaml
 id: catalogue
 schemas:

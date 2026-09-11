@@ -151,7 +151,7 @@ render_operation <- function(operation, spec) {
     if (operation$body_required) {
       lines <- c(
         lines,
-        paste0('  if (is.null(', body_name, ')) stop("Required body")')
+        paste0('  if (missing(', body_name, ')) stop("Required body")')
       )
     }
     checks <- if (identical(operation$body_media, 'application/octet-stream')) {
@@ -166,8 +166,17 @@ render_operation <- function(operation, spec) {
     if (length(checks)) {
       lines <- c(
         lines,
-        paste0('  if (!is.null(', body_name, ')) {'),
+        paste0('  if (!missing(', body_name, ')) {'),
         paste0('    ', checks),
+        if (!identical(operation$body_media, 'application/octet-stream')) {
+          paste0(
+            '    if (is.null(',
+            body_name,
+            ')) ',
+            body_name,
+            ' <- jsonlite::unbox(NA)'
+          )
+        },
         '  }'
       )
     }

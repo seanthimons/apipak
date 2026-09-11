@@ -131,6 +131,164 @@ native_transport_acceptance <- function() {
   )
   result <- runtime$findPetsByTags(c('first', 'second'))
   stopifnot(grepl('tags=first(%2C|,)second$', result$query))
+  # Exercise open JSON shapes through the same real localhost transport.
+  empty <- setNames(list(), character())
+  shapes <- list(
+    open = list(type = 'object'),
+    explicit_open = list(type = 'object', additionalProperties = TRUE),
+    closed_empty = list(type = 'object', additionalProperties = FALSE),
+    mixed = list(
+      type = 'object',
+      properties = list(id = list(type = 'string')),
+      additionalProperties = list(type = 'integer')
+    ),
+    map = list(type = 'object', additionalProperties = list(type = 'integer')),
+    array = list(type = 'array', items = empty),
+    any = empty,
+    closed = list(
+      type = 'object',
+      additionalProperties = FALSE,
+      required = list('id'),
+      properties = list(
+        id = list(type = 'integer'),
+        note = list(type = 'string', nullable = TRUE)
+      )
+    ),
+    nested = list(
+      type = 'object',
+      properties = list(
+        map = list(
+          type = 'object',
+          additionalProperties = list(type = 'array', items = empty)
+        )
+      )
+    ),
+    nullable = list(type = 'object', nullable = TRUE),
+    required = list(type = 'object', required = list('anything')),
+    example = list(example = list(id = 1L))
+  )
+  document$paths <- lapply(names(shapes), function(name) {
+    list(
+      post = list(
+        operationId = paste0('json_', name),
+        requestBody = list(
+          required = name == 'required',
+          content = list('application/json' = list(schema = shapes[[name]]))
+        ),
+        responses = list('200' = list(description = 'OK'))
+      )
+    )
+  })
+  names(document$paths) <- paste0('/', names(shapes))
+  jsonlite::write_json(document, schema, auto_unbox = TRUE, null = 'null')
+  parsed <- specmill::read_operations(schema)
+  stopifnot(
+    !length(parsed$diagnostics),
+    length(parsed$operations) == length(shapes)
+  )
+  fixtures <- specmill::operation_fixtures(parsed$operations)
+  for (op in parsed$operations) {
+    eval(
+      parse(
+        text = specmill::render_operation(op, list(helper = 'api_request'))
+      ),
+      runtime
+    )
+  }
+  wire <- function(result) rawToChar(as.raw(unlist(result$bytes)))
+  stopifnot(
+    wire(runtime$json_open(list())) == '{}',
+    wire(runtime$json_explicit_open(empty)) == '{}',
+    wire(runtime$json_closed_empty(list())) == '{}',
+    wire(runtime$json_mixed(list(id = 'x', extra = 1L))) ==
+      '{"id":"x","extra":1}',
+    wire(runtime$json_array(list())) == '[]',
+    wire(runtime$json_any(empty)) == '{}',
+    wire(runtime$json_any(list())) == '[]',
+    wire(runtime$json_any(NULL)) == 'null',
+    wire(runtime$json_nullable(NULL)) == 'null',
+    wire(runtime$json_nullable()) == '',
+    wire(runtime$json_open()) == '',
+    wire(runtime$json_map(list(a = 1L, b = 2L))) == '{"a":1,"b":2}',
+    wire(runtime$json_closed(list(id = 1L))) == '{"id":1}',
+    wire(runtime$json_closed(list(id = 1L, note = NULL))) ==
+      '{"id":1,"note":null}',
+    wire(runtime$json_required(list(anything = NULL))) == '{"anything":null}',
+    wire(runtime$json_example(FALSE)) == 'false',
+    wire(runtime$json_array(list(
+      1L,
+      'x',
+      FALSE,
+      NULL,
+      empty,
+      list(),
+      list(2L)
+    ))) ==
+      '[1,"x",false,null,{},[],[2]]',
+    wire(runtime$json_nested(list(
+      map = list(a = list(NULL, empty, list()))
+    ))) ==
+      '{"map":{"a":[null,{},[]]}}'
+  )
+  for (name in names(fixtures)) {
+    do.call(runtime[[name]], fixtures[[name]])
+  }
+  # Use a counting helper to prove failures happen before calling transport.
+  actual_request <- runtime$api_request
+  calls <- 0L
+  runtime$api_request <- function(...) {
+    calls <<- calls + 1L
+    actual_request(...)
+  }
+  fails <- function(expr) {
+    stopifnot(inherits(tryCatch(force(expr), error = identity), 'error'))
+  }
+  fails(runtime$json_map(list(a = 'wrong')))
+  fails(runtime$json_closed_empty(list(extra = TRUE)))
+  fails(runtime$json_mixed(list(id = 1L)))
+  fails(runtime$json_mixed(list(id = 'x', extra = 'bad')))
+  fails(runtime$json_map(list(a = NULL)))
+  fails(runtime$json_closed(list(id = 1L, extra = TRUE)))
+  fails(runtime$json_closed(list(note = 'missing id')))
+  fails(runtime$json_required())
+  fails(runtime$json_required(list()))
+  fails(runtime$json_open(NULL))
+  fails(runtime$json_array(empty))
+  fails(runtime$json_open(list(1L)))
+  fails(runtime$json_any(c(1L, 2L)))
+  fails(runtime$json_any(list(NA_real_)))
+  fails(runtime$json_any(list(Inf)))
+  fails(runtime$json_any(data.frame(a = 1)))
+  fails(runtime$json_open(setNames(list(1, 2), c('a', 'a'))))
+  stopifnot(calls == 0L)
+  runtime$api_request <- actual_request
+  # Byte-limited JSON uses the other transport serialization branch.
+  for (name in c('json_any', 'json_array', 'json_open')) {
+    op <- parsed$operations[[name]]
+    op$batch <- list(max_bytes = 1000L)
+    eval(
+      parse(
+        text = specmill::render_operation(op, list(helper = 'api_request'))
+      ),
+      runtime
+    )
+  }
+  stopifnot(
+    wire(runtime$json_any(NULL)) == 'null',
+    wire(runtime$json_open(list())) == '{}',
+    wire(runtime$json_array(list(NULL, empty, list()))) == '[null,{},[]]'
+  )
+  large <- setNames(as.list(seq_len(10000L)), paste0('key', seq_len(10000L)))
+  validate <- getFromNamespace('body_value', 'specmill')
+  stopifnot(identical(validate(large, shapes$map), large))
+  fixture <- getFromNamespace('body_fixture', 'specmill')
+  stopifnot(identical(fixture(shapes$map, large), large))
+  fails(fixture(shapes$map, list(a = 'wrong')))
+  fails(fixture(shapes$closed, list(id = 1L, extra = TRUE)))
+  stopifnot(identical(
+    fixture(shapes$any, list(NULL, empty, list())),
+    list(NULL, empty, list())
+  ))
   # Old helpers fail validation instead of silently dropping new transport fields.
   writeLines(
     'api_request <- function(method, path, path_params, query, body) NULL',

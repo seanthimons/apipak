@@ -377,7 +377,9 @@ catalogue_acceptance <- function() {
   unsupported <- specmill::generate_client(root, spec, 'plan')
   fails(specmill::generate_client(root, spec, 'apply'))
   stopifnot(
-    length(unsupported$diagnostics) == 2L,
+    length(unsupported$diagnostics) == 1L,
+    unsupported$diagnostics[[1L]]$reason ==
+      'Unsupported parameter serialization',
     identical(before, tools::md5sum(file.path(root, 'R/create_item.R')))
   )
   fails(specmill::apply_files(

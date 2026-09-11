@@ -137,9 +137,19 @@ input_schema <- function(
     )
   }
   if (
-    !is.null(schema$additionalProperties) &&
-      !is.logical(schema$additionalProperties)
+    'additionalProperties' %in%
+      names(schema) &&
+      !is.list(schema$additionalProperties) &&
+      !(is.logical(schema$additionalProperties) &&
+        length(schema$additionalProperties) == 1L &&
+        !is.na(schema$additionalProperties))
   ) {
+    fail(
+      'invalid_additional_properties',
+      'additionalProperties must be a boolean or schema object'
+    )
+  }
+  if (is.list(schema$additionalProperties)) {
     schema$additionalProperties <- input_schema(
       schema$additionalProperties,
       document,

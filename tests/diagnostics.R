@@ -71,8 +71,6 @@ diagnostics_acceptance <- function() {
     found[[1L]]
   }
   expected <- list(
-    'POST /empty' = c('capability_gap', 'unconstrained_schema'),
-    'POST /items' = c('capability_gap', 'unconstrained_schema'),
     'POST /no-items' = c('schema_defect', 'missing_array_items'),
     'POST /invalid' = c('schema_defect', 'invalid_type'),
     'POST /missing' = c('schema_defect', 'unresolved_reference'),
@@ -100,7 +98,7 @@ diagnostics_acceptance <- function() {
       '#/paths/~1invalid/post/requestBody/content/application~1json/schema/type',
     by_key(parsed$diagnostics, 'POST /recursive')$source_location ==
       '#/components/schemas/Node/properties/child',
-    !grepl('Missing body', by_key(parsed$diagnostics, 'POST /items')$reason)
+    by_key(parsed$inventory, 'POST /items')$classification == 'ready'
   )
   # Distinguish version and parameter contexts using the same absent item schema.
   swagger <- list(
@@ -143,12 +141,46 @@ diagnostics_acceptance <- function() {
   jsonlite::write_json(swagger, swagger_file, auto_unbox = TRUE)
   swagger_plan <- specmill::read_operations(swagger_file)
   stopifnot(
-    by_key(swagger_plan$diagnostics, 'POST /body')$code ==
-      'unconstrained_array_items',
+    by_key(swagger_plan$inventory, 'POST /body')$classification == 'ready',
     by_key(swagger_plan$diagnostics, 'GET /query')$classification ==
       'schema_defect',
     by_key(swagger_plan$diagnostics, 'POST /file')$classification ==
       'capability_gap'
+  )
+  # Missing items also means unconstrained in 3.1, but not in 3.0.
+  newer <- document
+  newer$openapi <- '3.1.0'
+  newer$paths <- newer$paths['/no-items']
+  jsonlite::write_json(newer, swagger_file, auto_unbox = TRUE)
+  stopifnot(!length(specmill::read_operations(swagger_file)$diagnostics))
+  # Typed map references resolve normally; malformed declarations remain defects.
+  newer$components <- list(schemas = list(Value = list(type = 'integer')))
+  newer$paths[['/no-items']]$post$requestBody$content[[
+    'application/json'
+  ]]$schema <-
+    list(
+      type = 'object',
+      additionalProperties = list('$ref' = '#/components/schemas/Value')
+    )
+  jsonlite::write_json(newer, swagger_file, auto_unbox = TRUE)
+  stopifnot(identical(
+    specmill::read_operations(swagger_file)$operations[[
+      1L
+    ]]$body$additionalProperties$type,
+    'integer'
+  ))
+  newer$paths[['/no-items']]$post$requestBody$content[[
+    'application/json'
+  ]]$schema$additionalProperties <- NULL
+  jsonlite::write_json(newer, swagger_file, auto_unbox = TRUE)
+  stopifnot(!length(specmill::read_operations(swagger_file)$diagnostics))
+  newer$paths[['/no-items']]$post$requestBody$content[[
+    'application/json'
+  ]]$schema$additionalProperties <- 'bad'
+  jsonlite::write_json(newer, swagger_file, auto_unbox = TRUE)
+  stopifnot(
+    specmill::read_operations(swagger_file)$diagnostics[[1L]]$code ==
+      'invalid_additional_properties'
   )
   # A normal initialization/plan must preserve the same evidence without writes.
   client <- file.path(root, 'client')
@@ -185,7 +217,7 @@ diagnostics_acceptance <- function() {
   )
   stopifnot(
     identical(before, snapshot()),
-    length(plan$operations) == 1L,
+    length(plan$operations) == 3L,
     length(plan$diagnostics) == length(expected),
     by_key(plan$excluded, 'DELETE /excluded')$classification ==
       'policy_exclusion'
