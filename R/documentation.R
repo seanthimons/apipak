@@ -113,7 +113,14 @@ operation_documentation <- function(op, policy = list()) {
     character(1)
   )
   if (!is.null(op$body)) {
-    docs <- c(docs, '@param body Request body.')
+    docs <- c(
+      docs,
+      if (identical(op$body_media, 'application/octet-stream')) {
+        '@param body Raw vector of bytes to upload as application/octet-stream.'
+      } else {
+        '@param body Request body.'
+      }
+    )
   }
   text <- c(
     prose(policy$title %or% op$summary),

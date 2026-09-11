@@ -26,8 +26,9 @@ endpoint, public name, implementation category, and original diagnostic.
 | apis/store.yml | store_inventory, store_order_create, store_order_get, store_order_delete |
 | apis/user.yml | user_create, user_create_many, user_login, user_logout, user_get, user_update, user_delete |
 
-OpenAPI tags do not automatically create R namespaces, function prefixes, or
-service files. This example explicitly configures those choices. Each service
+New clients now get tag-based service YAML from `initialize_client()`, with
+optional `naming = 'tag_prefix'`. This earlier example explicitly configures
+its own names and groups. Each service
 reads the same unchanged schema and selects its corresponding path prefix. The
 package has one R namespace; prefixes make its functions easy to find together.
 

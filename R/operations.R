@@ -5,6 +5,7 @@ read_operations <- function(files, policy = list()) {
   methods <- policy$methods %or%
     c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
   patterns <- policy$exclude %or% character()
+  include <- policy$include
   for (pattern in patterns) {
     stringr::str_detect('', pattern)
   }
@@ -12,6 +13,13 @@ read_operations <- function(files, policy = list()) {
     first_operation <- length(operations) + 1L
     document <- jsonlite::fromJSON(file, simplifyVector = FALSE)
     source_hash <- unname(tools::md5sum(file))
+    security_schemes <- lapply(
+      document$components$securitySchemes %or%
+        document$securityDefinitions %or%
+        list(),
+      local_ref,
+      document = document
+    )
     version <- document$openapi %or% document$swagger
     if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
       stop('Unsupported schema version in ', file, call. = FALSE)
@@ -29,6 +37,7 @@ read_operations <- function(files, policy = list()) {
         id <- paste(policy$service %or% 'default', key)
         selected <- toupper(method) %in%
           methods &&
+          (is.null(include) || key %in% include) &&
           !any(vapply(
             patterns,
             function(pattern) stringr::str_detect(path, pattern),
@@ -55,6 +64,12 @@ read_operations <- function(files, policy = list()) {
               stop('Invalid route')
             }
             op <- item[[method]]
+            if (
+              ('security' %in% names(op) && !is.list(op$security)) ||
+                ('security' %in% names(document) && !is.list(document$security))
+            ) {
+              stop('Security requirements must be arrays, not null or scalars')
+            }
             transport_diagnostics <- character()
             unsupported <- function(reason) {
               transport_diagnostics <<- unique(c(transport_diagnostics, reason))
@@ -73,6 +88,7 @@ read_operations <- function(files, policy = list()) {
             body <- op$requestBody
             body_present <- !is.null(body)
             body_required <- FALSE
+            body_media <- 'application/json'
             if (startsWith(version, '2.')) {
               bodies <- Filter(function(p) identical(p[['in']], 'body'), params)
               if (length(bodies) > 1L) {
@@ -89,10 +105,14 @@ read_operations <- function(files, policy = list()) {
             } else if (!is.null(body)) {
               body <- local_ref(body, document)
               body_required <- isTRUE(body$required)
-              if (!identical(names(body$content), 'application/json')) {
+              if ('application/json' %in% names(body$content)) {
+                body_media <- 'application/json'
+              } else if ('application/octet-stream' %in% names(body$content)) {
+                body_media <- 'application/octet-stream'
+              } else {
                 stop('Unsupported body media type')
               }
-              body <- body$content[['application/json']]$schema
+              body <- body$content[[body_media]]$schema
             }
             params <- lapply(params, function(p) {
               location <- p[['in']]
@@ -103,7 +123,7 @@ read_operations <- function(files, policy = list()) {
               ) {
                 stop('Invalid parameter location')
               }
-              if (!location %in% c('path', 'query')) {
+              if (!location %in% c('path', 'query', 'header')) {
                 unsupported('Unsupported parameter location')
               }
               if (
@@ -118,11 +138,19 @@ read_operations <- function(files, policy = list()) {
               schema <- input_schema(schema, document)
               if (
                 length(schema$type) != 1L ||
-                  !schema$type %in% c('string', 'integer', 'number', 'boolean')
+                  (!schema$type %in%
+                    c('string', 'integer', 'number', 'boolean') &&
+                    !(location == 'query' &&
+                      identical(schema$type, 'array') &&
+                      identical(schema$items$type, 'string')))
               ) {
                 unsupported('Unsupported parameter type')
               }
-              style <- if (location == 'path') 'simple' else 'form'
+              style <- if (location %in% c('path', 'header')) {
+                'simple'
+              } else {
+                'form'
+              }
               if (
                 !is.null(p$style) &&
                   p$style != style ||
@@ -130,6 +158,11 @@ read_operations <- function(files, policy = list()) {
                   isTRUE(p$allowReserved)
               ) {
                 unsupported('Unsupported parameter serialization')
+              }
+              if (
+                identical(schema$type, 'array') && startsWith(version, '2.')
+              ) {
+                unsupported('Unsupported Swagger array serialization')
               }
               if (location == 'path' && !isTRUE(p$required)) {
                 stop('Path parameter must be required')
@@ -145,6 +178,13 @@ read_operations <- function(files, policy = list()) {
             })
             if (body_present) {
               body <- input_schema(body, document)
+              if (
+                body_media == 'application/octet-stream' &&
+                  !(identical(body$type, 'string') &&
+                    identical(body$format, 'binary'))
+              ) {
+                unsupported('Unsupported binary body schema')
+              }
               body <- tryCatch(
                 supported_body(body, document),
                 error = function(e) {
@@ -178,6 +218,13 @@ read_operations <- function(files, policy = list()) {
               parameters = params,
               body = body,
               body_required = body_required,
+              body_media = body_media,
+              security = if ('security' %in% names(op)) {
+                op$security
+              } else {
+                document$security
+              },
+              security_schemes = security_schemes,
               source = normalizePath(file, winslash = '/'),
               source_hash = source_hash,
               schema_version = version,
@@ -249,7 +296,7 @@ read_operations <- function(files, policy = list()) {
   operations <- operations[!duplicated(ids)]
   indexed_keys <- vapply(inventory, `[[`, character(1), 'key')
   unknown <- setdiff(
-    union(names(policy$names), policy$override_keys),
+    union(union(names(policy$names), policy$override_keys), include),
     indexed_keys
   )
   if (length(unknown)) {
@@ -340,6 +387,12 @@ compare_operations <- function(old, new) {
     }
     if (!identical(a$response, b$response)) {
       add(key, 'unknown', 'Response compatibility is not classified')
+    }
+    if (
+      !identical(a$security, b$security) ||
+        !identical(a$security_schemes, b$security_schemes)
+    ) {
+      add(key, 'review', 'Authentication requirements changed')
     }
   }
   out

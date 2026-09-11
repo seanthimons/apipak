@@ -1,3 +1,30 @@
+transport_arguments <- function(operation) {
+  c(
+    if (!is.null(operation$auth)) 'auth',
+    if (
+      any(vapply(
+        operation$parameters,
+        function(p) p$location == 'header',
+        logical(1)
+      ))
+    ) {
+      'headers'
+    },
+    if (
+      any(vapply(
+        operation$parameters,
+        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        logical(1)
+      ))
+    ) {
+      'query_serialization'
+    },
+    if (identical(operation$body_media, 'application/octet-stream')) {
+      'body_media'
+    }
+  )
+}
+
 render_operation <- function(operation, spec) {
   helper <- spec$helper
   callback <- spec$hook_callback %or% 'run_hook'
@@ -126,7 +153,15 @@ render_operation <- function(operation, spec) {
         paste0('  if (is.null(', body_name, ')) stop("Required body")')
       )
     }
-    checks <- body_checks(operation$body, body_name)
+    checks <- if (identical(operation$body_media, 'application/octet-stream')) {
+      paste0(
+        'if (!is.raw(',
+        body_name,
+        ')) stop("Binary body must be a raw vector")'
+      )
+    } else {
+      body_checks(operation$body, body_name)
+    }
     if (length(checks)) {
       lines <- c(
         lines,
@@ -171,6 +206,30 @@ render_operation <- function(operation, spec) {
       'NULL'
     } else {
       paste0('params[[', r_literal(body_name), ']]')
+    },
+    if ('auth' %in% transport_arguments(operation)) {
+      paste0(', auth = ', r_literal(operation$auth))
+    },
+    if ('headers' %in% transport_arguments(operation)) {
+      paste0(', headers = ', refs('header'))
+    },
+    if ('query_serialization' %in% transport_arguments(operation)) {
+      arrays <- Filter(
+        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        params
+      )
+      paste0(
+        ', query_serialization = ',
+        r_literal(setNames(
+          lapply(arrays, function(p) {
+            if (isTRUE(p$explode)) 'explode' else 'comma'
+          }),
+          vapply(arrays, `[[`, character(1), 'name')
+        ))
+      )
+    },
+    if ('body_media' %in% transport_arguments(operation)) {
+      ', body_media = "application/octet-stream"'
     },
     ')'
   )
@@ -260,6 +319,7 @@ generate_client <- function(
   artifacts = c('wrappers', 'tests', 'documentation')
 ) {
   mode <- match.arg(mode)
+  authentication <- NULL
   if (
     !is.character(artifacts) ||
       !length(artifacts) ||
@@ -284,6 +344,7 @@ generate_client <- function(
   }
   if (!is.null(config)) {
     project <- load_project(root, config, callbacks)
+    authentication <- project$authentication
     services <- project$services
     inputs <- project$inputs
     formatter <- project$formatter
@@ -360,6 +421,11 @@ generate_client <- function(
     lapply(services, function(x) c(x$helper, x$hook_callback %or% 'run_hook')),
     use.names = FALSE
   )
+  if (!is.null(authentication)) {
+    if (any(operation_names %in% c('api_auth', 'api_token', 'set_api_token'))) {
+      stop('Operation collides with authentication helper')
+    }
+  }
   if (any(operation_names %in% reserved)) {
     stop('Wrapper name collides with a helper or callback')
   }
@@ -387,6 +453,9 @@ generate_client <- function(
       configured <- configure_operation(op, service)
       op <- configured$operation
       operation_spec <- configured$spec
+      if (!is.null(authentication) && is.null(operation_spec$request)) {
+        op$auth <- operation_authentication(op, authentication)
+      }
       if (!is.null(service$prepare)) {
         prepared <- service$prepare(op)
         if (
@@ -473,7 +542,14 @@ generate_client <- function(
           helper_formals
         ))
         sent_arguments <- if (is.null(operation_spec$request)) {
-          c('method', 'path', 'path_params', 'query', 'body')
+          c(
+            'method',
+            'path',
+            'path_params',
+            'query',
+            'body',
+            transport_arguments(op)
+          )
         } else {
           names(operation_spec$request$arguments)
         }
@@ -571,6 +647,23 @@ generate_client <- function(
     ) {
       stop('Mixed file contains undeclared definitions or other code: ', file)
     }
+  }
+  if (!is.null(authentication)) {
+    if ('R/api_auth.R' %in% names(desired)) {
+      stop('Authentication helper file conflicts with wrappers')
+    }
+    template <- file_text(system.file(
+      'templates/authentication.R',
+      package = 'specmill',
+      mustWork = TRUE
+    ))
+    desired[['R/api_auth.R']] <- gsub(
+      'AUTH_ENVVARS',
+      r_literal(authentication),
+      template,
+      fixed = TRUE
+    )
+    owners[['R/api_auth.R']] <- 'specmill authentication'
   }
   attr(desired, 'operations') <- owners
   if (!is.null(formatter)) {

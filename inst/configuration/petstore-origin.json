@@ -1,0 +1,6 @@
+{
+  "url": "https://petstore3.swagger.io/api/v3/openapi.json",
+  "retrieved": "2026-09-10",
+  "sha256": "00441c05add60f28da55eb4563d3fb6bbda364ba8eb7b381e2e2c98613005c82",
+  "purpose": "Frozen 19-operation fixture for configuration scaffolding; tests never contact the live service."
+}

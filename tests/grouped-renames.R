@@ -15,7 +15,11 @@ grouped_rename_acceptance <- function() {
     base_url = 'https://example.invalid'
   )
   policy <- file.path(root, 'apis/default.yml')
-  baseline <- c(readLines(policy), 'defaults: {file: R/group.R}')
+  initial <- readLines(policy)
+  baseline <- c(
+    initial[seq_len(match('names:', initial) - 1L)],
+    'defaults: {file: R/group.R}'
+  )
   writeLines(baseline, policy)
   run <- function(mode) {
     specmill::generate_client(

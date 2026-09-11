@@ -30,8 +30,11 @@ created <- specmill::initialize_client(
   author = list(given = 'Example', family = 'Maintainer', email = 'you@example.org'),
   license = 'MIT + file LICENSE', base_url = 'https://api.example.org'
 )
-cat('\nselection:\n  methods: [GET]\n  exclude: ["^/items$"]\n',
-    file = file.path(root, 'apis/default.yml'), append = TRUE)
+service_path <- file.path(root, 'apis/default.yml')
+service <- yaml::read_yaml(service_path)
+service$schemas$files <- as.list(service$schemas$files)
+service$selection <- list(include = list('GET /items/{item_id}'))
+yaml::write_yaml(service, service_path)
 ```
 
 For your real client, use its existing root and selection policy. Do not narrow

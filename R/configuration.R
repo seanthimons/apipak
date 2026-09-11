@@ -157,9 +157,29 @@ load_project <- function(
   project <- read_config_yaml(project_file)
   config_fields(
     project,
-    c('config_version', 'services', 'package', 'formatter', 'callback_files'),
+    c(
+      'config_version',
+      'services',
+      'package',
+      'formatter',
+      'callback_files',
+      'authentication'
+    ),
     'project'
   )
+  if (!is.null(project$authentication)) {
+    config_fields(
+      project$authentication,
+      names(project$authentication),
+      'authentication'
+    )
+    for (envvar in project$authentication) {
+      config_string(envvar, 'credential environment variable')
+      if (!grepl('^[A-Za-z_][A-Za-z0-9_]*$', envvar)) {
+        stop('Invalid credential environment variable')
+      }
+    }
+  }
   if (!is.null(project$formatter)) {
     config_fields(project$formatter, c('name', 'version'), 'formatter')
     if (!identical(project$formatter$name, 'air')) {
@@ -264,7 +284,16 @@ load_project <- function(
     }
     inputs <<- c(inputs, schema_files)
     selection <- service$selection %or% list()
-    config_fields(selection, c('methods', 'exclude'), paste(id, 'selection'))
+    config_fields(
+      selection,
+      c('methods', 'exclude', 'include'),
+      paste(id, 'selection')
+    )
+    include <- if ('include' %in% names(selection)) {
+      config_sequence(selection$include, 'operation allowlist')
+    } else {
+      NULL
+    }
     methods <- if ('methods' %in% names(selection)) {
       config_sequence(selection$methods, 'methods')
     } else {
@@ -387,6 +416,7 @@ load_project <- function(
         service = id,
         methods = methods,
         exclude = exclude,
+        include = include,
         names = names,
         override_keys = names(overrides)
       ),
@@ -411,6 +441,7 @@ load_project <- function(
     inputs = unique(inputs),
     root = root,
     package = package,
-    formatter = project$formatter
+    formatter = project$formatter,
+    authentication = project$authentication
   )
 }
