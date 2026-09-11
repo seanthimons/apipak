@@ -19,6 +19,32 @@ paths inside YAML. Parent traversal, absolute paths, and symlinks are rejected.
 
 ## Project file: specmill.yml
 
+For a new package, `initialize_client()` writes editable YAML grouped by schema
+tags. To preview that configuration first, or propose it for an existing package:
+
+```r
+proposal <- specmill::configure_client(
+  root, schema, package = 'petstoretrial', naming = 'tag_prefix'
+)
+proposal$files[['apis/pet.yml']]
+proposal$diagnostics
+proposal$changes
+```
+
+The default `naming = 'operation_id'` preserves valid schema names; `tag_prefix`
+turns `getPetById` into `pet_get_by_id`. Exact tag tokens and their simple plural
+are removed before adding the prefix; synonyms are not guessed. Missing IDs use
+method/path names. Every proposed name is explicit in the YAML for editing.
+Multiple tags use the first, with a diagnostic; missing tags use `default`.
+`group_by = 'none'` creates a single default service instead.
+
+`mode = 'apply'` writes absent configuration files only. If existing YAML or the
+schema copy differs, nothing is written: review the before/after text and make
+the desired edits yourself. Filename collisions block writing; function-name
+collisions must be resolved before wrapper generation. Unsupported operations
+remain included, with diagnostics. Configuration generation does not create
+custom transports or hide unsupported endpoints.
+
 `load_project()` and maintenance commands use `specmill.yml` by default.
 Pass `config` explicitly to use a different project filename.
 
@@ -62,6 +88,7 @@ policy_version: reviewed-1
 | `schemas.exclude` | Sequence of case-sensitive regexes matched against schema basenames |
 | `helper` | Required client runtime function name, defined in `R/` |
 | `selection.methods` | Uppercase methods to include; omitted means all standard HTTP methods |
+| `selection.include` | Exact `METHOD /path` allowlist; omitted means all operations, empty selects none, unknown keys fail |
 | `selection.exclude` | Case-sensitive stringr regexes; exclude an original path if any matches |
 | `names` | Map from `METHOD /path` to public wrapper name |
 | `documentation` | Boolean; `true` generates roxygen, help pages, and exports; initialization sets it to true |
@@ -130,14 +157,14 @@ Schema descriptions are treated as prose, not executable configuration.
 
 ## Group endpoint families
 
-Schema tags do not automatically become R function prefixes or separate R
-namespaces. Configure public names, source files, and help families explicitly.
-For example, a Petstore service file can contain:
+Initialization groups operations by tag and writes the resulting choices as
+editable YAML. Function prefixes are opt-in through `naming = 'tag_prefix'`;
+the package still has one R namespace. For example, a Petstore service can contain:
 
 ```yaml
 id: pet
 schemas: {files: [schema/openapi.json]}
-selection: {exclude: ['^/(?!pet(?:/|$))']}
+selection: {include: ['GET /pet/{petId}']}
 helper: api_request
 documentation: true
 names:

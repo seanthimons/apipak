@@ -9,7 +9,7 @@ compare_operations(old, new)
 }
 \arguments{
 \item{files}{Local JSON schema paths.}
-\item{policy}{A list with optional service identity, methods allowlist, path exclude regexes, names keyed by METHOD /path, and override_keys for declared operation settings.}
+\item{policy}{A list with optional service identity, methods allowlist, include allowlist of exact METHOD /path keys, path exclude regexes, names keyed by METHOD /path, and override_keys for declared operation settings. When include is supplied, an operation must match it as well as the method and path filters; an empty include selects nothing. Unknown included keys are errors.}
 \item{old}{Results from \code{read_operations}.}
 \item{new}{Results from \code{read_operations}.}
 }

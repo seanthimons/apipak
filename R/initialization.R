@@ -5,9 +5,13 @@ initialize_client <- function(
   title = NULL,
   author = NULL,
   license = NULL,
-  base_url = NULL
+  base_url = NULL,
+  naming = c('operation_id', 'tag_prefix'),
+  group_by = c('tag', 'none')
 ) {
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
+  naming <- match.arg(naming)
+  group_by <- match.arg(group_by)
   document <- jsonlite::read_json(schema)
   if (is.null(base_url) && length(document$servers)) {
     base_url <- document$servers[[1L]]$url
@@ -78,29 +82,22 @@ initialize_client <- function(
     warn = FALSE
   )
   helper <- gsub('BASE_URL', r_literal(base_url), helper, fixed = TRUE)
-  output <- list(
-    'R/api_request.R' = paste(helper, collapse = '\n'),
-    'schema/openapi.json' = file_text(schema),
-    'specmill.yml' = sub(
-      '\n$',
-      '',
-      yaml::as.yaml(list(
-        config_version = 1L,
-        package = package,
-        services = list('apis/default.yml')
-      ))
-    ),
-    'apis/default.yml' = sub(
-      '\n$',
-      '',
-      yaml::as.yaml(list(
-        id = package,
-        schemas = list(files = list('schema/openapi.json')),
-        helper = 'api_request',
-        documentation = TRUE
-      ))
-    ),
-    '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
+  proposal <- configuration_proposal(schema, package, naming, group_by)
+  if (
+    any(vapply(
+      proposal$diagnostics,
+      function(x) x$code == 'group_collision',
+      logical(1)
+    ))
+  ) {
+    stop('Tag groups collide; inspect configure_client() before initialization')
+  }
+  output <- c(
+    proposal$files,
+    list(
+      'R/api_request.R' = paste(helper, collapse = '\n'),
+      '.Rbuildignore' = '^specmill\\.yml$\n^apis$\n^schema$\n^\\.specmill$'
+    )
   )
   if (!existing) {
     dcf <- character()
@@ -130,5 +127,7 @@ initialize_client <- function(
   if (!dir.exists(root) && !dir.create(root, recursive = TRUE)) {
     stop('Cannot create client root')
   }
-  apply_files(root, output, mode = 'apply')
+  result <- apply_files(root, output, mode = 'apply')
+  attr(result, 'configuration') <- proposal
+  result
 }

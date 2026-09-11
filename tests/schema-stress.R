@@ -107,6 +107,7 @@ schema_stress_acceptance <- function() {
     root,
     schema,
     package = 'schemastress',
+    group_by = 'none',
     title = 'Temporary Schema Stress Harness',
     author = list(
       given = 'Test',
@@ -137,7 +138,11 @@ schema_stress_acceptance <- function() {
       'error'
     ))
   }
-  fails(specmill::generate_client(root, config = 'specmill.yml', mode = 'apply'))
+  fails(specmill::generate_client(
+    root,
+    config = 'specmill.yml',
+    mode = 'apply'
+  ))
   stopifnot(identical(before, hashes()))
   service_path <- file.path(root, 'apis/default.yml')
   service <- yaml::read_yaml(service_path)

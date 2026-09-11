@@ -22,6 +22,7 @@ reference:
 - title: Set up and generate
   contents:
   - initialize_client
+  - configure_client
   - load_project
   - generate_client
 - title: Inspect and verify

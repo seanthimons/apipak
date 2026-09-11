@@ -22,6 +22,11 @@ reviewed version.
 - **Existing package or ComptoxR:** [Adopt an existing client](https://seanthimons.github.io/specmill/articles/existing-clients.html)
   explains preserving public functions, helpers, hooks, and generated-file ownership.
 
+In the development version, `initialize_client()` writes service YAML from schema
+tags, including editable function names and exact operation selections.
+`configure_client()` previews the configuration for a new or existing package.
+Use `naming = 'tag_prefix'` for names such as `pet_get_by_id`.
+
 Once a project has `specmill.yml`, the maintenance loop is:
 
 ```r

@@ -150,7 +150,15 @@ new_client_acceptance <- function() {
   )
   policy_path <- file.path(root, 'apis/default.yml')
   policy <- readLines(policy_path)
-  writeLines(c(policy, 'names:', '  GET /items: renamed_items'), policy_path)
+  writeLines(
+    sub(
+      'GET /items: list_items',
+      'GET /items: renamed_items',
+      policy,
+      fixed = TRUE
+    ),
+    policy_path
+  )
   specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   stopifnot(
     !file.exists(file.path(root, 'R/list_items.R')),
@@ -159,7 +167,7 @@ new_client_acceptance <- function() {
     'export(renamed_items)' %in% readLines(file.path(root, 'NAMESPACE'))
   )
   specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
-  writeLines(c(policy, 'names:', '  GET /items: list_items'), policy_path)
+  writeLines(policy, policy_path)
   specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
   library <- tempfile('standalone-client-library-')
   dir.create(library)

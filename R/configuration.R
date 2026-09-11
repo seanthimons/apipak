@@ -264,7 +264,16 @@ load_project <- function(
     }
     inputs <<- c(inputs, schema_files)
     selection <- service$selection %or% list()
-    config_fields(selection, c('methods', 'exclude'), paste(id, 'selection'))
+    config_fields(
+      selection,
+      c('methods', 'exclude', 'include'),
+      paste(id, 'selection')
+    )
+    include <- if ('include' %in% names(selection)) {
+      config_sequence(selection$include, 'operation allowlist')
+    } else {
+      NULL
+    }
     methods <- if ('methods' %in% names(selection)) {
       config_sequence(selection$methods, 'methods')
     } else {
@@ -387,6 +396,7 @@ load_project <- function(
         service = id,
         methods = methods,
         exclude = exclude,
+        include = include,
         names = names,
         override_keys = names(overrides)
       ),

@@ -5,6 +5,7 @@ read_operations <- function(files, policy = list()) {
   methods <- policy$methods %or%
     c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
   patterns <- policy$exclude %or% character()
+  include <- policy$include
   for (pattern in patterns) {
     stringr::str_detect('', pattern)
   }
@@ -29,6 +30,7 @@ read_operations <- function(files, policy = list()) {
         id <- paste(policy$service %or% 'default', key)
         selected <- toupper(method) %in%
           methods &&
+          (is.null(include) || key %in% include) &&
           !any(vapply(
             patterns,
             function(pattern) stringr::str_detect(path, pattern),
@@ -249,7 +251,7 @@ read_operations <- function(files, policy = list()) {
   operations <- operations[!duplicated(ids)]
   indexed_keys <- vapply(inventory, `[[`, character(1), 'key')
   unknown <- setdiff(
-    union(names(policy$names), policy$override_keys),
+    union(union(names(policy$names), policy$override_keys), include),
     indexed_keys
   )
   if (length(unknown)) {
