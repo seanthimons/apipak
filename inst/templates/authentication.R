@@ -53,13 +53,17 @@ set_api_token <- function(token, scheme = NULL, persist = FALSE,
     lines <- c(lines, paste0(envvar, '="', token, '"'))
     staged <- tempfile('.api-env-', tmpdir = dirname(file))
     backup <- tempfile('.api-env-backup-', tmpdir = dirname(file))
-    on.exit(unlink(c(staged, backup)), add = TRUE)
+    keep_backup <- FALSE
+    on.exit({ unlink(staged); if (!keep_backup) unlink(backup) }, add = TRUE)
     writeLines(lines, staged, useBytes = TRUE)
     Sys.chmod(staged, '0600')
     if (existing && !file.copy(file, backup)) stop('Cannot back up environment file')
     if (existing && !identical(before, readLines(file, warn = FALSE))) stop('Environment file changed; retry')
     if (!file.copy(staged, file, overwrite = TRUE)) {
-      if (existing) file.copy(backup, file, overwrite = TRUE)
+      if (existing && !file.copy(backup, file, overwrite = TRUE)) {
+        keep_backup <- TRUE
+        stop('Could not restore environment file; recover the backup at ', backup, call. = FALSE)
+      }
       stop('Cannot save environment file', call. = FALSE)
     }
     if (!existing) Sys.chmod(file, '0600')

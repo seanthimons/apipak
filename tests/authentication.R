@@ -216,6 +216,34 @@ authentication_acceptance <- function() {
     )
     stopifnot(inherits(error, 'error'), identical(before, readLines(envfile)))
   }
+  # A failed write and failed rollback must retain the recovery copy.
+  runtime$file.copy <- function(from, to, ...) {
+    if (identical(to, envfile)) {
+      return(FALSE)
+    }
+    base::file.copy(from, to, ...)
+  }
+  error <- tryCatch(
+    runtime$set_api_token(
+      'replacement',
+      scheme = 'key',
+      persist = TRUE,
+      file = envfile
+    ),
+    error = identity
+  )
+  stopifnot(
+    inherits(error, 'error'),
+    grepl('recover the backup', conditionMessage(error)),
+    length(list.files(
+      workspace,
+      pattern = '^\\.api-env-backup-',
+      all.files = TRUE
+    )) ==
+      1L,
+    identical(before, readLines(envfile))
+  )
+  rm('file.copy', envir = runtime)
   source <- unlist(lapply(
     list.files(root, recursive = TRUE, full.names = TRUE),
     readLines,
