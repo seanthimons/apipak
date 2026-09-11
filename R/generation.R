@@ -1,5 +1,6 @@
 transport_arguments <- function(operation) {
   c(
+    if (length(operation$batch)) 'batch',
     if (!is.null(operation$auth)) 'auth',
     if (
       any(vapply(
@@ -231,6 +232,9 @@ render_operation <- function(operation, spec) {
     if ('body_media' %in% transport_arguments(operation)) {
       ', body_media = "application/octet-stream"'
     },
+    if ('batch' %in% transport_arguments(operation)) {
+      paste0(', batch = ', r_literal(operation$batch))
+    },
     ')'
   )
   if (!is.null(spec$request)) {
@@ -453,8 +457,38 @@ generate_client <- function(
       configured <- configure_operation(op, service)
       op <- configured$operation
       operation_spec <- configured$spec
+      op$batch <- Filter(Negate(is.null), operation_spec$batch %or% list())
+      if (!is.null(op$batch$max_items) && !identical(op$body$type, 'array')) {
+        stop('max_items requires a top-level array request body: ', op$id)
+      }
+      if (
+        length(op$batch) &&
+          (is.null(op$body) ||
+            !op$body_media %in%
+              c('application/json', 'application/octet-stream'))
+      ) {
+        stop('Batch limits require a supported request body: ', op$id)
+      }
       if (!is.null(authentication) && is.null(operation_spec$request)) {
-        op$auth <- operation_authentication(op, authentication)
+        credential_map <- service$authentication
+        envvars <- if (is.null(credential_map)) {
+          authentication
+        } else {
+          setNames(
+            authentication[unlist(credential_map)],
+            names(credential_map)
+          )
+        }
+        op$auth <- operation_authentication(op, envvars)
+        if (!is.null(credential_map)) {
+          op$auth <- lapply(op$auth, function(requirement) {
+            lapply(requirement, function(scheme) {
+              scheme$scheme <- credential_map[[scheme$scheme]] %or%
+                scheme$scheme
+              scheme
+            })
+          })
+        }
       }
       if (!is.null(service$prepare)) {
         prepared <- service$prepare(op)

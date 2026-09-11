@@ -9,7 +9,7 @@ configure_client(root, schema, package = NULL,
 }
 \arguments{
 \item{root}{Client directory. Planning does not create it.}
-\item{schema}{Local OpenAPI 3.0/3.1 or Swagger 2.0 JSON file.}
+\item{schema}{Local OpenAPI 3.0/3.1 or Swagger 2.0 JSON file, or a reviewed configure_apis data frame for multiple APIs.}
 \item{package}{R package name; read from DESCRIPTION when present. A supplied name must agree with existing metadata.}
 \item{naming}{Preserve valid operationId names, or use tag-prefixed snake_case. Missing or invalid IDs get method/path names. Prefixing removes exact tag tokens and their simple plural, not synonyms.}
 \item{group_by}{Group by first operation tag, or keep one default service. Missing tags use default. Untagged/default services keep per-function source files; other groups configure a shared R file and help family.}

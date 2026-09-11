@@ -262,6 +262,7 @@ load_project <- function(
       service,
       c(
         'id',
+        'authentication',
         'schemas',
         'selection',
         'helper',
@@ -281,6 +282,19 @@ load_project <- function(
       file
     )
     id <- config_string(service$id, paste(file, 'id'))
+    if (!is.null(service$authentication)) {
+      config_fields(
+        service$authentication,
+        names(service$authentication),
+        'service authentication'
+      )
+      for (credential in service$authentication) {
+        config_string(credential, 'credential reference')
+        if (!credential %in% names(project$authentication)) {
+          stop('Unknown project credential: ', credential)
+        }
+      }
+    }
     config_fields(
       service$schemas,
       c('files', 'patterns', 'exclude'),
@@ -450,6 +464,7 @@ load_project <- function(
     }
     list(
       id = id,
+      authentication = service$authentication,
       files = schema_files,
       helper = helper,
       hooks = hooks,

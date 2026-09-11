@@ -46,7 +46,8 @@ validate_settings <- function(
       'post_on_skip',
       'post_state',
       'parameter_order',
-      'docs'
+      'docs',
+      'batch'
     ),
     label
   )
@@ -55,6 +56,22 @@ validate_settings <- function(
     names(settings)
   )) {
     config_string(settings[[name]], paste(label, name))
+  }
+  if ('batch' %in% names(settings)) {
+    config_fields(settings$batch, c('max_items', 'max_bytes'), 'batch')
+    for (limit in settings$batch) {
+      if (
+        !is.null(limit) &&
+          (!is.numeric(limit) ||
+            length(limit) != 1L ||
+            is.na(limit) ||
+            !is.finite(limit) ||
+            limit < 1 ||
+            limit != floor(limit))
+      ) {
+        stop('Batch limits must be positive integers or null')
+      }
+    }
   }
   if (
     'implementation' %in%

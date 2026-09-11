@@ -19,6 +19,59 @@ paths inside YAML. Parent traversal, absolute paths, and symlinks are rejected.
 
 ## Project file: specmill.yml
 
+### Review multiple APIs once
+
+Put the downloaded JSON schemas in the project root. The API catalogue proposes
+names from schema titles, detects duplicate content independently of filenames
+and formatting, and offers one editable table:
+
+```r
+apis <- specmill::configure_apis(root, mode = 'apply')
+```
+
+In an interactive session, review `api`, `base_url`, and `include`, then close
+the editor. Choices are saved in `specmill-apis.yml`; unchanged inputs reuse
+them without prompting again. Use `review = TRUE` to revisit choices. In batch
+scripts, use `review = FALSE`; `choices` accepts a data frame keyed by `schema`
+for scripted name, URL and inclusion overrides. Planning is read-only by default.
+
+Names come from `info.title`, with suffixes when distinct schemas share a title.
+Relative servers need the download origin: pass `origins`, a character vector
+of URLs named by schema paths relative to root. Missing/ambiguous servers need
+explicit base URLs before saving. Server-variable defaults and Swagger host/basePath
+metadata are supported. Incorrect reverse-proxy metadata still requires review.
+
+Pass the reviewed table as `schema` to `configure_client()` or
+`initialize_client()`. The generated YAML keeps tag grouping within each API,
+prefixes function names with its reviewed API name, and creates a request helper
+for each base URL. Credential names use `api.scheme`, so identical scheme names
+in different APIs do not share tokens accidentally. Service authentication maps
+refer to these project credential names. Set a credential with
+`set_api_token(token, scheme = 'reviewed_api.api_key')`.
+
+### Batch limits
+
+Generated defaults expose `batch.max_items` and `batch.max_bytes` as null
+(unconfigured). A top-level array request schema's `maxItems` becomes an
+operation-specific default. Set limits under service defaults or individual
+operations, for example:
+
+```yaml
+operations:
+  POST /batch:
+    batch:
+      max_items: 100
+      max_bytes: 1048576
+```
+
+The helper rejects oversized requests before sending them. Item limits apply
+to top-level array bodies supplied as unnamed lists; byte limits measure the
+serialized UTF-8 JSON or raw binary payload. Limits embedded only in prose need
+explicit review; they are not silently treated as schema constraints. Automatic
+chunking, response aggregation, nested-array limits and newline-delimited batches
+remain separate work. Existing client-owned helpers need a `batch` argument
+before using these settings; generation verifies that compatibility.
+
 For a new package, `initialize_client()` writes editable YAML grouped by schema
 tags. To preview that configuration first, or propose it for an existing package:
 

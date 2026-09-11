@@ -9,6 +9,18 @@ initialize_client <- function(
   naming = c('operation_id', 'tag_prefix'),
   group_by = c('tag', 'none')
 ) {
+  if (is.data.frame(schema)) {
+    return(initialize_apis(
+      root,
+      schema,
+      package,
+      title,
+      author,
+      license,
+      match.arg(naming),
+      match.arg(group_by)
+    ))
+  }
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
   naming <- match.arg(naming)
   group_by <- match.arg(group_by)

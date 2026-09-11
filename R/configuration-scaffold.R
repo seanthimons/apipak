@@ -171,7 +171,10 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     ),
     helper = 'api_request',
     documentation = TRUE,
-    defaults = list(implementation = 'generated')
+    defaults = list(
+      implementation = 'generated',
+      batch = list(max_items = NULL, max_bytes = NULL)
+    )
   )
   if (
     length(
@@ -251,6 +254,18 @@ configuration_proposal <- function(schema, package, naming, group_by) {
       )
     }
     service$operations <- setNames(list(), character())
+    for (op in parsed$operations) {
+      if (
+        op$key %in%
+          keys[selected] &&
+          identical(op$body$type, 'array') &&
+          !is.null(op$body$maxItems)
+      ) {
+        service$operations[[op$key]] <- list(
+          batch = list(max_items = op$body$maxItems)
+        )
+      }
+    }
     files[[paste0('apis/', group, '.yml')]] <- paste(
       encode(
         service,
@@ -328,7 +343,11 @@ configure_client <- function(
     }
     package <- existing
   }
-  proposal <- configuration_proposal(schema, package, naming, group_by)
+  proposal <- if (is.data.frame(schema)) {
+    multi_api_proposal(root, schema, package, naming, group_by)
+  } else {
+    configuration_proposal(schema, package, naming, group_by)
+  }
   proposal$changes <- lapply(names(proposal$files), function(file) {
     path <- if (dir.exists(root)) {
       project_path(root, file)
