@@ -61,7 +61,7 @@ media_type_acceptance <- function() {
       content['application/xml'],
       list(
         'application/octet-stream' = list(
-          schema = list(type = 'string', format = 'binary')
+          schema = list(type = 'string')
         )
       )
     )) {
@@ -70,7 +70,8 @@ media_type_acceptance <- function() {
       parsed <- specmill::read_operations(file)
       stopifnot(
         length(parsed$diagnostics) == 1L,
-        parsed$diagnostics[[1L]]$reason == 'Unsupported body media type'
+        parsed$diagnostics[[1L]]$reason %in%
+          c('Unsupported body media type', 'Unsupported binary body schema')
       )
     }
   }

@@ -31,7 +31,7 @@ configuration_scaffold_acceptance <- function() {
       function(x) x$code == 'unsupported',
       logical(1)
     )),
-    length(plan$diagnostics) == 3L,
+    length(plan$diagnostics) == 0L,
     identical(
       names(plan$files),
       c(
@@ -88,8 +88,8 @@ configuration_scaffold_acceptance <- function() {
     mode = 'plan'
   )
   stopifnot(
-    length(generation$operations) == 16L,
-    length(generation$diagnostics) == 3L
+    length(generation$operations) == 19L,
+    length(generation$diagnostics) == 0L
   )
   hashes <- function() {
     tools::md5sum(list.files(

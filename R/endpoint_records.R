@@ -18,7 +18,13 @@ endpoint_records <- function(document, operations) {
   context$PAGINATION_REGISTRY <- list()
   context$body_requires_resolution <- function(...) FALSE
   context$get_body_schema_type <- function(body, document) {
-    schema <- local_ref(body$content[['application/json']]$schema, document)
+    body <- local_ref(body, document)
+    media <- if ('application/json' %in% names(body$content)) {
+      'application/json'
+    } else {
+      'application/octet-stream'
+    }
+    schema <- local_ref(body$content[[media]]$schema, document)
     if (identical(schema$type, 'object')) {
       'simple_object'
     } else {

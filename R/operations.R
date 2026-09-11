@@ -75,6 +75,7 @@ read_operations <- function(files, policy = list()) {
             body <- op$requestBody
             body_present <- !is.null(body)
             body_required <- FALSE
+            body_media <- 'application/json'
             if (startsWith(version, '2.')) {
               bodies <- Filter(function(p) identical(p[['in']], 'body'), params)
               if (length(bodies) > 1L) {
@@ -91,10 +92,14 @@ read_operations <- function(files, policy = list()) {
             } else if (!is.null(body)) {
               body <- local_ref(body, document)
               body_required <- isTRUE(body$required)
-              if (!'application/json' %in% names(body$content)) {
+              if ('application/json' %in% names(body$content)) {
+                body_media <- 'application/json'
+              } else if ('application/octet-stream' %in% names(body$content)) {
+                body_media <- 'application/octet-stream'
+              } else {
                 stop('Unsupported body media type')
               }
-              body <- body$content[['application/json']]$schema
+              body <- body$content[[body_media]]$schema
             }
             params <- lapply(params, function(p) {
               location <- p[['in']]
@@ -105,7 +110,7 @@ read_operations <- function(files, policy = list()) {
               ) {
                 stop('Invalid parameter location')
               }
-              if (!location %in% c('path', 'query')) {
+              if (!location %in% c('path', 'query', 'header')) {
                 unsupported('Unsupported parameter location')
               }
               if (
@@ -120,11 +125,19 @@ read_operations <- function(files, policy = list()) {
               schema <- input_schema(schema, document)
               if (
                 length(schema$type) != 1L ||
-                  !schema$type %in% c('string', 'integer', 'number', 'boolean')
+                  (!schema$type %in%
+                    c('string', 'integer', 'number', 'boolean') &&
+                    !(location == 'query' &&
+                      identical(schema$type, 'array') &&
+                      identical(schema$items$type, 'string')))
               ) {
                 unsupported('Unsupported parameter type')
               }
-              style <- if (location == 'path') 'simple' else 'form'
+              style <- if (location %in% c('path', 'header')) {
+                'simple'
+              } else {
+                'form'
+              }
               if (
                 !is.null(p$style) &&
                   p$style != style ||
@@ -132,6 +145,11 @@ read_operations <- function(files, policy = list()) {
                   isTRUE(p$allowReserved)
               ) {
                 unsupported('Unsupported parameter serialization')
+              }
+              if (
+                identical(schema$type, 'array') && startsWith(version, '2.')
+              ) {
+                unsupported('Unsupported Swagger array serialization')
               }
               if (location == 'path' && !isTRUE(p$required)) {
                 stop('Path parameter must be required')
@@ -147,6 +165,13 @@ read_operations <- function(files, policy = list()) {
             })
             if (body_present) {
               body <- input_schema(body, document)
+              if (
+                body_media == 'application/octet-stream' &&
+                  !(identical(body$type, 'string') &&
+                    identical(body$format, 'binary'))
+              ) {
+                unsupported('Unsupported binary body schema')
+              }
               body <- tryCatch(
                 supported_body(body, document),
                 error = function(e) {
@@ -180,6 +205,7 @@ read_operations <- function(files, policy = list()) {
               parameters = params,
               body = body,
               body_required = body_required,
+              body_media = body_media,
               source = normalizePath(file, winslash = '/'),
               source_hash = source_hash,
               schema_version = version,

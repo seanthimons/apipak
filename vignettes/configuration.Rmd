@@ -68,6 +68,24 @@ even for a read-only plan.
 
 ## Service files
 
+The default transport supports scalar path/query/header parameters, OpenAPI
+string query arrays with `style: form` (repeated keys when `explode: true`,
+comma-separated values otherwise), JSON bodies, and `application/octet-stream`
+bodies declared as `type: string`, `format: binary`. Pass a character vector for
+query arrays and a raw vector for binary uploads. JSON is selected when offered
+alongside XML/form alternatives.
+
+Authentication remains client-owned: the default helper supplies no API key or
+bearer token. Optional header parameters are omitted when `NULL`; public
+endpoints require no credentials. OpenAPI `security` and `securitySchemes` do
+not yet configure authentication automatically. Header-parameter support alone
+does not implement API-key security schemes or OAuth. Keep real credentials out
+of schemas and YAML; resolve them at runtime in the client's request helper.
+
+Existing helpers need optional `headers`, `query_serialization`, or `body_media`
+arguments when an operation uses these features. Generation validates helper
+compatibility and does not overwrite client-owned helpers.
+
 ```yaml
 id: catalogue
 schemas:

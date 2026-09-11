@@ -94,7 +94,7 @@ schema_version_acceptance <- function() {
     system.file('catalogue/schema.json', package = 'specmill'),
     simplifyVector = FALSE
   )
-  for (location in c('header', 'cookie')) {
+  for (location in c('cookie', 'formData')) {
     unsupported$paths[['/items/{item_id}']]$get$parameters[[2L]][[
       'in'
     ]] <- location

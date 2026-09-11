@@ -1,3 +1,29 @@
+transport_arguments <- function(operation) {
+  c(
+    if (
+      any(vapply(
+        operation$parameters,
+        function(p) p$location == 'header',
+        logical(1)
+      ))
+    ) {
+      'headers'
+    },
+    if (
+      any(vapply(
+        operation$parameters,
+        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        logical(1)
+      ))
+    ) {
+      'query_serialization'
+    },
+    if (identical(operation$body_media, 'application/octet-stream')) {
+      'body_media'
+    }
+  )
+}
+
 render_operation <- function(operation, spec) {
   helper <- spec$helper
   callback <- spec$hook_callback %or% 'run_hook'
@@ -126,7 +152,15 @@ render_operation <- function(operation, spec) {
         paste0('  if (is.null(', body_name, ')) stop("Required body")')
       )
     }
-    checks <- body_checks(operation$body, body_name)
+    checks <- if (identical(operation$body_media, 'application/octet-stream')) {
+      paste0(
+        'if (!is.raw(',
+        body_name,
+        ')) stop("Binary body must be a raw vector")'
+      )
+    } else {
+      body_checks(operation$body, body_name)
+    }
     if (length(checks)) {
       lines <- c(
         lines,
@@ -171,6 +205,27 @@ render_operation <- function(operation, spec) {
       'NULL'
     } else {
       paste0('params[[', r_literal(body_name), ']]')
+    },
+    if ('headers' %in% transport_arguments(operation)) {
+      paste0(', headers = ', refs('header'))
+    },
+    if ('query_serialization' %in% transport_arguments(operation)) {
+      arrays <- Filter(
+        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        params
+      )
+      paste0(
+        ', query_serialization = ',
+        r_literal(setNames(
+          lapply(arrays, function(p) {
+            if (isTRUE(p$explode)) 'explode' else 'comma'
+          }),
+          vapply(arrays, `[[`, character(1), 'name')
+        ))
+      )
+    },
+    if ('body_media' %in% transport_arguments(operation)) {
+      ', body_media = "application/octet-stream"'
     },
     ')'
   )
@@ -473,7 +528,14 @@ generate_client <- function(
           helper_formals
         ))
         sent_arguments <- if (is.null(operation_spec$request)) {
-          c('method', 'path', 'path_params', 'query', 'body')
+          c(
+            'method',
+            'path',
+            'path_params',
+            'query',
+            'body',
+            transport_arguments(op)
+          )
         } else {
           names(operation_spec$request$arguments)
         }

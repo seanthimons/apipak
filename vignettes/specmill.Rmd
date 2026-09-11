@@ -82,7 +82,7 @@ Initialization writes immediately and refuses existing-file conflicts. It create
 | File | What you maintain |
 |---|---|
 | `DESCRIPTION`, `LICENSE` | Package identity, dependencies, and your license |
-| `R/api_request.R` | Client-owned httr2 transport; adapt authentication here |
+| `R/api_request.R` | Client-owned httr2 transport for JSON/binary bodies, headers, and query values; adapt authentication here |
 | `schema/openapi.json` | Local copy of the schema |
 | `specmill.yml` | Project version and selected service files |
 | `apis/<tag>.yml` (or `apis/default.yml` here) | Exact operation selection, editable names, helper, and generation policy |
