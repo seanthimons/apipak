@@ -48,6 +48,55 @@ or hide unsupported endpoints.
 and maintenance commands use `specmill.yml` by default. Pass `config`
 explicitly to use a different project filename.
 
+Generated YAML exposes the method filter, path exclusions, schema
+discovery, public names, shared defaults, documentation switch and
+per-operation overrides. Comments explain each section and show optional
+authentication, formatting, callbacks, hooks and contract-test settings
+without enabling them unnecessarily.
+
+### Exclude methods without editing endpoint lists
+
+In each generated service file (`apis/pet.yml`, `apis/store.yml`, and
+`apis/user.yml` for Petstore), replace the `selection.methods` list
+with:
+
+``` yaml
+selection:
+  methods: [GET, POST]
+  exclude: []
+  include: # Keep the existing entries below this key.
+    # ... existing METHOD /path entries ...
+```
+
+This excerpt shows where to edit; keep the actual generated `include`
+list. Selection filters intersect: an included endpoint still has to
+match the allowed methods and avoid the excluded path patterns. Leave
+PUT/DELETE/PATCH entries in `include`, `names`, and `operations`; they
+do not override the method filter. Excluded operations stay visible in
+the inventory but are skipped before parsing and wrapper generation. You
+do not need to review or delete hundreds of entries.
+
+Regenerate wrappers and documentation, then reload the package:
+
+``` r
+
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+plan$operations
+specmill::generate_client(root, config = 'specmill.yml', mode = 'apply')
+specmill::generate_client(root, config = 'specmill.yml', mode = 'check')
+devtools::load_all(root)
+```
+
+For the bundled Petstore schema, this retains 14 GET/POST wrappers and
+removes five previously generated PUT/DELETE wrappers, their exports and
+help pages, including when wrappers share files. Manually modified or
+unowned files remain protected; resolve any reported conflicts before
+proceeding. Restore the methods and regenerate to bring the wrappers
+back. Existing YAML is never overwritten automatically: older projects
+can preview
+[`configure_client()`](https://seanthimons.github.io/specmill/reference/configure_client.md)
+and copy the desired settings from its proposal.
+
 ``` yaml
 config_version: 1
 package: catalogueclient
@@ -68,6 +117,49 @@ service configuration before generating. Callback names require an
 explicit environment even for a read-only plan.
 
 ## Service files
+
+### Project-wide limits and inherited settings
+
+Set package-wide selection in `specmill.yml`, for example:
+
+``` yaml
+selection:
+  methods: [GET, POST]
+  exclude: ['^/admin(?:/|$)']
+helper: api_request
+documentation: true
+defaults:
+  implementation: generated
+```
+
+Every service must satisfy both project and service selection rules.
+Service methods intersect project methods; path exclusions accumulate. A
+service cannot re-enable a project-prohibited endpoint. Exact `include`
+lists stay in service YAML, along with names and individual `operations`
+overrides.
+
+Services inherit `helper`, `documentation`, and `defaults`. Service
+values take precedence; defaults merge recursively before individual
+operation overrides. Generated service YAML leaves helper and
+documentation overrides commented so changing the project setting
+actually affects all services. Existing explicit service values continue
+to take precedence. Project defaults reject `name` and `file`: set names
+and file layout per service to avoid accidental collisions.
+
+Print the preview to see separate lists with reasons:
+
+``` r
+
+plan <- specmill::generate_client(root, config = 'specmill.yml', mode = 'plan')
+print(plan)
+plan$excluded
+```
+
+The preview identifies project versus service restrictions and matching
+regexes, then lists files to remove. Excluded endpoints keep their YAML
+mappings so they can be restored later. The complete `plan$inventory`
+also includes operations outside each service’s include list; the
+printed summary omits those duplicates.
 
 The default transport supports scalar path/query/header parameters,
 OpenAPI string query arrays with `style: form` (repeated keys when

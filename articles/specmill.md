@@ -125,22 +125,64 @@ parsed$diagnostics
 #> list()
 cat(readLines(file.path(root, 'apis/default.yml')), sep = '\n')
 #> id: catalogueclient
+#> # Local schema files; patterns are file globs, exclude matches basenames by regex.
+#> # All paths resolve from the package root.
 #> schemas:
 #>   files:
 #>   - schema/openapi.json
+#>   patterns: []
+#>   exclude: []
+#> # An operation must pass methods AND include AND not match exclude (path regexes).
+#> # Keep only GET and POST below to omit PUT/PATCH/DELETE wrappers.
+#> # Leave their include/name entries in place; regeneration removes unchanged owned output.
+#> # An empty include selects nothing; remove include to allow every matching operation.
 #> selection:
+#>   methods:
+#>   - GET
+#>   - POST
+#>   - PUT
+#>   - PATCH
+#>   - DELETE
+#>   - HEAD
+#>   - OPTIONS
+#>   - TRACE
+#>   exclude: []
 #>   include:
 #>   - GET /items
 #>   - POST /items
 #>   - GET /items/{item_id}
 #>   - POST /refresh
-#> helper: api_request
-#> documentation: yes
+#> # Edit the public R function names here; keys stay METHOD /original/path.
 #> names:
 #>   GET /items: list_items
 #>   POST /items: create_item
 #>   GET /items/{item_id}: get_item
 #>   POST /refresh: refresh
+#> # Shared operation settings. Per-operation settings below override these.
+#> # file groups wrappers in one R file; omit it for one file per function.
+#> # Example: add file: R/endpoints.R under defaults.
+#> # docs can set title, description, return, parameters, examples, tags and lifecycle.
+#> defaults: {}
+#> # Optional overrides keyed by METHOD /original/path. Replace {} with entries.
+#> # Each entry can set file, helper, parameters, parameter_order and docs.
+#> # parameters keys use the original location and name, e.g. "query limit".
+#> # Example parameter setting: {name: max_results, default: 10, description: Maximum results.}
+#> # Advanced facades use inputs, extra_parameters and request.arguments mappings.
+#> operations: {}
+#> # Inherited from specmill.yml; uncomment to override for this service:
+#> # helper: api_request
+#> # documentation: true
+#> # Optional hooks: define client functions before enabling these settings.
+#> # hooks: {} # Public wrapper name -> pre_request/post_response hook-name sequences.
+#> # hook_callback: run_hook
+#> # hook_config: inst/hooks.yml # Alternative to inline hooks, not both.
+#> # prepare: prepare_operation # Development callback; pass an explicit callbacks environment.
+#> # policy_version: "1" # Your review label, recorded in generation metadata.
+#> # Optional fixed request expectations for generated tests:
+#> # contracts: {} # Public wrapper name -> fixed request expectations.
+#> # contracts_file: tests/testthat/contracts.rds
+#> # response_fixture: {} # Mock response used by inline single-call contracts.
+#> # Full configuration examples: https://seanthimons.github.io/specmill/articles/configuration.html
 ```
 
 An empty diagnostics list means these operations fit the supported

@@ -85,6 +85,7 @@ trial](https://github.com/seanthimons/specmill/blob/main/dev/WORKFLOWS.md).
 - [`load_project()`](https://seanthimons.github.io/specmill/reference/load_project.md)
   : Load and validate a YAML project
 - [`generate_client()`](https://seanthimons.github.io/specmill/reference/generate_client.md)
+  [`print(`*`<specmill_generation>`*`)`](https://seanthimons.github.io/specmill/reference/generate_client.md)
   : Plan, generate, and check client output
 
 ## Inspect and verify

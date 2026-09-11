@@ -9,6 +9,8 @@ YAML or a legacy R-list specification.
 generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
     config = NULL, callbacks = new.env(parent = emptyenv()),
     adopt = list(), artifacts = c("wrappers", "tests", "documentation"))
+# S3 method for class 'specmill_generation'
+print(x, ...)
 ```
 
 ## Arguments
@@ -16,6 +18,14 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
 - root:
 
   Explicit existing client root directory.
+
+- x:
+
+  A generation result.
+
+- ...:
+
+  Unused additional print arguments.
 
 - spec:
 
@@ -48,12 +58,16 @@ generate_client(root, spec = NULL, mode = c("check", "plan", "apply"),
 
 ## Value
 
-A list with files (file/path/action records), configured operations,
+A list of class `specmill_generation` with files (file/path/action
+records), configured operations, excluded operations with reasons,
 drift, diagnostics, mapping_diagnostics, retained_diagnostics,
 unused_hooks, inventory, retained_sources, and manifest (toolkit
-version, input hashes, policy versions). File actions include write,
-unchanged, protected, remove, and retained. Check errors on actions
-other than unchanged or retained.
+version, input hashes, policy versions). Printing separates selected and
+excluded operations and reports removals and protections. Operations
+outside a service's include list remain in inventory but are omitted
+from the excluded summary to avoid repeating other services' endpoints.
+File actions include write, unchanged, protected, remove, and retained.
+Check errors on actions other than unchanged or retained.
 
 ## Details
 
