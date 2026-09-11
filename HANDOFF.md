@@ -4,6 +4,21 @@
 **Branch**: `feat/multi-api-initialization`
 **Status**: Ready for review; capability implementation remains open
 
+## Latest Proving-Ground Policy State
+
+ComptoxR's existing method/route exclusions are now applied to `specmill-testing`.
+The active baseline is **293 renderable, 205 excluded, 50 blocked** (46 capability
+gaps / four AMOS defects). The previous 421/127 assertions below describe the
+unfiltered historical baseline and will not pass against the active policy.
+See `dev/audits/proving-ground/filtered/POLICY-RESULTS.md` for the current
+reproduction, policy provenance, and full excluded-operation list. The original
+audit CSVs remain unchanged for comparison. #14 now covers 36 standalone blockers
+plus two shared with #8. No generator workarounds were automatically excluded.
+
+`dev/apply_proving_ground_policy.R` reapplies reviewed source policy after a
+fresh rebuild; it defaults to preview and is idempotent. The current applied
+configuration lives in the external proving ground, which is not a Git checkout.
+
 ## Goal
 
 Crosswalk the proving-ground audit against open issues and give the next

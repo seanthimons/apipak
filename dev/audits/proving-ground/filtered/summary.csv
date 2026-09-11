@@ -1,0 +1,9 @@
+"classification","reason","method","operations"
+"capability_gap","Unsupported free-form body object","GET",1
+"schema_defect","Invalid input schema type","POST",4
+"capability_gap","Unsupported body composition","POST",4
+"capability_gap","Unsupported free-form body object","POST",24
+"capability_gap","Unsupported parameter type","POST",4
+"capability_gap","Unsupported parameter type; Unsupported free-form body object","POST",2
+"capability_gap","Unsupported unconstrained array items","POST",8
+"capability_gap","Unsupported unconstrained body schema","POST",3
