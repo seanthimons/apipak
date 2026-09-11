@@ -80,6 +80,7 @@ multi_api_acceptance <- function() {
     )
   }
   one <- schema('First API', '/one')
+  one$paths[['/items']]$post$tags <- list('')
   two <- schema('Second API', '/two')
   jsonlite::write_json(one, file.path(root, 'random1.json'), auto_unbox = TRUE)
   jsonlite::write_json(two, file.path(root, 'random2.json'), auto_unbox = TRUE)

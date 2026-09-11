@@ -47,14 +47,14 @@ configuration_proposal <- function(schema, package, naming, group_by) {
               function(x) {
                 is.character(x) &&
                   length(x) == 1L &&
-                  !is.na(x) &&
-                  nzchar(trimws(x))
+                  !is.na(x)
               },
               logical(1)
             )))
       ) {
         stop('Invalid tags for ', key)
       }
+      tags <- Filter(function(tag) nzchar(trimws(tag)), tags)
       tag <- if (length(tags)) tags[[1L]] else 'default'
       if (!length(tags)) {
         report(key, 'missing_tag', 'Assigned to default')
