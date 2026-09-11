@@ -82,7 +82,7 @@ Initialization writes immediately and refuses existing-file conflicts. It create
 | File | What you maintain |
 |---|---|
 | `DESCRIPTION`, `LICENSE` | Package identity, dependencies, and your license |
-| `R/api_request.R` | Client-owned httr2 transport for JSON/binary bodies, headers, and query values; adapt authentication here |
+| `R/api_request.R` | Client-owned httr2 transport for JSON/binary bodies, headers, query values, and generated authentication |
 | `schema/openapi.json` | Local copy of the schema |
 | `specmill.yml` | Project version and selected service files |
 | `apis/<tag>.yml` (or `apis/default.yml` here) | Exact operation selection, editable names, helper, and generation policy |
@@ -191,7 +191,13 @@ serialized body, and response handling.
 
 ## 8. Install and use your client
 
-After changing the helper to use your actual service and authentication, run:
+For schemas with API-key or HTTP bearer security, initialization also proposes
+an `authentication` map in `specmill.yml`. Generation creates `R/api_auth.R` with
+`set_api_token()` and `api_token()`. Configure the token at runtime; keep it out
+of YAML. Public endpoints need no token. OAuth login and refresh are deferred.
+See the [configuration guide](configuration.html) for setup and persistence.
+
+After configuring the actual service and any required credentials, run:
 
 ```{r client-install, eval=FALSE}
 devtools::install(root)

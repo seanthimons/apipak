@@ -141,11 +141,25 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   encode <- function(x) sub('\n$', '', yaml::as.yaml(x))
   services <- sort(unique(groups), method = 'radix')
   files <- list('schema/openapi.json' = file_text(schema))
-  files[['specmill.yml']] <- encode(list(
+  project <- list(
     config_version = 1L,
     package = package,
     services = as.list(paste0('apis/', services, '.yml'))
-  ))
+  )
+  if (
+    length(
+      document$components$securitySchemes %or% document$securityDefinitions
+    ) ||
+      !is.null(document$security) ||
+      any(vapply(
+        parsed$operations,
+        function(op) !is.null(op$security),
+        logical(1)
+      ))
+  ) {
+    project$authentication <- authentication_envvars(document, package)
+  }
+  files[['specmill.yml']] <- encode(project)
   for (group in services) {
     selected <- members[[group]]
     service <- list(

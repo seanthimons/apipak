@@ -13,6 +13,13 @@ read_operations <- function(files, policy = list()) {
     first_operation <- length(operations) + 1L
     document <- jsonlite::fromJSON(file, simplifyVector = FALSE)
     source_hash <- unname(tools::md5sum(file))
+    security_schemes <- lapply(
+      document$components$securitySchemes %or%
+        document$securityDefinitions %or%
+        list(),
+      local_ref,
+      document = document
+    )
     version <- document$openapi %or% document$swagger
     if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
       stop('Unsupported schema version in ', file, call. = FALSE)
@@ -57,6 +64,12 @@ read_operations <- function(files, policy = list()) {
               stop('Invalid route')
             }
             op <- item[[method]]
+            if (
+              ('security' %in% names(op) && !is.list(op$security)) ||
+                ('security' %in% names(document) && !is.list(document$security))
+            ) {
+              stop('Security requirements must be arrays, not null or scalars')
+            }
             transport_diagnostics <- character()
             unsupported <- function(reason) {
               transport_diagnostics <<- unique(c(transport_diagnostics, reason))
@@ -206,6 +219,12 @@ read_operations <- function(files, policy = list()) {
               body = body,
               body_required = body_required,
               body_media = body_media,
+              security = if ('security' %in% names(op)) {
+                op$security
+              } else {
+                document$security
+              },
+              security_schemes = security_schemes,
               source = normalizePath(file, winslash = '/'),
               source_hash = source_hash,
               schema_version = version,
@@ -368,6 +387,12 @@ compare_operations <- function(old, new) {
     }
     if (!identical(a$response, b$response)) {
       add(key, 'unknown', 'Response compatibility is not classified')
+    }
+    if (
+      !identical(a$security, b$security) ||
+        !identical(a$security_schemes, b$security_schemes)
+    ) {
+      add(key, 'review', 'Authentication requirements changed')
     }
   }
   out

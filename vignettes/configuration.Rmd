@@ -61,6 +61,7 @@ services: [apis/catalogue.yml]
 | `package` | R package name; read from `DESCRIPTION` when omitted |
 | `formatter` | Optional `{name: air, version: '0.9.0'}`; the exact installed version is required |
 | `callback_files` | Optional sequence of development callback source paths to fingerprint, without sourcing them |
+| `authentication` | Map from schema security-scheme names to credential environment-variable names; never put tokens here |
 
 Use `specmill::load_project(root)` to validate and inspect the resolved service
 configuration before generating. Callback names require an explicit environment
@@ -75,14 +76,43 @@ bodies declared as `type: string`, `format: binary`. Pass a character vector for
 query arrays and a raw vector for binary uploads. JSON is selected when offered
 alongside XML/form alternatives.
 
-Authentication remains client-owned: the default helper supplies no API key or
-bearer token. Optional header parameters are omitted when `NULL`; public
-endpoints require no credentials. OpenAPI `security` and `securitySchemes` do
-not yet configure authentication automatically. Header-parameter support alone
-does not implement API-key security schemes or OAuth. Keep real credentials out
-of schemas and YAML; resolve them at runtime in the client's request helper.
+Initialization proposes authentication configuration for schemas declaring
+security schemes. For example, to use ComptoxR's environment-variable convention:
 
-Existing helpers need optional `headers`, `query_serialization`, or `body_media`
+```yaml
+authentication:
+  api_key: ctx_api_key
+```
+
+Here `api_key` must be the security-scheme name in the schema; `ctx_api_key` is
+the environment variable chosen by the package maintainer. Keep real tokens
+out of this file. Generation writes `R/api_auth.R` with documented helpers:
+
+```r
+# In the generated package, after loading it:
+set_api_token('YOUR_TOKEN', scheme = 'api_key')                 # this session
+set_api_token('YOUR_TOKEN', scheme = 'api_key', persist = TRUE) # also save
+```
+
+Persistence updates the user `.Renviron` (or `R_ENVIRON_USER`), preserves unrelated
+lines, and makes the token available immediately. Credentials are plain text in
+that file. A project `.Renviron` can take precedence at the next R startup.
+Neither loading the package nor generating it writes credentials. `api_token()`
+retrieves the configured value and fails with setup instructions when it is missing.
+
+Requests inherit top-level `security` unless overridden by the operation.
+`security: []` is public; `{}` within the alternatives permits anonymous access.
+Public/anonymous requests receive no automatic credentials. Otherwise, generation
+supports API keys in headers, query parameters, or cookies and HTTP bearer tokens.
+Each alternative is an OR choice; all schemes inside one choice are required.
+Missing credentials fail before any HTTP request. OAuth login, refresh, and OpenID
+Connect are deferred; an unsupported-only requirement produces a clear runtime error.
+
+Omitting `authentication` preserves existing client-owned authentication, including
+ComptoxR's helper. Explicit custom request mappings also retain responsibility for
+authentication. Adding the field opts into generated authentication.
+
+Existing helpers need optional `headers`, `query_serialization`, `body_media`, or `auth`
 arguments when an operation uses these features. Generation validates helper
 compatibility and does not overwrite client-owned helpers.
 

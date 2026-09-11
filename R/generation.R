@@ -1,5 +1,6 @@
 transport_arguments <- function(operation) {
   c(
+    if (!is.null(operation$auth)) 'auth',
     if (
       any(vapply(
         operation$parameters,
@@ -206,6 +207,9 @@ render_operation <- function(operation, spec) {
     } else {
       paste0('params[[', r_literal(body_name), ']]')
     },
+    if ('auth' %in% transport_arguments(operation)) {
+      paste0(', auth = ', r_literal(operation$auth))
+    },
     if ('headers' %in% transport_arguments(operation)) {
       paste0(', headers = ', refs('header'))
     },
@@ -315,6 +319,7 @@ generate_client <- function(
   artifacts = c('wrappers', 'tests', 'documentation')
 ) {
   mode <- match.arg(mode)
+  authentication <- NULL
   if (
     !is.character(artifacts) ||
       !length(artifacts) ||
@@ -339,6 +344,7 @@ generate_client <- function(
   }
   if (!is.null(config)) {
     project <- load_project(root, config, callbacks)
+    authentication <- project$authentication
     services <- project$services
     inputs <- project$inputs
     formatter <- project$formatter
@@ -415,6 +421,11 @@ generate_client <- function(
     lapply(services, function(x) c(x$helper, x$hook_callback %or% 'run_hook')),
     use.names = FALSE
   )
+  if (!is.null(authentication)) {
+    if (any(operation_names %in% c('api_auth', 'api_token', 'set_api_token'))) {
+      stop('Operation collides with authentication helper')
+    }
+  }
   if (any(operation_names %in% reserved)) {
     stop('Wrapper name collides with a helper or callback')
   }
@@ -442,6 +453,9 @@ generate_client <- function(
       configured <- configure_operation(op, service)
       op <- configured$operation
       operation_spec <- configured$spec
+      if (!is.null(authentication) && is.null(operation_spec$request)) {
+        op$auth <- operation_authentication(op, authentication)
+      }
       if (!is.null(service$prepare)) {
         prepared <- service$prepare(op)
         if (
@@ -633,6 +647,23 @@ generate_client <- function(
     ) {
       stop('Mixed file contains undeclared definitions or other code: ', file)
     }
+  }
+  if (!is.null(authentication)) {
+    if ('R/api_auth.R' %in% names(desired)) {
+      stop('Authentication helper file conflicts with wrappers')
+    }
+    template <- file_text(system.file(
+      'templates/authentication.R',
+      package = 'specmill',
+      mustWork = TRUE
+    ))
+    desired[['R/api_auth.R']] <- gsub(
+      'AUTH_ENVVARS',
+      r_literal(authentication),
+      template,
+      fixed = TRUE
+    )
+    owners[['R/api_auth.R']] <- 'specmill authentication'
   }
   attr(desired, 'operations') <- owners
   if (!is.null(formatter)) {

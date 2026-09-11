@@ -48,9 +48,23 @@ native_transport_acceptance <- function() {
     Sys.sleep(0.05)
   }
   stopifnot(file.exists(port_file))
+  # Authentication has its own HTTP contracts; isolate native serialization here.
+  schema <- file.path(dirname(port_file), paste0(basename(port_file), '.json'))
+  on.exit(unlink(schema), add = TRUE)
+  document <- jsonlite::read_json(system.file(
+    'configuration/petstore.json',
+    package = 'specmill'
+  ))
+  document$components$securitySchemes <- NULL
+  for (path in names(document$paths)) {
+    for (method in names(document$paths[[path]])) {
+      document$paths[[path]][[method]]$security <- NULL
+    }
+  }
+  jsonlite::write_json(document, schema, auto_unbox = TRUE)
   specmill::initialize_client(
     root,
-    system.file('configuration/petstore.json', package = 'specmill'),
+    schema,
     package = 'transportclient',
     title = 'Transport Test',
     author = list(
