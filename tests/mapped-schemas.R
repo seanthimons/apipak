@@ -52,11 +52,14 @@ mapped_schema_acceptance <- function() {
   for (schema in list(
     list(type = 'object', additionalProperties = TRUE),
     stats::setNames(list(), character()),
-    list(oneOf = list(list(type = 'string'), list(type = 'number')))
+    list(oneOf = list(list(type = 'string'), list(type = 'number'))),
+    list(
+      oneOf = list(list(type = 'string', not = list(enum = list('blocked'))))
+    )
   )) {
     put(schema)
     native <- specmill::read_operations(file)
-    unsupported <- !is.null(schema$oneOf)
+    unsupported <- !is.null(schema$oneOf[[1L]]$not)
     stopifnot(
       length(native$operations) == as.integer(!unsupported),
       length(native$unsupported_operations) == as.integer(unsupported),

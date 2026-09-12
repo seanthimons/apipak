@@ -196,6 +196,16 @@ resolve_schema_references <- function(document, path) {
       return(target)
     }
     siblings <- node[setdiff(names(node), '$ref')]
+    if (length(setdiff(names(siblings), c('summary', 'description')))) {
+      return(schema_reference_error(
+        ref,
+        'reference_siblings',
+        paste(
+          'Bundled reference assertion siblings require an explicit allOf:',
+          ref
+        )
+      ))
+    }
     siblings <- lapply(
       siblings,
       resolve,

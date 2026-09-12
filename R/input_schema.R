@@ -34,7 +34,13 @@ input_schema <- function(
     fail('invalid_schema', 'Input schema must be an object')
   }
   ref <- schema[['$ref']]
-  schema <- local_ref(schema, document, seen, source_location)
+  schema <- local_ref(
+    schema,
+    document,
+    seen,
+    source_location,
+    schema_context = TRUE
+  )
   if (!is.null(ref)) {
     source_location <- ref
   }
@@ -66,6 +72,25 @@ input_schema <- function(
     )
   }
   version <- document$openapi %or% document$swagger
+  if ('type' %in% names(schema)) {
+    if (
+      !length(type) ||
+        anyDuplicated(type) ||
+        (!startsWith(version, '3.1') &&
+          (length(type) != 1L || 'null' %in% type))
+    ) {
+      fail(
+        'invalid_type',
+        'Invalid input schema type for this schema version',
+        at = schema_location(source_location, 'type')
+      )
+    }
+    schema$type <- type
+  }
+  # OpenAPI 3.1 uses JSON Schema null types; nullable is not an assertion.
+  if (startsWith(version, '3.1')) {
+    schema$nullable <- NULL
+  }
   if (
     identical(schema$type, 'array') &&
       is.null(schema$items) &&

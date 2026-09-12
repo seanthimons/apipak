@@ -1,4 +1,27 @@
 local_references_acceptance <- function() {
+  resolve <- getFromNamespace('local_ref', 'specmill')
+  chain <- stats::setNames(
+    lapply(seq_len(101L), function(i) {
+      list('$ref' = paste0('#/node', i + 1L))
+    }),
+    paste0('node', seq_len(101L))
+  )
+  chain$node102 <- list(type = 'string')
+  depth <- tryCatch(resolve(list('$ref' = '#/node1'), chain), error = identity)
+  stopifnot(inherits(depth, 'error'), identical(depth$code, 'reference_depth'))
+  annotated <- resolve(
+    list('$ref' = '#/Value', default = 'second'),
+    list(
+      openapi = '3.1.0',
+      Value = list(type = 'string', enum = list('first', 'second'))
+    ),
+    schema_context = TRUE
+  )
+  stopifnot(
+    identical(annotated$type, 'string'),
+    is.null(annotated$allOf),
+    identical(annotated$default, 'second')
+  )
   root <- tempfile('local-references-')
   dir.create(root)
   dir.create(file.path(root, 'operations'))
@@ -59,8 +82,10 @@ local_references_acceptance <- function() {
       ),
       components = list(
         sample = list(
-          '$ref' = 'base.json#/Node',
-          allOf = list(list('$ref' = 'components/schema.json#/Page'))
+          allOf = list(
+            list('$ref' = 'base.json#/Node'),
+            list('$ref' = 'components/schema.json#/Page')
+          )
         ),
         array_item = list('$ref' = 'array.json#/0'),
         pathItems = list(
@@ -97,7 +122,7 @@ local_references_acceptance <- function() {
     )
   )
   stopifnot(
-    identical(document$components$sample$allOf[[1L]]$type, 'integer'),
+    identical(document$components$sample$allOf[[2L]]$type, 'integer'),
     identical(document$components$array_item$type, 'string')
   )
   parsed <- specmill::read_operations(schema)
@@ -201,6 +226,59 @@ local_references_acceptance <- function() {
   stopifnot(
     length(generated$operations) == 2L
   )
+  sibling_root <- tempfile('reference-siblings-')
+  dir.create(sibling_root)
+  on.exit(unlink(sibling_root, recursive = TRUE), add = TRUE)
+  write(
+    list(type = 'integer', minimum = 1L),
+    file.path(sibling_root, 'integer.json')
+  )
+  reference <- list('$ref' = 'integer.json')
+  bodies <- list(
+    unsupported = c(reference, list(maximum = 5L)),
+    explicit = list(allOf = list(reference, list(maximum = 5L)))
+  )
+  paths <- lapply(names(bodies), function(name) {
+    list(
+      post = list(
+        operationId = name,
+        requestBody = list(
+          required = TRUE,
+          content = list(
+            'application/json' = list(schema = bodies[[name]])
+          )
+        ),
+        responses = list('200' = list(description = 'OK'))
+      )
+    )
+  })
+  names(paths) <- paste0('/', names(bodies))
+  sibling_file <- file.path(sibling_root, 'openapi.json')
+  write(list(openapi = '3.1.0', paths = paths), sibling_file)
+  siblings <- specmill::read_operations(sibling_file)
+  stopifnot(
+    length(siblings$operations) == 1L,
+    siblings$diagnostics[[1L]]$key == 'POST /unsupported',
+    siblings$diagnostics[[1L]]$code == 'reference_siblings'
+  )
+  context <- new.env(parent = baseenv())
+  context$request <- function(...) list(...)
+  eval(
+    parse(
+      text = specmill::render_operation(
+        siblings$operations[[1L]],
+        list(helper = 'request')
+      )
+    ),
+    context
+  )
+  stopifnot(identical(context$explicit(3L)$body, 3L))
+  for (value in c(0L, 6L)) {
+    stopifnot(inherits(
+      tryCatch(context$explicit(value), error = identity),
+      'error'
+    ))
+  }
   cat(
     'Local references: relative pathItem and operation refs, nested files, cycles, missing files and remote diagnostics passed offline.\n'
   )

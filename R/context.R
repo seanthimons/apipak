@@ -69,7 +69,8 @@ local_ref <- function(
   node,
   document,
   seen = character(),
-  source_location = '#'
+  source_location = '#',
+  schema_context = FALSE
 ) {
   fail <- function(code, message, classification = 'schema_defect') {
     schema_problem(code, classification, message, source_location)
@@ -113,6 +114,13 @@ local_ref <- function(
       'capability_gap'
     )
   }
+  if (length(seen) >= 100L) {
+    fail(
+      'reference_depth',
+      'Reference nesting exceeds 100 levels',
+      'capability_gap'
+    )
+  }
   parts <- strsplit(sub('^#/', '', ref), '/', fixed = TRUE)[[1]]
   if (any(grepl('~([^01]|$)', parts))) {
     fail('invalid_reference', paste('Invalid reference escape:', ref))
@@ -128,5 +136,29 @@ local_ref <- function(
   if (is.null(value)) {
     fail('unresolved_reference', paste('Missing reference:', ref))
   }
-  local_ref(value, document, c(seen, ref), ref)
+  value <- local_ref(value, document, c(seen, ref), ref, schema_context)
+  siblings <- node[setdiff(names(node), '$ref')]
+  if (
+    schema_context &&
+      startsWith(document$openapi %or% '', '3.1') &&
+      length(siblings)
+  ) {
+    annotations <- names(siblings) %in%
+      c(
+        'title',
+        'description',
+        'summary',
+        'example',
+        'examples',
+        'default',
+        'deprecated'
+      ) |
+      startsWith(names(siblings), 'x-')
+    assertions <- siblings[!annotations]
+    if (length(assertions)) {
+      value <- list(allOf = list(value, assertions))
+    }
+    value[names(siblings)[annotations]] <- siblings[annotations]
+  }
+  value
 }

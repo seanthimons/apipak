@@ -504,7 +504,8 @@ data frames, classed objects, missing values, and duplicate or empty object
 names are rejected; convert them to plain JSON-shaped lists explicitly.
 
 Omit an optional body argument to send no body. Explicit `body = NULL` sends
-JSON `null` when the schema is unconstrained or declares `nullable: true`;
+JSON `null` when allowed by the schema: unconstrained values, a nullable
+OpenAPI 3.0 type, or an OpenAPI 3.1 `null` type (including a type array);
 otherwise it fails. Inside an object, `list(field = NULL)` retains the field as
 `null`, while leaving the name out omits it. Required fields must be present,
 even when their values may be null. Wrappers pass an explicitly unboxed JSON
@@ -516,8 +517,53 @@ each extra value; `additionalProperties: false` rejects extra fields. Fixtures
 and wrappers share these checks. Examples may supply fixture values but never
 establish a type. Swagger 2 body arrays may omit `items`; OpenAPI 3.0 arrays and
 Swagger 2 non-body arrays must supply it. Explicit `items: {}` accepts any JSON
-value. Composition, recursive schemas, boolean schemas, and union/null type
-declarations remain outside this support; this is not a full JSON Schema validator.
+value. Boolean schemas and recursive inputs remain diagnosed; this is not a
+full JSON Schema validator.
+
+JSON request bodies support `oneOf`, `anyOf`, and `allOf` at the body root,
+in properties, in array items, and in typed maps. Pass ordinary R values:
+
+```r
+# For oneOf branches requiring either values or records:
+body <- list(values = list('first', 'second'))
+# The other branch might accept:
+body <- list(records = list(list(id = 1L), list(id = 'second')))
+```
+
+`oneOf` requires exactly one matching branch; `anyOf` requires one or more;
+`allOf` requires every branch. Sibling constraints also apply. Supplying fields
+that satisfy two open-object branches of `oneOf` is an error, even if a
+discriminator names one branch. Discriminators are hints, not validation
+shortcuts, and wrappers neither insert tags nor strip fields. These rules follow
+[JSON Schema composition](https://json-schema.org/understanding-json-schema/reference/combining).
+
+Within composed values, container shape is explicit: use
+`setNames(list(), character())` for `{}` and `list()` for `[]`. Branch matching
+never changes one into the other. Closed `allOf` members each check the whole
+object; declaring a field in another member does not override
+`additionalProperties: false`. OpenAPI 3.1 `type: [string, 'null']` accepts strings
+and explicit null; `nullable` alone has no validation meaning in 3.1.
+
+Fixtures try a finite set of candidates from declared examples, defaults, enums,
+and branch shapes, then validate against the complete schema. They do not infer
+types from examples or solve arbitrary intersections. If no candidate passes,
+supply a reviewed fixture override; an ambiguous `oneOf` value still fails.
+
+Branch matching checks types, required fields, typed maps, closed objects,
+enum/const values, numeric and string bounds, patterns, array length/uniqueness,
+and object size. Unsupported assertion keywords in JSON bodies produce
+an operation-specific diagnostic; malformed supported constraints are schema
+defects. Formats remain annotations. Parameter and
+form-body compositions remain diagnosed because their wire representation needs
+separate support; response schemas remain metadata, without generated response
+validation. Complete request mappings and explicitly retained implementations
+remain the customization paths for unsupported contracts.
+
+Local references are resolved relative to the containing file; remote references
+are never fetched. Cycles and reference chains exceeding 100 levels are
+diagnosed. OpenAPI 3.1 local schema-reference siblings are conjunctive. For a
+bundled reference with assertion siblings, use an explicit `allOf` containing
+the reference and the sibling constraints; a diagnostic prevents lossy merging.
 
 ```yaml
 id: catalogue

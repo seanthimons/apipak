@@ -438,7 +438,8 @@ read_operations <- function(files, policy = list()) {
                   supported <- supported_body(
                     body,
                     document,
-                    source_location = body_location
+                    source_location = body_location,
+                    allow_composition = !form_media(body_media)
                   )
                   if (form_media(body_media)) {
                     body_encoding <- form_encoding(
