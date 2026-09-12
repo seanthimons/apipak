@@ -1,5 +1,17 @@
 transport_arguments <- function(operation) {
   c(
+    if (any(vapply(operation$parameters, extended_parameter, logical(1)))) {
+      'parameter_serialization'
+    },
+    if (
+      any(vapply(
+        operation$parameters,
+        function(p) p$location == 'cookie',
+        logical(1)
+      ))
+    ) {
+      'cookies'
+    },
     if (length(operation$batch)) 'batch',
     if (!is.null(operation$auth)) 'auth',
     if (
@@ -14,7 +26,11 @@ transport_arguments <- function(operation) {
     if (
       any(vapply(
         operation$parameters,
-        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        function(p) {
+          p$location == 'query' &&
+            identical(p$schema$type, 'array') &&
+            !extended_parameter(p)
+        },
         logical(1)
       ))
     ) {
@@ -57,6 +73,19 @@ render_operation <- function(operation, spec) {
             params[[i]]$public_default
           } else {
             params[[i]]$schema$default
+          }
+          if (identical(params[[i]]$schema$type, 'array') && is.list(value)) {
+            value <- if (length(value)) {
+              unlist(value, use.names = FALSE)
+            } else {
+              switch(
+                params[[i]]$schema$items$type,
+                string = character(),
+                integer = integer(),
+                number = numeric(),
+                boolean = logical()
+              )
+            }
           }
           paste0(' = ', r_literal(value))
         } else {
@@ -223,9 +252,31 @@ render_operation <- function(operation, spec) {
     if ('headers' %in% transport_arguments(operation)) {
       paste0(', headers = ', refs('header'))
     },
+    if ('cookies' %in% transport_arguments(operation)) {
+      paste0(', cookies = ', refs('cookie'))
+    },
+    if ('parameter_serialization' %in% transport_arguments(operation)) {
+      metadata <- lapply(Filter(extended_parameter, params), function(p) {
+        p$required <- isTRUE(p$public_required %or% p$required)
+        p[c(
+          'name',
+          'location',
+          'schema',
+          'style',
+          'explode',
+          'collection_format',
+          'required'
+        )]
+      })
+      paste0(', parameter_serialization = ', r_literal(metadata))
+    },
     if ('query_serialization' %in% transport_arguments(operation)) {
       arrays <- Filter(
-        function(p) p$location == 'query' && identical(p$schema$type, 'array'),
+        function(p) {
+          p$location == 'query' &&
+            identical(p$schema$type, 'array') &&
+            !extended_parameter(p)
+        },
         params
       )
       paste0(
@@ -616,7 +667,16 @@ generate_client <- function(
           !'...' %in% names(helper_formals) &&
             length(setdiff(sent_arguments, names(helper_formals)))
         ) {
-          stop('Unknown helper arguments for ', op$id)
+          stop(
+            'Unknown helper arguments for ',
+            op$id,
+            ': ',
+            paste(
+              setdiff(sent_arguments, names(helper_formals)),
+              collapse = ', '
+            ),
+            '. Review and update the client-owned helper or use a complete request mapping.'
+          )
         }
       }
       if (op$name %in% names(service$contracts)) {

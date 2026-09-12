@@ -44,8 +44,8 @@ schema_stress_acceptance <- function() {
     reasons[['POST /convert/cdx-to-mol']] == 'Unsupported body media type',
     reasons[['POST /ocsr/process-upload']] == 'Unsupported body media type',
     reasons[['POST /convert/batch']] == '',
-    reasons[['GET /chem/tanimoto']] == 'Unsupported parameter type',
-    reasons[['GET /depict/2D_enhanced']] == 'Unsupported parameter type'
+    reasons[['GET /chem/tanimoto']] == 'Unsupported parameter composition',
+    reasons[['GET /depict/2D_enhanced']] == 'Unsupported parameter composition'
   )
   stopifnot(all(
     c('application/json', 'image/svg+xml') %in%

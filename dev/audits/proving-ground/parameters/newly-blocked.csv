@@ -1,0 +1,2 @@
+"api","service","method","path","version","reason","classification","review","findings","evidence"
+"alerts","alerts_library_controller","POST","/api/alerts/groups","3.1.0","Binary parameter requires source contract review (#16)","capability_gap","Binary files declared in query; verify wire contract","",""

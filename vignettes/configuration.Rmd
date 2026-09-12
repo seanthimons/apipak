@@ -310,9 +310,70 @@ Omitting `authentication` preserves existing client-owned authentication, includ
 ComptoxR's helper. Explicit custom request mappings also retain responsibility for
 authentication. Adding the field opts into generated authentication.
 
-Existing helpers need optional `headers`, `query_serialization`, `body_media`, or `auth`
+Existing helpers need optional `headers`, `query_serialization`, `body_media`, `auth`,
+`parameter_serialization`, or `cookies`
 arguments when an operation uses these features. Generation validates helper
 compatibility and does not overwrite client-owned helpers.
+
+### Parameter serialization
+
+OpenAPI 3.0 and 3.1 support the following flat parameter shapes. Arrays contain
+strings, integers, numbers, or booleans; objects contain scalar properties or
+scalar-valued maps. Use unnamed vectors/lists for arrays and named lists for
+objects. Nested arrays/objects and unconstrained array items have no supported
+parameter encoding; JSON body support is broader.
+
+| Location | Style | Shapes | Explode |
+| --- | --- | --- | --- |
+| Query | `form` (default) | Scalar, array, flat object | Both; default true |
+| Query | `spaceDelimited`, `pipeDelimited` | Array | Both; default false |
+| Query | `deepObject` | Flat object | Explicit true required |
+| Path | `simple` (default), `label`, `matrix` | Scalar, array, flat object | Both; default false |
+| Header | `simple` | Scalar, array, flat object | Both; default false |
+| Cookie | `form` | Scalar, array, flat object | Both; default true |
+
+Swagger 2 supports primitive arrays with `collectionFormat: csv` (default),
+`ssv`, `tsv`, or `pipes` in query, path, and header parameters; `multi` is
+query-only. Ordinary cookies and object parameters are not Swagger 2 types.
+Form-data/multipart encoding, parameter `content`, and `allowReserved: true`
+remain explicitly diagnosed rather than guessed. Binary parameters require
+source-contract review, especially files declared in query strings (#16).
+
+For example, a query object `list(R = 1L, G = 2L)` becomes `R=1&G=2` with
+exploded form, `p=R,1,G,2` with non-exploded form, or `p[R]=1&p[G]=2` with
+deepObject. Exploded cookies become separate `name=value` pairs joined by
+`; `. URI tokens are UTF-8 percent-encoded before delimiters are added;
+literal percent escapes are data and are encoded again. Header values are
+not URI-encoded. New boolean array/object encodings use `true` and `false`;
+existing scalar helper behavior is retained.
+
+Omitting an optional argument uses its schema default, if any; explicit `NULL`
+omits it. Empty scalar strings remain provided values (`p=` in query/cookies,
+`;p` in matrix paths, `.` in label paths). Empty containers are rejected because
+URI templates do not give them an unambiguous representation distinct from
+omission. Null elements, missing/non-finite scalars, duplicate object names,
+and nested values are rejected before HTTP. Non-exploded whitespace-delimited
+values cannot themselves contain the whitespace delimiter; composite header
+values cannot contain their structural delimiter. These cases fail instead of
+silently changing the values received by the server.
+
+Existing scalar and form-style string-query-array wrappers retain their helper
+arguments, including `query_serialization`. Newly supported encodings pass
+`parameter_serialization` metadata (location, name, schema, style, explode,
+required status, and Swagger collection format); cookies additionally pass a
+`cookies` list. Before generating these operations into an existing client,
+review its helper against the current `inst/templates/request.R` implementation
+and add these optional arguments **and their serialization behavior**, retaining
+the client's base URL, authentication, hooks, and response handling. Merely
+accepting `...` does not implement the encoding. Generation never replaces a
+client-owned helper, and a helper without the required arguments fails planning
+with an explicit migration message. Complete custom request mappings continue
+to own their serialization.
+
+The matrix follows the [OpenAPI parameter specification](https://spec.openapis.org/oas/v3.0.3.html#parameter-object)
+and [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570), including comma-separated
+non-exploded labels. Offline tests verify the received URI, headers, and cookies
+through the generated client rather than relying on helper return values.
 
 ### JSON body values
 

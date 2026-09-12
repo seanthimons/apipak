@@ -1,22 +1,27 @@
-native_transport_acceptance <- function() {
+native_transport_acceptance <- function(extra_checks = NULL) {
   root <- tempfile('native-transport-')
   port_file <- tempfile('transport-port-')
   on.exit(unlink(c(root, port_file), recursive = TRUE), add = TRUE)
   server <- callr::r_bg(
     function(port_file) {
       port <- httpuv::randomPort()
+      request_number <- 0L
       server <- httpuv::startServer(
         '127.0.0.1',
         port,
         list(call = function(req) {
+          request_number <<- request_number + 1L
           list(
             status = 200L,
             headers = list('Content-Type' = 'application/json'),
             body = jsonlite::toJSON(
               list(
                 method = req$REQUEST_METHOD,
+                request_number = request_number,
                 path = req$PATH_INFO,
                 query = req$QUERY_STRING,
+                parameter_header = req$HTTP_X_TEST,
+                cookie = req$HTTP_COOKIE,
                 key = req$HTTP_API_KEY,
                 authorization = req$HTTP_AUTHORIZATION,
                 type = req$CONTENT_TYPE,
@@ -86,6 +91,9 @@ native_transport_acceptance <- function() {
   runtime <- new.env(parent = baseenv())
   for (file in list.files(file.path(root, 'R'), full.names = TRUE)) {
     sys.source(file, runtime)
+  }
+  if (!is.null(extra_checks)) {
+    extra_checks(runtime, root)
   }
   result <- runtime$pet_find_by_tags(c('a/b', 'blue sky'))
   stopifnot(result$query == '?tags=a%2Fb&tags=blue%20sky')

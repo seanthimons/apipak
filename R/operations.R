@@ -233,7 +233,7 @@ read_operations <- function(files, policy = list()) {
               ) {
                 stop('Invalid parameter location')
               }
-              if (!location %in% c('path', 'query', 'header')) {
+              if (!location %in% c('path', 'query', 'header', 'cookie')) {
                 unsupported('Unsupported parameter location')
               }
               if (
@@ -260,34 +260,16 @@ read_operations <- function(files, policy = list()) {
                   parameter_items = identical(version, '2.0')
                 )
               }
-              if (
-                length(schema$type) != 1L ||
-                  (!schema$type %in%
-                    c('string', 'integer', 'number', 'boolean') &&
-                    !(location == 'query' &&
-                      identical(schema$type, 'array') &&
-                      identical(schema$items$type, 'string')))
-              ) {
-                unsupported('Unsupported parameter type')
-              }
-              style <- if (location %in% c('path', 'header')) {
-                'simple'
-              } else {
-                'form'
-              }
-              if (
-                !is.null(p$style) &&
-                  p$style != style ||
-                  !is.null(p$content) ||
-                  isTRUE(p$allowReserved)
-              ) {
-                unsupported('Unsupported parameter serialization')
-              }
-              if (
-                identical(schema$type, 'array') && startsWith(version, '2.')
-              ) {
-                unsupported('Unsupported Swagger array serialization')
-              }
+              encoding <- tryCatch(
+                parameter_shape(p, schema, version, source_location),
+                error = function(e) {
+                  if (identical(e$classification, 'schema_defect')) {
+                    stop(e)
+                  }
+                  unsupported(conditionMessage(e), e)
+                  list(style = p$style, explode = p$explode)
+                }
+              )
               if (location == 'path' && !isTRUE(p$required)) {
                 stop('Path parameter must be required')
               }
@@ -296,8 +278,9 @@ read_operations <- function(files, policy = list()) {
                 location = location,
                 required = isTRUE(p$required),
                 schema = schema,
-                style = p$style %or% style,
-                explode = p$explode %or% (location == 'query')
+                style = encoding$style,
+                explode = encoding$explode,
+                collection_format = encoding$collection_format
               )
             })
             if (body_present) {

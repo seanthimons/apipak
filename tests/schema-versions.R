@@ -100,6 +100,10 @@ schema_version_acceptance <- function() {
     ]] <- location
     jsonlite::write_json(unsupported, file, auto_unbox = TRUE)
     parsed <- specmill::read_operations(file)
+    if (location == 'cookie') {
+      stopifnot(!length(parsed$diagnostics))
+      next
+    }
     stopifnot(
       length(parsed$diagnostics) == 1L,
       parsed$diagnostics[[1L]]$key == 'GET /items/{item_id}',

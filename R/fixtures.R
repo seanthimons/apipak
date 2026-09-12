@@ -1,13 +1,63 @@
 fixture_value <- function(schema, override = NULL) {
-  if (
-    identical(schema$type, 'array') && identical(schema$items$type, 'string')
-  ) {
+  if (identical(schema$type, 'object')) {
+    if (
+      missing(override) &&
+        !any(c('example', 'default', 'enum') %in% names(schema))
+    ) {
+      keys <- union(names(schema$properties), unlist(schema$required))
+      if (!length(keys) && !isFALSE(schema$additionalProperties)) {
+        keys <- 'example'
+      }
+      override <- setNames(
+        lapply(keys, function(name) {
+          child <- schema$properties[[name]] %or%
+            if (is.list(schema$additionalProperties)) {
+              schema$additionalProperties
+            } else {
+              list()
+            }
+          if (is.null(child$type)) {
+            child$type <- 'string'
+          }
+          fixture_value(child)
+        }),
+        keys
+      )
+    }
+    value <- if (missing(override)) {
+      body_fixture(schema)
+    } else {
+      body_fixture(schema, override)
+    }
+    if (
+      !length(value) ||
+        any(vapply(
+          value,
+          function(x) is.list(x) || length(x) != 1L,
+          logical(1)
+        ))
+    ) {
+      stop('Parameter fixture must be a nonempty flat object')
+    }
+    return(value)
+  }
+  if (identical(schema$type, 'array')) {
     value <- if (missing(override)) {
       body_fixture(schema)
     } else {
       body_fixture(schema, as.list(override))
     }
-    return(as.character(unlist(value, use.names = FALSE)))
+    value <- unlist(value, use.names = FALSE)
+    if (!length(value)) {
+      stop('Parameter fixture must be a nonempty array')
+    }
+    return(switch(
+      schema$items$type,
+      string = as.character(value),
+      integer = as.integer(value),
+      number = as.numeric(value),
+      boolean = as.logical(value)
+    ))
   }
   if (!missing(override) && is.null(override)) {
     if (isTRUE(schema$nullable) || 'null' %in% schema$type) {

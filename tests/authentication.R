@@ -80,6 +80,22 @@ authentication_acceptance <- function() {
     if (name != 'inherited') {
       op['security'] <- security[name]
     }
+    if (name == 'cookie') {
+      op$parameters <- list(list(
+        name = 'preference',
+        'in' = 'cookie',
+        schema = list(type = 'string')
+      ))
+    }
+    if (name == 'query') {
+      op$parameters <- list(list(
+        name = 'numbers',
+        'in' = 'query',
+        style = 'form',
+        explode = FALSE,
+        schema = list(type = 'array', items = list(type = 'string'))
+      ))
+    }
     list(get = op)
   })
   document <- list(
@@ -174,8 +190,16 @@ authentication_acceptance <- function() {
   )
   runtime$set_api_token('query/value', scheme = 'query')
   stopifnot(runtime$get_query()$query == '?access_key=query%2Fvalue')
+  stopifnot(
+    runtime$get_query(numbers = c('a,b', 'c'))$query ==
+      '?access_key=query%2Fvalue&numbers=a%2Cb,c'
+  )
   runtime$set_api_token('cookie-value', scheme = 'cookie')
   stopifnot(runtime$get_cookie()$cookie == 'session_key=cookie-value')
+  stopifnot(
+    runtime$get_cookie(preference = 'dark')$cookie ==
+      'preference=dark; session_key=cookie-value'
+  )
   before <- readLines(count_file)
   error <- tryCatch(runtime$get_oauth(), error = identity)
   stopifnot(
