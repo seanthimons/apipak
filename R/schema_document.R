@@ -1,6 +1,13 @@
-read_schema_document <- function(path) {
+read_schema_document <- function(path, resolve_references = TRUE) {
   if (!tolower(tools::file_ext(path)) %in% c('yaml', 'yml')) {
-    return(jsonlite::fromJSON(path, simplifyVector = FALSE))
+    document <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+    return(
+      if (resolve_references) {
+        resolve_schema_references(document, path)
+      } else {
+        document
+      }
+    )
   }
   text <- paste(
     readLines(path, encoding = 'UTF-8', warn = FALSE),
@@ -122,5 +129,10 @@ read_schema_document <- function(path) {
     }
     lapply(x, normalize)
   }
-  normalize(documents[[1L]])
+  document <- normalize(documents[[1L]])
+  if (resolve_references) {
+    resolve_schema_references(document, path)
+  } else {
+    document
+  }
 }

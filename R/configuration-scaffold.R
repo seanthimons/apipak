@@ -30,13 +30,38 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     )
   }
   for (path in sort(names(document$paths), method = 'radix')) {
-    item <- document$paths[[path]]
+    item <- tryCatch(
+      local_ref(
+        document$paths[[path]],
+        document,
+        source_location = schema_location('#/paths', path)
+      ),
+      error = identity
+    )
+    if (inherits(item, 'error')) {
+      report(paste('PATH', path), 'unsupported', conditionMessage(item))
+      next
+    }
     for (method in intersect(
       c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'),
       names(item)
     )) {
-      operation <- item[[method]]
       key <- paste(toupper(method), path)
+      operation <- tryCatch(
+        local_ref(
+          item[[method]],
+          document,
+          source_location = schema_location(
+            schema_location('#/paths', path),
+            method
+          )
+        ),
+        error = identity
+      )
+      if (inherits(operation, 'error')) {
+        report(key, 'unsupported', conditionMessage(operation))
+        next
+      }
       tags <- operation$tags
       if (
         !is.null(tags) &&
@@ -159,7 +184,28 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     extension <- 'json'
   }
   schema_file <- paste0('schema/openapi.', extension)
-  files <- setNames(list(file_text(schema)), schema_file)
+  schema_text <- if (
+    !is.null(attr(document, 'specmill_reference_dependencies'))
+  ) {
+    plain <- function(x) {
+      if (!is.list(x)) {
+        return(x)
+      }
+      output <- lapply(unclass(x), plain)
+      names(output) <- names(x)
+      output
+    }
+    as.character(jsonlite::toJSON(
+      plain(document),
+      auto_unbox = TRUE,
+      pretty = TRUE,
+      digits = NA,
+      null = 'null'
+    ))
+  } else {
+    file_text(schema)
+  }
+  files <- setNames(list(schema_text), schema_file)
   project <- list(
     config_version = 1L,
     package = package,

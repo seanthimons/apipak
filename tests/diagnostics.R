@@ -74,7 +74,7 @@ diagnostics_acceptance <- function() {
     'POST /no-items' = c('schema_defect', 'missing_array_items'),
     'POST /invalid' = c('schema_defect', 'invalid_type'),
     'POST /missing' = c('schema_defect', 'unresolved_reference'),
-    'POST /external' = c('capability_gap', 'external_reference'),
+    'POST /external' = c('capability_gap', 'unresolved_reference'),
     'POST /recursive' = c('capability_gap', 'recursive_reference'),
     'POST /absent' = c('capability_gap', 'missing_schema')
   )

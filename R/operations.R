@@ -28,7 +28,35 @@ read_operations <- function(files, policy = list()) {
       stop('Missing paths: ', file)
     }
     for (path in names(document$paths)) {
-      item <- document$paths[[path]]
+      item <- tryCatch(
+        local_ref(
+          document$paths[[path]],
+          document,
+          source_location = schema_location('#/paths', path)
+        ),
+        error = identity
+      )
+      if (inherits(item, 'error')) {
+        key <- paste('PATH', path)
+        failure <- c(
+          list(
+            id = paste(policy$service %or% 'default', key),
+            key = key,
+            service = policy$service %or% 'default',
+            source = file,
+            status = 'unsupported',
+            reason = conditionMessage(item)
+          ),
+          diagnostic_fields(item, schema_location('#/paths', path))
+        )
+        diagnostics[[length(diagnostics) + 1L]] <- failure
+        inventory[[length(inventory) + 1L]] <- c(
+          failure,
+          list(method = 'PATH', path = path, source_hash = source_hash)
+        )
+        next
+      }
+      document$paths[[path]] <- item
       for (method in intersect(
         names(item),
         c('get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace')
@@ -104,7 +132,12 @@ read_operations <- function(files, policy = list()) {
             if (!startsWith(path, '/') || grepl('[\r\n]', path)) {
               stop('Invalid route')
             }
-            op <- item[[method]]
+            op <- local_ref(
+              item[[method]],
+              document,
+              source_location = operation_location
+            )
+            document$paths[[path]][[method]] <- op
             if (
               ('security' %in% names(op) && !is.list(op$security)) ||
                 ('security' %in% names(document) && !is.list(document$security))
@@ -169,6 +202,9 @@ read_operations <- function(files, policy = list()) {
             body_present <- !is.null(body)
             body_required <- FALSE
             body_media <- 'application/json'
+            body_encoding <- list()
+            preferred_media <- policy$body_media_overrides[[key]] %or%
+              policy$body_media
             if (startsWith(version, '2.')) {
               bodies <- Filter(function(p) identical(p[['in']], 'body'), params)
               if (length(bodies) > 1L) {
@@ -188,31 +224,86 @@ read_operations <- function(files, policy = list()) {
                 )
               }
               body <- if (length(bodies)) bodies[[1]]$schema else NULL
+              forms <- Filter(
+                function(p) identical(p[['in']], 'formData'),
+                params
+              )
+              if (length(forms)) {
+                if (length(bodies)) {
+                  stop('Body and formData parameters cannot be combined')
+                }
+                body_media <- request_body_media(
+                  op$consumes %or% document$consumes %or% character(),
+                  preferred_media,
+                  body_location
+                )
+                if (!form_media(body_media)) {
+                  stop('formData requires form request media')
+                }
+                fields <- lapply(forms, function(p) {
+                  field <- p[setdiff(names(p), c('name', 'in', 'required'))]
+                  if (identical(field$type, 'file')) {
+                    field$type <- 'string'
+                    field$format <- 'binary'
+                  }
+                  if (
+                    identical(field$type, 'array') &&
+                      identical(field$items$type, 'file')
+                  ) {
+                    field$items$type <- 'string'
+                    field$items$format <- 'binary'
+                  }
+                  field
+                })
+                names(fields) <- vapply(forms, `[[`, character(1), 'name')
+                body <- list(
+                  type = 'object',
+                  properties = fields,
+                  required = as.list(vapply(
+                    Filter(function(p) isTRUE(p$required), forms),
+                    `[[`,
+                    character(1),
+                    'name'
+                  ))
+                )
+                body_present <- TRUE
+                body_required <- length(body$required) > 0L
+                body_encoding <- setNames(
+                  lapply(forms, function(p) {
+                    if (identical(p$type, 'array')) {
+                      list(collection_format = p$collectionFormat %or% 'csv')
+                    } else {
+                      list()
+                    }
+                  }),
+                  names(fields)
+                )
+              } else if (body_present && !is.null(preferred_media)) {
+                body_media <- request_body_media(
+                  op$consumes %or% document$consumes %or% 'application/json',
+                  preferred_media,
+                  body_location
+                )
+              }
               parameter_locations <- parameter_locations[vapply(
                 params,
-                function(p) !identical(p[['in']], 'body'),
+                function(p) !p[['in']] %in% c('body', 'formData'),
                 logical(1)
               )]
               params <- Filter(
-                function(p) !identical(p[['in']], 'body'),
+                function(p) !p[['in']] %in% c('body', 'formData'),
                 params
               )
             } else if (!is.null(body)) {
               source_location <- body_location
               body <- local_ref(body, document, source_location = body_location)
               body_required <- isTRUE(body$required)
-              if ('application/json' %in% names(body$content)) {
-                body_media <- 'application/json'
-              } else if ('application/octet-stream' %in% names(body$content)) {
-                body_media <- 'application/octet-stream'
-              } else {
-                schema_problem(
-                  'body_media_type',
-                  'capability_gap',
-                  'Unsupported body media type',
-                  body_location
-                )
-              }
+              body_media <- request_body_media(
+                names(body$content),
+                preferred_media,
+                body_location
+              )
+              body_encoding <- body$content[[body_media]]$encoding %or% list()
               body_location <- schema_location(
                 schema_location(
                   schema_location(body_location, 'content'),
@@ -318,7 +409,22 @@ read_operations <- function(files, policy = list()) {
                 unsupported('Unsupported binary body schema')
               }
               body <- tryCatch(
-                supported_body(body, document, source_location = body_location),
+                {
+                  supported <- supported_body(
+                    body,
+                    document,
+                    source_location = body_location
+                  )
+                  if (form_media(body_media)) {
+                    body_encoding <- form_encoding(
+                      supported,
+                      body_encoding,
+                      body_media,
+                      body_location
+                    )
+                  }
+                  supported
+                },
                 error = function(e) {
                   if (identical(e$classification, 'schema_defect')) {
                     stop(e)
@@ -354,6 +460,7 @@ read_operations <- function(files, policy = list()) {
               body = body,
               body_required = body_required,
               body_media = body_media,
+              body_encoding = body_encoding,
               security = if ('security' %in% names(op)) {
                 op$security
               } else {
@@ -410,7 +517,28 @@ read_operations <- function(files, policy = list()) {
         logical(1)
       )]
       if (length(indices)) {
-        operations[indices] <- endpoint_records(document, operations[indices])
+        records <- endpoint_records(document, operations[indices])
+        operations[indices] <- records
+        for (record in Filter(
+          function(x) !is.null(x$parser_failure),
+          records
+        )) {
+          diagnostics[[length(diagnostics) + 1L]] <- c(
+            record[c('id', 'service', 'key', 'source')],
+            list(
+              status = 'unsupported',
+              reason = record$parser_failure,
+              classification = 'capability_gap',
+              code = 'parser_failure',
+              source_location = schema_location(
+                schema_location('#/paths', record$path),
+                tolower(record$method)
+              ),
+              guidance = 'Review the unsupported schema metadata or supply a complete request mapping.'
+            )
+          )
+        }
+        operations <- Filter(function(x) is.null(x$parser_failure), operations)
       }
     }
   }
@@ -524,7 +652,10 @@ compare_operations <- function(old, new) {
       }
     }
     if (
-      !identical(a$body, b$body) || !identical(a$body_required, b$body_required)
+      !identical(a$body, b$body) ||
+        !identical(a$body_required, b$body_required) ||
+        !identical(a$body_media, b$body_media) ||
+        !identical(a$body_encoding, b$body_encoding)
     ) {
       add(key, 'review', 'Body changed')
     }

@@ -27,9 +27,9 @@ schema_stress_acceptance <- function() {
   status <- vapply(parsed$inventory, `[[`, character(1), 'status')
   stopifnot(
     length(status) == 43L,
-    sum(status == 'selected') == 33L,
-    sum(status == 'unsupported') == 10L,
-    length(parsed$diagnostics) == 10L
+    sum(status == 'selected') == 35L,
+    sum(status == 'unsupported') == 8L,
+    length(parsed$diagnostics) == 8L
   )
   reasons <- setNames(
     vapply(
@@ -41,12 +41,21 @@ schema_stress_acceptance <- function() {
   )
   stopifnot(
     reasons[['POST /chem/standardize']] == 'Unsupported body media type',
-    reasons[['POST /convert/cdx-to-mol']] == 'Unsupported body media type',
-    reasons[['POST /ocsr/process-upload']] == 'Unsupported body media type',
+    reasons[['POST /convert/cdx-to-mol']] == '',
+    reasons[['POST /ocsr/process-upload']] == '',
     reasons[['POST /convert/batch']] == '',
     reasons[['GET /chem/tanimoto']] == 'Unsupported parameter composition',
     reasons[['GET /depict/2D_enhanced']] == 'Unsupported parameter composition'
   )
+  uploads <- Filter(
+    function(op) identical(unname(op$body_media), 'multipart/form-data'),
+    parsed$operations
+  )
+  stopifnot(setequal(
+    vapply(uploads, `[[`, character(1), 'key'),
+    c('POST /convert/cdx-to-mol', 'POST /ocsr/process-upload')
+  ))
+  stopifnot(length(specmill::operation_fixtures(uploads)) == 2L)
   stopifnot(all(
     c('application/json', 'image/svg+xml') %in%
       names(
@@ -233,7 +242,7 @@ schema_stress_acceptance <- function() {
     identical(jsonlite::fromJSON(request$body, simplifyVector = FALSE), body)
   )
   cat(
-    'Schema stress: 43 visible operations, 33 supported, 10 diagnosed; three local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
+    'Schema stress: 43 visible operations, 35 supported, 8 diagnosed; multipart fixtures and three local HTTP contracts, encoding, zero/false, omission, server-side path and successful JSON returns passed.\n'
   )
 }
 if (sys.nframe() == 0L) {

@@ -128,7 +128,24 @@ operation_fixtures <- function(operations, overrides = list()) {
       parameter_names(op$parameters)
     )
     if (!is.null(op$body)) {
-      if (identical(op$body_media, 'application/octet-stream')) {
+      if (form_media(op$body_media)) {
+        allow_empty <- identical(
+          op$body_media,
+          'application/x-www-form-urlencoded'
+        )
+        inputs['body'] <- list(
+          if ('body' %in% names(overrides[[op$name]])) {
+            form_value(
+              overrides[[op$name]]$body,
+              op$body,
+              body_value,
+              allow_empty
+            )
+          } else {
+            form_fixture(op$body, allow_empty)
+          }
+        )
+      } else if (identical(op$body_media, 'application/octet-stream')) {
         value <- if ('body' %in% names(overrides[[op$name]])) {
           overrides[[op$name]]$body
         } else {

@@ -68,7 +68,7 @@ initialize_client <- function(
       Description = paste(title, 'Client generated from a local API schema.'),
       License = license,
       Encoding = 'UTF-8',
-      Imports = 'httr2, jsonlite',
+      Imports = 'httr2, jsonlite, curl',
       Suggests = 'testthat'
     )
   }
@@ -84,9 +84,15 @@ initialize_client <- function(
       fixed = TRUE
     )[[1L]]
   ))
+  needs_helper <- !file.exists(file.path(root, 'R', 'api_request.R'))
   if (existing && !all(c('httr2', 'jsonlite') %in% imports)) {
     stop(
       'Existing DESCRIPTION must declare httr2 and jsonlite before adding the default transport'
+    )
+  }
+  if (existing && needs_helper && !'curl' %in% imports) {
+    stop(
+      'Existing DESCRIPTION must declare curl before adding the default transport'
     )
   }
   helper <- readLines(

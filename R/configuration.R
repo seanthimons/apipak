@@ -352,7 +352,17 @@ load_project <- function(
     if (!length(schema_files)) {
       stop(id, ': no schemas selected')
     }
-    inputs <<- c(inputs, schema_files)
+    reference_inputs <- unlist(
+      lapply(schema_files, function(path) {
+        names(attr(
+          read_schema_document(path),
+          'specmill_reference_dependencies'
+        )) %or%
+          character()
+      }),
+      use.names = FALSE
+    )
+    inputs <<- c(inputs, schema_files, reference_inputs)
     selection <- service$selection %or% list()
     config_fields(
       selection,
@@ -500,7 +510,9 @@ load_project <- function(
         api_exclude = entry$exclude,
         include = include,
         names = names,
-        override_keys = names(overrides)
+        override_keys = names(overrides),
+        body_media = defaults$body_media,
+        body_media_overrides = lapply(overrides, function(x) x$body_media)
       ),
       policy_version = service$policy_version %or% '1',
       package = package,

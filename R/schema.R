@@ -4,6 +4,16 @@
 
 # Track circular references during resolution
 
+# OpenAPI 3.1 permits a type array and JSON Schema permits an omitted type.
+# Metadata keeps that source value; compatibility classification only accepts
+# a single, non-missing string.
+schema_type_is <- function(type, value) {
+  is.character(type) &&
+    length(type) == 1L &&
+    !is.na(type) &&
+    identical(unname(type), value)
+}
+
 # Extract all schema references from paths
 extract_referenced_schemas <- function(paths) {
   refs <- character(0)
@@ -432,8 +442,8 @@ extract_swagger2_body_schema <- function(parameters, definitions) {
   # In Swagger 2.0, schemas with properties often omit the explicit type="object"
   has_properties <- !is.null(body_schema[["properties"]]) &&
     length(body_schema[["properties"]]) > 0
-  is_object <- (!is.na(schema_type) && schema_type == "object") ||
-    (is.na(schema_type) && has_properties)
+  is_object <- schema_type_is(schema_type, "object") ||
+    (!length(schema_type) || all(is.na(schema_type))) && has_properties
 
   if (is_object && has_properties) {
     required_fields <- body_schema[["required"]] %||% character(0)
@@ -458,8 +468,7 @@ extract_swagger2_body_schema <- function(parameters, definitions) {
 
   # Handle array type
   if (
-    !is.na(schema_type) &&
-      schema_type == "array" &&
+    schema_type_is(schema_type, "array") &&
       !is.null(body_schema[["items"]])
   ) {
     items <- body_schema[["items"]]
@@ -500,7 +509,7 @@ extract_swagger2_body_schema <- function(parameters, definitions) {
 
     # Inline array items
     item_type <- items[["type"]] %||% NA
-    if (!is.na(item_type) && item_type == "string") {
+    if (schema_type_is(item_type, "string")) {
       metadata <- list(
         query = list(
           name = "query",
@@ -523,7 +532,7 @@ extract_swagger2_body_schema <- function(parameters, definitions) {
   }
 
   # Handle simple string type
-  if (!is.na(schema_type) && schema_type == "string") {
+  if (schema_type_is(schema_type, "string")) {
     metadata <- list(
       query = list(
         name = "query",
@@ -679,7 +688,7 @@ extract_body_properties <- function(
   }
 
   # Handle simple string type
-  if (!is.na(type) && type == "string") {
+  if (schema_type_is(type, "string")) {
     # Create synthetic parameter metadata for the string body
     metadata <- list(
       query = list(
@@ -702,7 +711,7 @@ extract_body_properties <- function(
   }
 
   # If array, extract item type
-  if (type == "array" && !is.null(json_schema[["items"]])) {
+  if (schema_type_is(type, "array") && !is.null(json_schema[["items"]])) {
     items <- json_schema[["items"]]
 
     # If items is a reference, resolve it
@@ -750,8 +759,7 @@ extract_body_properties <- function(
     # Array with inline object items (no $ref, but has type: object with properties)
     item_type <- items[["type"]] %||% NA
     if (
-      !is.na(item_type) &&
-        item_type == "object" &&
+      schema_type_is(item_type, "object") &&
         !is.null(items[["properties"]])
     ) {
       required_fields <- items[["required"]] %||% character(0)
@@ -778,7 +786,7 @@ extract_body_properties <- function(
     }
 
     # Simple array (e.g., string array)
-    if (!is.na(item_type) && item_type == "string") {
+    if (schema_type_is(item_type, "string")) {
       # String array - create query parameter metadata
       metadata <- list(
         query = list(
@@ -811,7 +819,7 @@ extract_body_properties <- function(
   }
 
   # If object, extract properties
-  if (type == "object" && !is.null(json_schema[["properties"]])) {
+  if (schema_type_is(type, "object") && !is.null(json_schema[["properties"]])) {
     required_fields <- json_schema[["required"]] %||% character(0)
 
     metadata <- purrr::imap(
@@ -931,8 +939,7 @@ extract_query_params_with_refs <- function(
 
           # Handle nested objects with dot notation
           if (
-            !is.na(prop_type) &&
-              prop_type == "object" &&
+            schema_type_is(prop_type, "object") &&
               !is.null(prop[["properties"]])
           ) {
             # This is a nested object - recurse with dot notation
@@ -969,7 +976,7 @@ extract_query_params_with_refs <- function(
             flat_name <- paste0(param_name, ".", prop_name)
 
             # Check if array type and reject binary arrays
-            if (!is.na(prop_type) && prop_type == "array") {
+            if (schema_type_is(prop_type, "array")) {
               items <- prop[["items"]] %||% list()
               items_type <- items[["type"]] %||% NA
               items_format <- items[["format"]] %||% NA
@@ -1015,7 +1022,7 @@ extract_query_params_with_refs <- function(
       # REJECT binary arrays (e.g., files[])
       schema_type <- schema[["type"]] %||% NA
       schema_format <- schema[["format"]] %||% NA
-      if (!is.na(schema_type) && schema_type == "array") {
+      if (schema_type_is(schema_type, "array")) {
         items <- schema[["items"]] %||% list()
         items_format <- items[["format"]] %||% NA
         if (!is.na(items_format) && items_format == "binary") {

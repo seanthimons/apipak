@@ -121,13 +121,17 @@ get_response_schema_type <- function(responses, openapi_spec) {
   # Determine type from schema
   schema_type <- json_schema[["type"]] %||% ""
 
-  if (schema_type == "array") {
+  if (schema_type_is(schema_type, "array")) {
     return("array")
   }
-  if (schema_type == "object") {
+  if (schema_type_is(schema_type, "object")) {
     return("object")
   }
-  if (schema_type %in% c("string", "number", "integer", "boolean")) {
+  if (any(vapply(
+    c("string", "number", "integer", "boolean"),
+    function(value) schema_type_is(schema_type, value),
+    logical(1)
+  ))) {
     return("scalar")
   }
 

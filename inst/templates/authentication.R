@@ -69,7 +69,7 @@ set_api_token <- function(token, scheme = NULL, persist = FALSE,
     if (!existing) Sys.chmod(file, '0600')
     message('Credential saved to ', file, '. It is also available in this R session.')
   }
-  do.call(Sys.setenv, stats::setNames(list(token), envvar))
+  do.call(Sys.setenv, stats::setNames(base::list(token), envvar))
   invisible(NULL)
 }
 
@@ -85,9 +85,9 @@ api_auth <- function(request, requirements) {
       if (scheme$type == 'bearer') {
         request <- httr2::req_auth_bearer_token(request, token)
       } else if (scheme$location == 'header') {
-        request <- do.call(httr2::req_headers, c(list(request, .redact = scheme$name), stats::setNames(list(token), scheme$name)))
+        request <- do.call(httr2::req_headers, base::c(base::list(request, .redact = scheme$name), stats::setNames(base::list(token), scheme$name)))
       } else if (scheme$location == 'query') {
-        request <- do.call(httr2::req_url_query, c(list(request), stats::setNames(list(token), scheme$name)))
+        request <- do.call(httr2::req_url_query, base::c(base::list(request), stats::setNames(base::list(token), scheme$name)))
       } else {
         cookie <- paste0(utils::URLencode(scheme$name, reserved = TRUE), '=', utils::URLencode(token, reserved = TRUE))
         prior <- request$headers[['Cookie']]

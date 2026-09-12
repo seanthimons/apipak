@@ -103,7 +103,7 @@ mappings_acceptance <- function() {
     formals(fn),
     formals(function(
       identifier,
-      mode = c('wide', 'raw'),
+      mode = base::evalq(c('wide', 'raw'), envir = base::baseenv()),
       language = 'fr',
       enabled = FALSE
     ) {
@@ -309,7 +309,10 @@ mappings_acceptance <- function() {
   configured$spec$docs <- list(
     examples = list(list(query = list('first', 'second')))
   )
-  documented <- specmill::render_operation(configured$operation, configured$spec)
+  documented <- specmill::render_operation(
+    configured$operation,
+    configured$spec
+  )
   example <- sub(
     "^#' ",
     '',

@@ -96,6 +96,49 @@ new_client_acceptance <- function() {
   }
   fails(specmill::initialize_client(root, schema, base_url = base_url))
   stopifnot(!dir.exists(root))
+  existing <- tempfile('existing-client-')
+  dir.create(existing)
+  on.exit(unlink(existing, recursive = TRUE), add = TRUE)
+  writeLines(
+    c(
+      'Package: existingclient',
+      'Title: Existing client',
+      'Version: 0.0.0.9000',
+      'Description: Existing client.',
+      'License: MIT',
+      'Encoding: UTF-8',
+      'Imports: httr2, jsonlite'
+    ),
+    file.path(existing, 'DESCRIPTION')
+  )
+  missing_curl <- tryCatch(
+    specmill::initialize_client(existing, schema, base_url = base_url),
+    error = identity
+  )
+  stopifnot(
+    inherits(missing_curl, 'error'),
+    grepl('curl', conditionMessage(missing_curl)),
+    identical(
+      list.files(existing, all.files = TRUE),
+      c('.', '..', 'DESCRIPTION')
+    )
+  )
+  dir.create(file.path(existing, 'R'))
+  helper <- file.path(existing, 'R', 'api_request.R')
+  writeLines('api_request <- function(...) NULL', helper)
+  before_existing <- tools::md5sum(c(
+    file.path(existing, 'DESCRIPTION'),
+    helper
+  ))
+  custom_helper <- tryCatch(
+    specmill::initialize_client(existing, schema, base_url = base_url),
+    error = identity
+  )
+  stopifnot(
+    inherits(custom_helper, 'error'),
+    grepl('Initialization conflicts', conditionMessage(custom_helper)),
+    identical(before_existing, tools::md5sum(names(before_existing)))
+  )
   specmill::initialize_client(
     root,
     schema,
@@ -189,7 +232,7 @@ new_client_acceptance <- function() {
     stop(paste(readLines(install_log), collapse = '\n'))
   }
   libraries <- .libPaths()[!file.exists(file.path(.libPaths(), 'specmill'))]
-  runtime_packages <- c('httr2', 'jsonlite')
+  runtime_packages <- c('httr2', 'jsonlite', 'curl')
   stopifnot(all(
     runtime_packages %in%
       trimws(strsplit(

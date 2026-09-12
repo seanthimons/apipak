@@ -54,7 +54,16 @@ bind_tools <- function(group, envir) {
 `%or%` <- function(x, y) if (is.null(x)) y else x
 
 # Escape schema strings as R literals. No remote text is evaluated as code.
-r_literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = '\n')
+r_literal <- function(x) {
+  text <- paste(deparse(x, width.cutoff = 500L), collapse = '\n')
+  # Data constructors must not resolve through generated functions named list/c.
+  # Language objects remain caller-owned expressions (development callbacks).
+  if (!is.language(x) && !is.function(x) && is.call(str2lang(text))) {
+    paste0('base::evalq(', text, ', envir = base::baseenv())')
+  } else {
+    text
+  }
+}
 
 local_ref <- function(
   node,
@@ -67,6 +76,14 @@ local_ref <- function(
   }
   if (!is.list(node)) {
     fail('invalid_reference_target', 'Reference target must be an object')
+  }
+  reference_error <- node[['x-specmill-reference-error']]
+  if (!is.null(reference_error)) {
+    fail(
+      reference_error$code %or% 'external_reference',
+      reference_error$message %or% 'Unresolved reference',
+      'capability_gap'
+    )
   }
   ref <- node[['$ref']]
   if (is.null(ref)) {

@@ -255,9 +255,9 @@ body_value <- function(value, schema) {
 body_checks <- function(schema, value) {
   paste0(
     value,
-    ' <- (',
+    ' <- base::evalq(',
     r_literal(body_value),
-    ')(',
+    ', envir = base::baseenv())(',
     value,
     ', ',
     r_literal(schema),

@@ -8,7 +8,7 @@ Description: Development tools for local schema parsing, wrapper generation,
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports: cli, digest, dplyr, fs, jsonlite, purrr, readr, roxygen2, stringr, tibble, tidyr, yaml, yaml12 (>= 0.1.0)
-Suggests: testthat, httr2, callr, httpuv, withr, knitr, rmarkdown
+Suggests: testthat, httr2, curl, callr, httpuv, withr, knitr, rmarkdown
 VignetteBuilder: knitr
 URL: https://seanthimons.github.io/specmill/, https://github.com/seanthimons/specmill
 BugReports: https://github.com/seanthimons/specmill/issues

@@ -47,10 +47,25 @@ validate_settings <- function(
       'post_state',
       'parameter_order',
       'docs',
-      'batch'
+      'batch',
+      'body_media'
     ),
     label
   )
+  if (!is.null(settings$body_media)) {
+    config_string(settings$body_media, paste(label, 'body_media'))
+    if (
+      !settings$body_media %in%
+        c(
+          'application/json',
+          'application/octet-stream',
+          'application/x-www-form-urlencoded',
+          'multipart/form-data'
+        )
+    ) {
+      stop('Unsupported body_media')
+    }
+  }
   for (name in intersect(
     c('name', 'helper', 'file', 'implementation', 'post_state'),
     names(settings)
@@ -376,7 +391,7 @@ request_binding <- function(
   }
   if ('array' %in% names(binding)) {
     return(paste0(
-      'list(',
+      'base::list(',
       paste(
         vapply(
           binding$array,
@@ -397,11 +412,11 @@ request_binding <- function(
     values <- binding[[field]]
     return(paste0(
       if (field == 'vector') {
-        'c('
+        'base::c('
       } else if (field == 'compact_object') {
-        'local({ .body <- Filter(Negate(is.null), list('
+        'base::local({ .body <- base::Filter(base::Negate(base::is.null), base::list('
       } else {
-        'list('
+        'base::list('
       },
       paste(
         vapply(
@@ -424,7 +439,7 @@ request_binding <- function(
         collapse = ', '
       ),
       if (field == 'compact_object') {
-        ')); if (length(.body)) .body else list() })'
+        ')); if (base::length(.body)) .body else base::list() })'
       } else {
         ')'
       }
