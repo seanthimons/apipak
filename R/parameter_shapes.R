@@ -1,5 +1,5 @@
 # Normalize only encodings whose flat wire representation is defined.
-parameter_shape <- function(p, schema, version, at) {
+parameter_shape <- function(p, schema, version, at, query_array_style = 'schema') {
   fail <- function(code, message, classification = 'capability_gap') {
     schema_problem(code, classification, message, at)
   }
@@ -41,6 +41,14 @@ parameter_shape <- function(p, schema, version, at) {
   }
   if (!is.null(p$content) || isTRUE(p$allowReserved)) {
     fail('parameter_encoding', 'Unsupported parameter serialization')
+  }
+  query_array_style <- match.arg(query_array_style, c('schema', 'brackets'))
+  if (
+    identical(query_array_style, 'brackets') &&
+      identical(location, 'query') &&
+      identical(schema$type, 'array')
+  ) {
+    return(list(style = 'brackets', explode = TRUE, collection_format = NULL))
   }
   if (identical(version, '2.0')) {
     if (location == 'cookie' || identical(schema$type, 'object')) {
@@ -100,6 +108,15 @@ parameter_shape <- function(p, schema, version, at) {
       NULL
     }
   )
+}
+
+query_array_style <- function(style, label = 'query_array_style') {
+  style <- style %or% 'schema'
+  config_string(style, label)
+  if (!style %in% c('schema', 'brackets')) {
+    stop(label, ' must be schema or brackets')
+  }
+  style
 }
 
 # Preserve existing helper calls for the previously supported subset.

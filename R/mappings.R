@@ -48,7 +48,8 @@ validate_settings <- function(
       'parameter_order',
       'docs',
       'batch',
-      'body_media'
+      'body_media',
+      'query_array_style'
     ),
     label
   )
@@ -65,6 +66,9 @@ validate_settings <- function(
     ) {
       stop('Unsupported body_media')
     }
+  }
+  if (!is.null(settings$query_array_style)) {
+    query_array_style(settings$query_array_style, paste(label, 'query_array_style'))
   }
   for (name in intersect(
     c('name', 'helper', 'file', 'implementation', 'post_state'),

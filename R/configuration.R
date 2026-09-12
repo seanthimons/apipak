@@ -512,7 +512,12 @@ load_project <- function(
         names = names,
         override_keys = names(overrides),
         body_media = defaults$body_media,
-        body_media_overrides = lapply(overrides, function(x) x$body_media)
+        body_media_overrides = lapply(overrides, function(x) x$body_media),
+        query_array_style = defaults$query_array_style,
+        query_array_style_overrides = lapply(
+          overrides,
+          function(x) x$query_array_style
+        )
       ),
       policy_version = service$policy_version %or% '1',
       package = package,

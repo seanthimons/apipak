@@ -4,7 +4,8 @@ audit_testing_specs <- function(
   prepared = '.docs-lib/additional-json',
   output = 'dev/audits/additional-schemas',
   native_root = NULL,
-  report = TRUE
+  report = TRUE,
+  policies = list()
 ) {
   inputs <- if (is.null(native_root)) {
     read.csv(
@@ -31,7 +32,7 @@ audit_testing_specs <- function(
     message(i, '/', nrow(inputs), ': ', input$file)
     result <- tryCatch(
       callr::r(
-        function(input, native) {
+        function(input, native, policy) {
           clean <- function(x) gsub('[\r\n]+', ' ', conditionMessage(x))
           attempt <- function(expr) {
             tryCatch(
@@ -45,7 +46,7 @@ audit_testing_specs <- function(
           raw_error <- if (native) {
             ''
           } else {
-            attempt(specmill::read_operations(input$source))
+            attempt(specmill::read_operations(input$source, policy))
           }
           summary <- list(
             file = input$file,
@@ -109,7 +110,7 @@ audit_testing_specs <- function(
           warnings <- character()
           parsed <- tryCatch(
             withCallingHandlers(
-              specmill::read_operations(input$prepared),
+              specmill::read_operations(input$prepared, policy),
               warning = function(w) {
                 warnings <<- unique(c(warnings, clean(w)))
                 invokeRestart('muffleWarning')
@@ -177,7 +178,15 @@ audit_testing_specs <- function(
           }
           list(summary = summary, operations = records)
         },
-        args = list(input = input, native = !is.null(native_root)),
+        args = list(
+          input = input,
+          native = !is.null(native_root),
+          policy = if (is.null(policies[[input$file]])) {
+            list()
+          } else {
+            policies[[input$file]]
+          }
+        ),
         timeout = 180
       ),
       error = function(e) {

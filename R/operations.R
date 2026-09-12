@@ -2,6 +2,24 @@ read_operations <- function(files, policy = list()) {
   operations <- list()
   diagnostics <- list()
   inventory <- list()
+  policy$query_array_style <- query_array_style(policy$query_array_style)
+  query_array_style_overrides <- policy$query_array_style_overrides %or% list()
+  config_fields(
+    query_array_style_overrides,
+    names(query_array_style_overrides),
+    'query_array_style_overrides'
+  )
+  for (key in names(query_array_style_overrides)) {
+    query_array_style(
+      query_array_style_overrides[[key]],
+      paste('query_array_style for', key)
+    )
+  }
+  policy$query_array_style_overrides <- query_array_style_overrides
+  policy$override_keys <- union(
+    policy$override_keys %or% character(),
+    names(query_array_style_overrides)
+  )
   methods <- policy$methods %or%
     c('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE')
   patterns <- policy$exclude %or% character()
@@ -352,7 +370,14 @@ read_operations <- function(files, policy = list()) {
                 )
               }
               encoding <- tryCatch(
-                parameter_shape(p, schema, version, source_location),
+                parameter_shape(
+                  p,
+                  schema,
+                  version,
+                  source_location,
+                  policy$query_array_style_overrides[[key]] %or%
+                    policy$query_array_style
+                ),
                 error = function(e) {
                   if (identical(e$classification, 'schema_defect')) {
                     stop(e)

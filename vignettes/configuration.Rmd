@@ -423,9 +423,38 @@ parameter encoding; JSON body support is broader.
 Swagger 2 supports primitive arrays with `collectionFormat: csv` (default),
 `ssv`, `tsv`, or `pipes` in query, path, and header parameters; `multi` is
 query-only. Ordinary cookies and object parameters are not Swagger 2 types.
-Form-data/multipart encoding, parameter `content`, and `allowReserved: true`
+Parameter `content` and `allowReserved: true`
 remain explicitly diagnosed rather than guessed. Binary parameters require
 source-contract review, especially files declared in query strings (#16).
+
+For APIs that explicitly require repeated bracketed query-array names, opt in:
+
+```yaml
+defaults:
+  query_array_style: brackets
+operations:
+  GET /ordinary-items:
+    query_array_style: schema
+```
+
+`brackets` sends a flat primitive array as `expand[]=customer&expand[]=invoice`
+(with URI percent encoding). It applies to query arrays in the selected service
+or operation, regardless of their declared array style. `schema` restores the
+normal schema-driven behavior for an operation. This is an explicit convention,
+not an interpretation of OpenAPI `deepObject` for arrays: the
+[OpenAPI definition](https://spec.openapis.org/oas/v3.0.4.html#style-values)
+defines `deepObject` for objects, while
+[Stripe's expansion examples](https://docs.stripe.com/api/expanding_objects)
+show repeated `expand[]` keys.
+
+Only arrays of strings, integers, numbers, or booleans are covered. Object,
+path, header, cookie, JSON, and form-body encodings keep their existing behavior.
+Nested arrays, object items, unions, binary items, null elements, and empty
+arrays remain unsupported. No API is detected automatically and no schema is
+rewritten. The direct reader accepts the same opt-in as
+`read_operations(file, policy = list(query_array_style = 'brackets'))`.
+Existing helpers must implement the bracket style in their existing
+`parameter_serialization` handling; accepting the argument alone is insufficient.
 
 For example, a query object `list(R = 1L, G = 2L)` becomes `R=1&G=2` with
 exploded form, `p=R,1,G,2` with non-exploded form, or `p[R]=1&p[G]=2` with

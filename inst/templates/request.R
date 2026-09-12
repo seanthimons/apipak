@@ -54,6 +54,7 @@ api_request <- function(method, path, path_params, query, body, headers = base::
     if (p$location == 'header') delimiter <- if (!base::is.null(p$collection_format)) base::switch(p$collection_format, ssv = ' ', tsv = '\t', pipes = '|', ',') else ','
     flat <- if (base::identical(type, 'object')) base::as.vector(base::rbind(keys, values)) else values
     if (p$location %in% base::c('query', 'cookie')) {
+      if (style == 'brackets') base::return(base::paste0(name, '%5B%5D=', values))
       if (style == 'deepObject') base::return(base::paste0(name, '[', keys, ']=', values))
       if (explode && base::identical(type, 'object')) base::return(base::paste0(keys, '=', values))
       if (explode && base::identical(type, 'array')) base::return(base::paste0(name, '=', values))
