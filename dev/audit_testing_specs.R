@@ -2,13 +2,26 @@
 # Uses installed specmill; no live API calls or active-client writes.
 audit_testing_specs <- function(
   prepared = '.docs-lib/additional-json',
-  output = 'dev/audits/additional-schemas'
+  output = 'dev/audits/additional-schemas',
+  native_root = NULL
 ) {
-  inputs <- read.csv(
-    file.path(prepared, 'inputs.csv'),
-    stringsAsFactors = FALSE,
-    colClasses = 'character'
-  )
+  inputs <- if (is.null(native_root)) {
+    read.csv(
+      file.path(prepared, 'inputs.csv'),
+      stringsAsFactors = FALSE,
+      colClasses = 'character'
+    )
+  } else {
+    manifest <- read.csv(
+      file.path(native_root, 'manifest.csv'),
+      colClasses = 'character'
+    )
+    manifest <- manifest[manifest$tier != 'reference', ]
+    manifest$source <- file.path(native_root, manifest$file)
+    manifest$prepared <- manifest$source
+    manifest$conversion_error <- ''
+    manifest
+  }
   dir.create(output, recursive = TRUE, showWarnings = FALSE)
   before <- tools::md5sum(inputs$source)
   summaries <- operations <- list()
@@ -17,7 +30,7 @@ audit_testing_specs <- function(
     message(i, '/', nrow(inputs), ': ', input$file)
     result <- tryCatch(
       callr::r(
-        function(input) {
+        function(input, native) {
           clean <- function(x) gsub('[\r\n]+', ' ', conditionMessage(x))
           attempt <- function(expr) {
             tryCatch(
@@ -28,7 +41,11 @@ audit_testing_specs <- function(
               error = clean
             )
           }
-          raw_error <- attempt(specmill::read_operations(input$source))
+          raw_error <- if (native) {
+            ''
+          } else {
+            attempt(specmill::read_operations(input$source))
+          }
           summary <- list(
             file = input$file,
             tier = input$tier,
@@ -49,7 +66,23 @@ audit_testing_specs <- function(
           if (nzchar(input$conversion_error)) {
             return(list(summary = summary, operations = records))
           }
-          doc <- jsonlite::read_json(input$prepared)
+          doc <- tryCatch(
+            if (native) {
+              specmill:::read_schema_document(input$source)
+            } else {
+              jsonlite::read_json(input$prepared)
+            },
+            error = function(e) {
+              summary$parser_error <<- clean(e)
+              NULL
+            }
+          )
+          if (is.null(doc)) {
+            if (native) {
+              summary$raw_error <- summary$parser_error
+            }
+            return(list(summary = summary, operations = records))
+          }
           methods <- c(
             'get',
             'post',
@@ -87,6 +120,9 @@ audit_testing_specs <- function(
             }
           )
           summary$warnings <- paste(warnings, collapse = '; ')
+          if (native) {
+            summary$raw_error <- summary$parser_error
+          }
           if (is.null(parsed)) {
             return(list(summary = summary, operations = records))
           }
@@ -140,7 +176,7 @@ audit_testing_specs <- function(
           }
           list(summary = summary, operations = records)
         },
-        args = list(input = input),
+        args = list(input = input, native = !is.null(native_root)),
         timeout = 180
       ),
       error = function(e) {
@@ -173,7 +209,9 @@ audit_testing_specs <- function(
     file.path(output, 'sources.csv'),
     row.names = FALSE
   )
-  report_testing_specs(prepared, output)
+  if (is.null(native_root)) {
+    report_testing_specs(prepared, output)
+  }
   invisible(list(
     schemas = dplyr::bind_rows(summaries),
     operations = dplyr::bind_rows(operations)
@@ -284,7 +322,7 @@ report_testing_specs <- function(
     c(
       '# Additional schema corpus: 2026-09-11',
       '',
-      'Tested installed specmill from c50f5ea. All 33 primary downloads were exercised independently,',
+      'Tested installed specmill. The historical baseline was recorded at c50f5ea. All 33 primary downloads were exercised independently,',
       'with all HTTP methods enabled and no proving-ground exclusions. Source hashes were unchanged.',
       'The active 27-API configuration and its 328/205/15 baseline were not modified.',
       '',
@@ -307,7 +345,7 @@ report_testing_specs <- function(
       '',
       '## Actionable findings',
       '',
-      '1. **YAML ingestion:** all 26 YAML sources fail the JSON-only entry point. The table uses',
+      '1. **YAML ingestion:** schemas.csv records direct-source errors for the installed package. The table uses',
       '   temporary JSON conversions with installed ruamel.yaml in YAML 1.2 mode. No bundling,',
       '   schema repairs, example-derived types, name overrides, or API requests were applied.',
       '2. **DigitalOcean is a false positive:** all 659 operations contain `$ref` to a local',
