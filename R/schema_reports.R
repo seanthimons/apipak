@@ -9,8 +9,13 @@ schema_report_files <- function(
     files <- files[!grepl(exclude_pattern, files, ignore.case = TRUE)]
   }
   if (!is.null(stage_priority)) {
-    stage <- sub('^.*-([^-]+)[.]json$', '\\1', files)
-    group <- sub('-[^-]+[.]json$', '', files)
+    stage <- sub(
+      '^.*-([^-]+)[.](json|ya?ml)$',
+      '\\1',
+      files,
+      ignore.case = TRUE
+    )
+    group <- sub('-[^-]+[.](json|ya?ml)$', '', files, ignore.case = TRUE)
     ranked <- order(match(stage, stage_priority), files)
     valid <- stage[ranked] %in% stage_priority | stage[ranked] == files[ranked]
     files <- files[ranked][valid & !duplicated(group[ranked])]
@@ -22,7 +27,7 @@ schema_report_operations <- function(path, policy) {
   if (!file.exists(path)) {
     return(list())
   }
-  document <- jsonlite::read_json(path, simplifyVector = FALSE)
+  document <- read_schema_document(path)
   # Diff identities are method/path pairs. Pending facade overrides must not
   # hide new operations or prevent reporting a removed operation.
   keys <- unlist(
@@ -97,7 +102,7 @@ schema_report_operations <- function(path, policy) {
 schema_diff <- function(
   old_dir,
   new_dir,
-  pattern = '\\.json$',
+  pattern = '\\.(json|ya?ml)$',
   stage_priority = NULL,
   exclude_pattern = NULL,
   policies = list()

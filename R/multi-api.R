@@ -51,8 +51,13 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
         sep = '_'
       ))
     }
-    schema_file <- paste0('schema/', api, '.json')
-    files[[schema_file]] <- proposal$files[['schema/openapi.json']]
+    source_file <- grep(
+      '^schema/openapi\\.',
+      names(proposal$files),
+      value = TRUE
+    )
+    schema_file <- paste0('schema/', api, '.', tools::file_ext(source_file))
+    files[[schema_file]] <- proposal$files[[source_file]]
     helper <- paste0(api, '_request')
     code <- file_text(system.file(
       'templates/request.R',
@@ -70,7 +75,7 @@ multi_api_proposal <- function(root, apis, package, naming, group_by) {
     for (file in grep('^apis/', names(proposal$files), value = TRUE)) {
       text <- proposal$files[[file]]
       # Reuse the commented single-schema scaffold, changing only identities.
-      text <- gsub('schema/openapi.json', schema_file, text, fixed = TRUE)
+      text <- gsub(source_file, schema_file, text, fixed = TRUE)
       config <- yaml::yaml.load(text, handlers = list(seq = function(x) x))
       id <- paste(api, config$id, sep = '_')
       text <- sub('(?m)^id: [^\n]+', paste0('id: ', id), text, perl = TRUE)
@@ -186,7 +191,7 @@ initialize_apis <- function(
     files[['.Rbuildignore']],
     '^specmill-apis\\.yml$',
     '^build\\.R$',
-    '^.*\\.json$',
+    '^.*\\.(json|ya?ml)$',
     sep = '\n'
   )
   conflicts <- names(files)[file.exists(file.path(root, names(files)))]

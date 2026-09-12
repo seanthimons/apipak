@@ -17,17 +17,57 @@ All project/config/schema paths resolve against the explicit client `root`, not
 the current working directory or the service YAML's directory. Use relative
 paths inside YAML. Parent traversal, absolute paths, and symlinks are rejected.
 
+## JSON and YAML schema files
+
+Pass a local `.json`, `.yaml`, or `.yml` file directly to `read_operations()`,
+`configure_client()`, or `initialize_client()`. The API catalogue, project
+generation, and schema comparisons use the same schema loader. No separate
+conversion command or converted JSON sidecar is needed. Service `schemas.files`
+and `schemas.patterns` can select either format. Initialization keeps the source
+format and extension in `schema/openapi.<ext>` for a single API, or
+`schema/<api>.<ext>` for a reviewed API catalogue.
+
+YAML uses YAML 1.2 scalar resolution: unquoted `yes`, `no`, `on`, and `off` are
+strings; `true` and `false` are booleans. Quote values when the schema requires
+a string, including Swagger's `swagger: '2.0'`. Empty objects (`{}`), empty
+arrays (`[]`), explicit nulls, and omitted fields remain distinct. Sequence
+elements are retained as lists, including single-element sequences. UTF-8 text
+is read without depending on the machine's locale. Types are never inferred
+from examples.
+
+Numbers use R's integer/double representation, as with JSON ingestion. Values
+outside the 32-bit integer range use doubles; arbitrary-precision integers
+are not supported, and values beyond the exact double range can lose precision.
+Non-finite numbers are rejected. YAML input must contain exactly one document.
+Duplicate mapping keys, complex keys, boolean/null keys, and custom tags
+(including executable tags) are rejected. Mapping keys must be strings or
+exact integers with absolute value at most `2^53 - 1`. Integer response keys
+such as `200:` are read as strings; quoting them is clearer. YAML anchors and
+aliases are supported; merge keys (`<<`) are rejected.
+
+These rules support the JSON-shaped data model described in the
+[OpenAPI format specification](https://spec.openapis.org/oas/v3.1.0.html#format).
+Loading YAML does not expand the supported OpenAPI feature set. External
+references are not downloaded or bundled; request-body and parameter
+capabilities and their diagnostics remain the same for both formats.
+
 ## Project file: specmill.yml
 
 ### Review multiple APIs once
 
-Put the downloaded JSON schemas in the project root. The API catalogue proposes
+Put the downloaded JSON or YAML schemas in the project root. The API catalogue proposes
 names from schema titles, detects duplicate content independently of filenames
 and formatting, and offers one editable table:
 
 ```r
 apis <- specmill::configure_apis(root, mode = 'apply')
 ```
+
+Default discovery selects `.json`, `.yaml`, and `.yml` files directly inside
+root, excluding `specmill.yml`, `specmill.yaml`, `specmill-apis.yml`, and
+`specmill-apis.yaml`. Pass `schemas` explicitly when other configuration YAML
+files share the directory. Equivalent JSON and YAML documents count as
+duplicate content.
 
 In an interactive session, review `api`, `base_url`, and `include`, then close
 the editor. Choices are saved in `specmill-apis.yml`; unchanged inputs reuse

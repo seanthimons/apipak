@@ -49,7 +49,7 @@ filter_components_by_refs <- function(components, refs) {
 # Filters out unwanted endpoints but keeps all schema components intact
 preprocess_schema <- function(schema_file, exclude_endpoints = character()) {
   # Load schema
-  openapi <- jsonlite::fromJSON(schema_file, simplifyVector = FALSE)
+  openapi <- read_schema_document(schema_file)
 
   # Filter out unwanted endpoints (preflight, health checks, etc.)
   paths <- openapi$paths

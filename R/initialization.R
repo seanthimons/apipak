@@ -24,7 +24,7 @@ initialize_client <- function(
   schema <- normalizePath(schema, winslash = '/', mustWork = TRUE)
   naming <- match.arg(naming)
   group_by <- match.arg(group_by)
-  document <- jsonlite::read_json(schema)
+  document <- read_schema_document(schema)
   if (is.null(base_url) && length(document$servers)) {
     base_url <- document$servers[[1L]]$url
   }

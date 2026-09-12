@@ -70,10 +70,24 @@ configure_apis <- function(
   mode <- match.arg(mode)
   root <- normalizePath(root, winslash = '/', mustWork = TRUE)
   if (is.null(schemas)) {
-    schemas <- list.files(root, '\\.json$', full.names = TRUE)
+    schemas <- list.files(
+      root,
+      '\\.(json|ya?ml)$',
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
+    schemas <- schemas[
+      !tolower(basename(schemas)) %in%
+        c(
+          'specmill.yml',
+          'specmill.yaml',
+          'specmill-apis.yml',
+          'specmill-apis.yaml'
+        )
+    ]
   }
   if (!length(schemas)) {
-    stop('No JSON schemas found')
+    stop('No JSON or YAML schemas found')
   }
   paths <- normalizePath(schemas, winslash = '/', mustWork = TRUE)
   if (any(!startsWith(paths, paste0(root, '/')))) {
@@ -108,7 +122,7 @@ configure_apis <- function(
     list()
   }
   rows <- lapply(seq_along(paths), function(i) {
-    document <- jsonlite::read_json(paths[[i]])
+    document <- read_schema_document(paths[[i]])
     version <- document$openapi %or% document$swagger %or% ''
     if (!grepl('^(3\\.[01]\\.|2\\.0$)', version) || is.null(document$paths)) {
       stop('Not a supported API schema: ', relative[[i]])

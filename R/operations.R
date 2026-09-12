@@ -11,7 +11,7 @@ read_operations <- function(files, policy = list()) {
   }
   for (file in files) {
     first_operation <- length(operations) + 1L
-    document <- jsonlite::fromJSON(file, simplifyVector = FALSE)
+    document <- read_schema_document(file)
     source_hash <- unname(tools::md5sum(file))
     security_schemes <- lapply(
       document$components$securitySchemes %or%

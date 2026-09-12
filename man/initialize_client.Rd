@@ -9,7 +9,7 @@ initialize_client(root, schema, package = NULL, title = NULL, author = NULL,
 }
 \arguments{
 \item{root}{Destination client directory; it may be created when absent.}
-\item{schema}{Local JSON schema, or a reviewed data frame returned by configure_apis for multiple APIs. Multi-API setup requires an existing root containing those schemas, and a new package. Each included API receives a separate request helper, namespaced function names and credential identities.}
+\item{schema}{Local JSON, YAML, or YML schema, or a reviewed data frame returned by configure_apis for multiple APIs. Multi-API setup requires an existing root containing those schemas, and a new package. Each included API receives a separate request helper, namespaced function names and credential identities.}
 \item{package}{New R package name, for example \code{catalogueclient}. Must agree with an existing DESCRIPTION when supplied.}
 \item{title}{Human-readable package title, required for a new package.}
 \item{author}{Named list with \code{given}, \code{family}, and \code{email} strings, required for a new package.}

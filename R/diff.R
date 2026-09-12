@@ -54,8 +54,8 @@ diff_single_schema <- function(old_path, new_path) {
       }
 
       # Parse both schemas
-      old_json <- jsonlite::fromJSON(old_path, simplifyVector = FALSE)
-      new_json <- jsonlite::fromJSON(new_path, simplifyVector = FALSE)
+      old_json <- read_schema_document(old_path)
+      new_json <- read_schema_document(new_path)
 
       old_spec <- suppressMessages(openapi_to_spec(old_json))
       new_spec <- suppressMessages(openapi_to_spec(new_json))
@@ -217,7 +217,7 @@ diff_single_schema <- function(old_path, new_path) {
 diff_schemas <- function(
   old_dir,
   new_dir,
-  pattern = "\\.json$",
+  pattern = "\\.(json|ya?ml)$",
   stage_priority = NULL,
   exclude_pattern = NULL
 ) {
@@ -281,7 +281,7 @@ diff_schemas <- function(
               )
             })
           }
-          new_json <- jsonlite::fromJSON(new_path, simplifyVector = FALSE)
+          new_json <- read_schema_document(new_path)
           new_spec <- suppressMessages(openapi_to_spec(new_json))
 
           # Filter out admin/auth/metadata/version endpoints
@@ -334,7 +334,7 @@ diff_schemas <- function(
               )
             })
           }
-          old_json <- jsonlite::fromJSON(old_path, simplifyVector = FALSE)
+          old_json <- read_schema_document(old_path)
           old_spec <- suppressMessages(openapi_to_spec(old_json))
 
           # Filter out admin/auth/metadata/version endpoints

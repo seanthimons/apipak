@@ -12,7 +12,7 @@ configuration_proposal <- function(schema, package, naming, group_by) {
   if (!grepl('^[A-Za-z][A-Za-z0-9.]*$', package) || endsWith(package, '.')) {
     stop('Invalid R package name')
   }
-  document <- jsonlite::read_json(schema)
+  document <- read_schema_document(schema)
   version <- document$openapi %or% document$swagger
   if (is.null(version) || !grepl('^(3\\.[01]\\.|2\\.0$)', version)) {
     stop('Unsupported schema version')
@@ -154,7 +154,12 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     text
   }
   services <- sort(unique(groups), method = 'radix')
-  files <- list('schema/openapi.json' = file_text(schema))
+  extension <- tolower(tools::file_ext(schema))
+  if (!extension %in% c('yaml', 'yml')) {
+    extension <- 'json'
+  }
+  schema_file <- paste0('schema/openapi.', extension)
+  files <- setNames(list(file_text(schema)), schema_file)
   project <- list(
     config_version = 1L,
     package = package,
@@ -223,7 +228,7 @@ configuration_proposal <- function(schema, package, naming, group_by) {
     service <- list(
       id = if (group == 'default' && length(services) == 1L) package else group,
       schemas = list(
-        files = list('schema/openapi.json'),
+        files = list(schema_file),
         patterns = list(),
         exclude = list()
       ),
