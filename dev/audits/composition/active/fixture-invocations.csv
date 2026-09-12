@@ -1,0 +1,5 @@
+"service","key","body"
+"epa_predictor_1509ee27_forgetest","POST /api/amnb_nate","{""chemicals"":[{""id"":1,""smiles"":""example""}],""smiles"":[""example""]}"
+"ncc_cats_forgetest","POST /api/ncc_cats","{""chemicals"":[{""id"":1,""logp"":1,""smiles"":""example"",""ws"":1}]}"
+"opera_predictor_forgetest","POST /api/opera","{""cache_only"":false,""smiles"":[""FC(C(C(C1OC(=O)C2C(=CC=CC=2)N=1)(F)F)(F)F)(F)F"",""CCCCN""]}"
+"epa_predictor_13ba85f2_forgetest","POST /api/predictor_models/predict","{""model_id"":1065,""smiles"":[""FC(C(C(C1OC(=O)C2C(=CC=CC=2)N=1)(F)F)(F)F)(F)F"",""CCCCN""]}"

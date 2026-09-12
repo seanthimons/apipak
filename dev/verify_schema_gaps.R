@@ -4,20 +4,26 @@ verify_schema_gaps <- function(
   native_root = 'C:/Users/sxthi/Documents/specmill-testing/additional-schemas',
   baseline = 'dev/audits/native-yaml',
   baseline_caveats = 'dev/audits/additional-schemas/coverage-caveats.csv',
-  output = 'dev/audits/schema-gaps'
+  output = 'dev/audits/schema-gaps',
+  policies = list()
 ) {
   source('dev/audit_testing_specs.R', local = TRUE)
   result <- audit_testing_specs(
     output = output,
     native_root = native_root,
-    report = FALSE
+    report = FALSE,
+    policies = policies
   )
   before <- read.csv(
     file.path(baseline, 'operations.csv'),
     stringsAsFactors = FALSE
   )
   after <- result$operations
-  caveats <- read.csv(baseline_caveats, stringsAsFactors = FALSE)
+  caveats <- if (is.null(baseline_caveats)) {
+    before[FALSE, ]
+  } else {
+    read.csv(baseline_caveats, stringsAsFactors = FALSE)
+  }
   id <- function(x) paste(x$file, x$key)
   before$resolved <- before$stage == 'passed' & !id(before) %in% id(caveats)
   after$resolved <- after$stage == 'passed'
@@ -67,6 +73,17 @@ verify_schema_gaps <- function(
   ]
   names(blockers) <- sub('_after$', '', names(blockers))
   write.csv(blockers, file.path(output, 'new-blockers.csv'), row.names = FALSE)
+  exposed_fixtures <- changed[
+    !is.na(changed$stage_before) &
+      changed$stage_before == 'parser' &
+      !is.na(changed$stage_after) &
+      changed$stage_after == 'fixture',
+  ]
+  write.csv(
+    exposed_fixtures,
+    file.path(output, 'newly-exposed-fixture-blockers.csv'),
+    row.names = FALSE
+  )
   before_schemas <- read.csv(
     file.path(baseline, 'schemas.csv'),
     stringsAsFactors = FALSE
@@ -101,12 +118,17 @@ verify_schema_gaps <- function(
         'Resolved-contract smoke passes:',
         sum(result$operations$stage == 'passed')
       ),
-      paste('New parser blockers:', sum(blockers$stage == 'parser')),
-      paste('New fixture blockers:', sum(blockers$stage == 'fixture')),
+      paste('Changed parser blocker records:', sum(blockers$stage == 'parser')),
+      paste(
+        'Changed fixture blocker records:',
+        sum(blockers$stage == 'fixture')
+      ),
+      paste('Newly exposed fixture blockers:', nrow(exposed_fixtures)),
       '',
       '[Schema results](schemas.csv), [operation results](operations.csv),',
       '[changed operations](changed-operations.csv), [resolved contract gains](resolved-operation-keys.csv),',
-      '[new blockers](new-blockers.csv),',
+      '[changed blockers](new-blockers.csv),',
+      '[newly exposed fixture blockers](newly-exposed-fixture-blockers.csv),',
       '[document comparison](document-comparison.csv).'
     ),
     file.path(output, 'SUMMARY.md')
