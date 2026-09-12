@@ -3,7 +3,8 @@
 audit_testing_specs <- function(
   prepared = '.docs-lib/additional-json',
   output = 'dev/audits/additional-schemas',
-  native_root = NULL
+  native_root = NULL,
+  report = TRUE
 ) {
   inputs <- if (is.null(native_root)) {
     read.csv(
@@ -209,7 +210,7 @@ audit_testing_specs <- function(
     file.path(output, 'sources.csv'),
     row.names = FALSE
   )
-  if (is.null(native_root)) {
+  if (is.null(native_root) && report) {
     report_testing_specs(prepared, output)
   }
   invisible(list(

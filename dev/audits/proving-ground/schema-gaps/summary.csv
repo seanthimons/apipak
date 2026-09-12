@@ -1,0 +1,5 @@
+"classification","reason","method","operations"
+"capability_gap","Binary parameter requires source contract review (#16)","POST",1
+"capability_gap","Binary parameter requires source contract review (#16); Unsupported nested parameter object","POST",6
+"schema_defect","Invalid input schema type","POST",4
+"capability_gap","Unsupported body composition","POST",4
